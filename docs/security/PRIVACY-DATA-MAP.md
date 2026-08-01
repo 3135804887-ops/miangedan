@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | SEC-PRIV-001 |
-| 版本 | 0.1.0（草案，待安全/隐私与法务评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Privacy, Security & AI Governance"（Data Regions、Consent Center、Retention、Age Policy）；US-05、US-07；FR-003、FR-027、FR-035、FR-040 |
 | 一致性锚点 | `docs/data/DATA-CLASSIFICATION.md`、`docs/data/RETENTION-MATRIX.md`、`docs/security/THREAT-MODEL.md`、`docs/architecture/DEPLOYMENT.md` |
 

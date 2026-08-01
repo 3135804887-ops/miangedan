@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DESIGN-001 |
-| 版本 | 0.1.0（草案，待 Design Lead 评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Product Overview & User Journey"、"Design & UX Requirements"、US-01 ~ US-08 功能线框图；FR-001 ~ FR-040 |
 | 一致性锚点 | `docs/domain/INTERVIEW-STATE-MACHINE.md`（全部页面状态以项目/会话状态机为准）、`config/interview-flows/v1/default.yaml`、`docs/design/ACCESSIBILITY.md` |
 

@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | SEC-REQ-001 |
-| 版本 | 0.1.0（草案，待安全负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Security Controls"、Risks & Mitigation、NFR（Accessibility and Security）；US-08；FR-037 ~ FR-040 |
 | 一致性锚点 | `docs/security/THREAT-MODEL.md`（威胁到控制的映射）、`docs/security/PRIVACY-DATA-MAP.md`、`docs/data/DATA-CLASSIFICATION.md`、`.env.example` |
 

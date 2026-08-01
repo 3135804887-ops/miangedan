@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DESIGN-003 |
-| 版本 | 0.1.0（草案，待 Accessibility Lead 评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Design & UX Requirements → Accessibility"；Pre-Launch Hard Gates（WCAG 2.2 AA）；风险表 P1（便利设置被当成弱点）；US-03 规则 8/9；FR-016、FR-018 |
 | 一致性锚点 | `ai/schemas/turn-evidence.schema.json`（accommodations_in_effect 枚举）、`docs/ai/SCORING-SPEC.md`（便利设置不进入评分证据）、`docs/design/SCREEN-SPEC.md` |
 

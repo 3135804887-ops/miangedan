@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DATA-001 |
-| 版本 | 0.1.0（草案，待工程评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Key Data Entities"、"Recommended Technology Baseline"；US-01 ~ US-08；FR-001 ~ FR-040；NFR-005、NFR-006 |
 | 一致性锚点 | `docs/domain/DOMAIN-MODEL.md`（实体语义事实源）、`ai/schemas/*.json`（内容结构）、`docs/domain/BILLING-STATE-MACHINE.md`（账本） |
 

@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | ARCH-001 |
-| 版本 | 0.1.0（草案，待工程评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Technical Considerations"（High-Level Architecture、Architectural Decisions 1–6、Recommended Technology Baseline、Core Services）；NFR-001 ~ NFR-016 |
 | 相关 ADR | ADR-0001 ~ ADR-0005 |
 

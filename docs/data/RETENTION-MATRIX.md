@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DATA-002 |
-| 版本 | 0.1.0（草案，待隐私/法务评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Privacy, Security & AI Governance → Retention"；US-04 规则 11-12；US-05 场景 5；FR-040 |
 | 一致性锚点 | `docs/data/DATA-MODEL.md`（存储层）、`docs/security/PRIVACY-DATA-MAP.md`（法律依据）、`docs/domain/DOMAIN-MODEL.md`（生命周期） |
 

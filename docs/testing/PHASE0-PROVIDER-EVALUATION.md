@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | TEST-PHASE0-001 |
-| 版本 | 0.1.0（草案，待技术/AI/安全负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 Timeline（Phase 0）、Risks（供应商故障 P0、肖像/深度伪造 P0）；OD-01；NFR-007 ~ NFR-012；TASK-030、TASK-091、TASK-096 |
 | 一致性锚点 | `docs/ai/PROVIDER-ADAPTERS.md`（能力契约）、`docs/architecture/DEPLOYMENT.md`（区域与故障切换）、`fixtures/synthetic/`（评测数据） |
 

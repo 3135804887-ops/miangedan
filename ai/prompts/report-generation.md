@@ -10,7 +10,7 @@ output_schema: ai/schemas/report.schema.json（逐模块输出）
 safety_policy: config/safety/policy.yaml
 eval_datasets: ai/evals/datasets/zh-core.jsonl、ai/evals/datasets/en-core.jsonl（报告相关用例）
 owner: AI/评分负责人
-status: draft_for_review
+status: approved
 ```
 
 ## 1. 目的

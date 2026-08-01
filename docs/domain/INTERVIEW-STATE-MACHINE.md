@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DOMAIN-002 |
-| 版本 | 0.1.0（草案，待工程评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Interview Project State Machine"、"Realtime Turn Sequence"；US-01 ~ US-05；FR-009 ~ FR-026；NFR-003、NFR-005、NFR-006；恢复规则（3 分钟重连、RPO） |
 | 一致性锚点 | `docs/api/realtime-events.md`（事件名）、`docs/ai/SCORING-SPEC.md`（评分结论）、`docs/domain/BILLING-STATE-MACHINE.md`（额度联动） |
 

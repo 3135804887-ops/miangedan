@@ -10,7 +10,7 @@
 rubric_id: default
 rubric_version: "rubrics/v1/default"
 version: "1.0.0"
-status: draft_for_review        # draft_for_review | approved | deprecated
+status: approved        # draft_for_review | approved | deprecated
 locale_calibration:             # 中英文各自校准，不用机翻代替专业验证
   - zh-CN
   - en-US

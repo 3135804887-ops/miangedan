@@ -10,7 +10,7 @@
 flow_id: default
 flow_version: "interview-flows/v1/default"
 version: "1.0.0"
-status: draft_for_review
+status: approved
 
 # ---- 全局边界 ---------------------------------------------------------------------
 bounds:

@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | AI-ORCH-001 |
-| 版本 | 0.1.0（草案，待 AI 负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Architectural Decisions"（业务工作流与 AI 决策分离、对话与评分分离）；US-02、US-03、US-04；FR-009 ~ FR-012、FR-023、FR-024；ADR-0001、ADR-0002 |
 | 一致性锚点 | `docs/domain/INTERVIEW-STATE-MACHINE.md`（业务状态唯一事实源）、`docs/ai/SCORING-SPEC.md`、`docs/ai/HANDOFF-SPEC.md`、`docs/ai/PROMPT-POLICY.md`、`config/interview-flows/v1/default.yaml`、`config/safety/policy.yaml` |
 

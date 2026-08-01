@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DOMAIN-001 |
-| 版本 | 0.1.0（草案，待工程评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Key Data Entities"、"Core Services"；US-01 ~ US-08；FR-001 ~ FR-040 |
 | 一致性锚点 | `docs/domain/INTERVIEW-STATE-MACHINE.md`、`docs/domain/BILLING-STATE-MACHINE.md`、`ai/schemas/*.json`、`docs/data/DATA-MODEL.md` |
 

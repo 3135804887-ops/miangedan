@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | AI-PROMPT-001 |
-| 版本 | 0.1.0（草案，待 AI 与安全负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "AI Governance"；US-02 场景 5；风险表（提示注入 P0、歧视禁止、高压面试 P1）；FR-038 |
 | 一致性锚点 | `config/safety/policy.yaml`（阻断规则事实源）、`docs/ai/AI-ORCHESTRATION.md`、`ai/prompts/README.md`、`ai/schemas/` |
 

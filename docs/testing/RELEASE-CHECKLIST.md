@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | RELEASE-CHK-001 |
-| 版本 | 0.1.0（草案，待 QA/SRE 与各负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 Timeline & Milestones（Phase 0~4）、Pre-Launch Hard Gates、Risks & Mitigation、Stakeholder Sign-Off |
 | 一致性锚点 | `docs/testing/ACCEPTANCE-MATRIX.md`、`docs/testing/TEST-STRATEGY.md`、`IMPLEMENTATION_PLAN.md`（EPIC-10、OD-01~06） |
 

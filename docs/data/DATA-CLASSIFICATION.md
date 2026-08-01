@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DATA-003 |
-| 版本 | 0.1.0（草案，待安全/隐私评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Privacy, Security & AI Governance → Security Controls"；US-01 规则 4；US-08 规则 1/9；FR-003、FR-039 |
 | 一致性锚点 | `docs/data/DATA-MODEL.md`（存储位置）、`docs/data/RETENTION-MATRIX.md`（保留期）、`docs/security/SECURITY-REQUIREMENTS.md`（控制项）、`config/safety/policy.yaml`（保护属性） |
 

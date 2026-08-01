@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | AI-PROV-001 |
-| 版本 | 0.1.0（草案，待技术与 AI 负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Architectural Decisions"（供应商抽象）、"Recommended Technology Baseline"；NFR-007 ~ NFR-012；US-08 规则 4、5；风险表（供应商故障 P0）；ADR-0003 |
 | 一致性锚点 | `.env.example`（[REGION-SCOPED] 凭证）、`docs/ai/AI-ORCHESTRATION.md`、`docs/domain/INTERVIEW-STATE-MACHINE.md`（故障恢复矩阵） |
 

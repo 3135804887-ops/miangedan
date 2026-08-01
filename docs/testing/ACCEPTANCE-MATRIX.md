@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | TEST-MATRIX-001 |
-| 版本 | 0.1.0（草案，待 QA 评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 全部 US-01~US-08、FR-001~FR-040、NFR-001~NFR-016；US 验收场景；Pre-Launch Hard Gates |
 | 一致性锚点 | `IMPLEMENTATION_PLAN.md`（Epic/TASK）、`docs/ai/SCORING-SPEC.md`（SC-EC-01~24）、`docs/domain/INTERVIEW-STATE-MACHINE.md`、`docs/domain/BILLING-STATE-MACHINE.md` |
 

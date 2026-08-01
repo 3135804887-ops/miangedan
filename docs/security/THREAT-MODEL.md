@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | SEC-THREAT-001 |
-| 版本 | 0.1.0（草案，待安全评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Risks & Mitigation"（P0/P1 风险）、"Security Controls"；US-01~US-08；FR-006、FR-039、FR-040；NFR-006 |
 | 一致性锚点 | `config/safety/policy.yaml`、`docs/data/DATA-CLASSIFICATION.md`、`docs/security/SECURITY-REQUIREMENTS.md`、`docs/domain/BILLING-STATE-MACHINE.md` |
 

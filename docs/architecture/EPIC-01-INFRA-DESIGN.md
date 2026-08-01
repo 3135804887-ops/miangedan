@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | ARCH-EPIC01-001 |
-| 版本 | 0.1.0（草案，待工程/SRE 评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | IMPLEMENTATION_PLAN.md EPIC-01（TASK-001 ~ TASK-008）；NFR-001 ~ NFR-006；ADR-0003、ADR-0004、ADR-0005 |
 | 一致性锚点 | `docs/architecture/SYSTEM-ARCHITECTURE.md`、`docs/architecture/DEPLOYMENT.md`、`.env.example`、`tools/validate_docs.py` |
 

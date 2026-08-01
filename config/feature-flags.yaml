@@ -10,7 +10,7 @@
 # =============================================================================
 
 flags_version: "1.0.0"
-status: draft_for_review
+status: approved
 
 environments: [dev, staging, production]
 regions: [cn, eu, intl]

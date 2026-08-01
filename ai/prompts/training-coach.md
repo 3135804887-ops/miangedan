@@ -10,7 +10,7 @@ output_schema: 本文件第 4 节（CoachOutput）
 safety_policy: safety/v1
 eval_datasets: [ai/evals/datasets/zh-core.jsonl, ai/evals/datasets/en-core.jsonl]
 owner: AI/评分负责人
-status: draft_for_review
+status: approved
 ```
 
 ## 1. 目的

@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | DOMAIN-003 |
-| 版本 | 0.1.0（草案，待工程与财务评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 US-06、Commercial Model；FR-031 ~ FR-033；NFR-006（幂等）；风险表（额度/支付故障 P1） |
 | 一致性锚点 | `docs/domain/INTERVIEW-STATE-MACHINE.md`（额度联动点）、`docs/api/openapi.yaml`（接口）、`docs/data/DATA-MODEL.md`（账本表） |
 

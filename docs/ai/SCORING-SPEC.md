@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | AI-SCORE-001 |
-| 版本 | 0.1.0（草案，待 AI/评分负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Scoring & Decision Model"；US-04；FR-021 ~ FR-025；硬门槛（评分稳定性/专家一致率） |
 | 一致性锚点 | `config/rubrics/v1/default.yaml`（唯一量表事实源）、`ai/schemas/scoring-input.schema.json`、`ai/schemas/scoring-result.schema.json` |
 

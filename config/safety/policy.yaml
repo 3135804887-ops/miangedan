@@ -9,7 +9,7 @@
 policy_id: content-safety
 policy_version: "safety/v1"
 version: "1.0.0"
-status: draft_for_review
+status: approved
 applies_to:
   - plan_generation
   - realtime_interviewer

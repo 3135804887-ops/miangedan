@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | ARCH-002 |
-| 版本 | 0.1.0（草案，待 SRE 与安全评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Data Regions"、"Scaling Strategy"、NFR-004、Recovery and Disaster Recovery、Phase 3；ADR-0005；IMPLEMENTATION_PLAN EPIC-01、EPIC-10 |
 | 未决依赖 | OD-01（供应商）、OD-03（法律实施方案）、OD-05（峰值容量基线） |
 

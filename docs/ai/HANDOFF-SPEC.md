@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | AI-HANDOFF-001 |
-| 版本 | 0.1.0（草案，待 AI/评分负责人评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Cross-Round Handoff"、"Retry and Dimension Locking"；US-02 规则 12；US-04 规则 8；FR-011、FR-012 |
 | 一致性锚点 | `ai/schemas/handoff-package.schema.json`（结构事实源）、`docs/ai/SCORING-SPEC.md`、`docs/domain/INTERVIEW-STATE-MACHINE.md` |
 

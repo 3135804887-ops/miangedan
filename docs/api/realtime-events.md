@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 文档编号 | API-RT-001 |
-| 版本 | 0.1.0（草案，待工程评审） |
+| 版本 | 0.1.0（已批准 2026-08-01 规范评审） |
 | 追踪 | PRD-001 "Realtime Turn Sequence"、Analytics Events；US-03；FR-013 ~ FR-020；NFR-005 ~ NFR-010 |
 | 一致性锚点 | `docs/domain/INTERVIEW-STATE-MACHINE.md`（状态与恢复）、`docs/api/openapi.yaml`（业务 API）、`docs/domain/BILLING-STATE-MACHINE.md`（计量联动） |
 
