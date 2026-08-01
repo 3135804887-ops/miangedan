@@ -100,8 +100,10 @@
 > （`services/secretref` 引用契约包、`infra/modules/secret-ref`、`key-mgmt` 校验套件与轮换演练、
 > `docs/operations/KEY-ROTATION-RUNBOOK.md`）；TASK-007（通知与身份通道）已实现
 > （`services/notify` 区域路由契约、`services/identity/provider` 提供商开放矩阵、
-> `infra/modules/notification`、`channels` 校验套件）；
-> EPIC-01 其余任务按依赖继续推进
+> `infra/modules/notification`、`channels` 校验套件）；TASK-008（备份与恢复）已实现
+> （`services/backup` 契约包与一键恢复 CLI、`infra/modules/backup`、`backup` 校验套件、
+> 恢复运行手册与季度演练模板）。**EPIC-01（基础设施与数据区）8 个任务全部完成**，
+> EPIC-02 开工条件满足；后续 Epic 按依赖继续推进
 > （实施细节见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）。
 
 ### EPIC-02 领域核心（身份、资产、材料、项目与计划）

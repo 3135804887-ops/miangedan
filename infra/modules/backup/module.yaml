@@ -1,0 +1,17 @@
+# 备份与恢复模块契约（TASK-008）
+# 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 6 节；SECURITY-REQUIREMENTS SEC-050、SEC-052
+kind: backup
+strategy:
+  schedule: daily_full_plus_wal
+  pitr: true
+  per_region_bucket: true
+targets:
+  evidence_rpo_seconds: 0
+  other_rpo_seconds_max: 5
+  rto_seconds_max: 1800
+restore:
+  tombstone_filter: true
+  one_click: true
+drill:
+  quarterly_template: tools/backup/quarterly-drill-template.md
+  runbook: docs/operations/RECOVERY-RUNBOOK.md

@@ -142,6 +142,18 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 > 新增 `channels` 校验套件并接入 CI 阶段 1。
 | TASK-008 备份与恢复 | 每日完整 + 持续增量 + PITR；恢复脚本一键化；季度恢复演练模板 | 演练 RTO/RPO 达标（证据 RPO=0） |
 
+> TASK-008 实施（2026-08-01）：新增 `services/backup` 共享包与 CLI（yaml.v3）：备份契约
+> `Config.Validate` fail-closed（每日完整+WAL+PITR、证据 RPO=0、其他 RPO ≤5s、RTO ≤30 分钟、
+> 区域内备份桶、恢复前强制 tombstone 过滤）、`LoadConfig` 从区域拓扑 YAML 直接加载、
+> 一键恢复 CLI `backup -mode restore-dry-run` 输出固定步骤序列；新增
+> `infra/modules/backup` 模块契约与三区×三环境 `topology.backup` 配置，纳入 `regions` 套件校验；
+> 新增 `backup` 校验套件并接入 CI 阶段 1；新增 `docs/operations/RECOVERY-RUNBOOK.md` 与
+> `tools/backup/quarterly-drill-template.md`（季度演练模板，含 RPO/RTO 结果记录表）。
+>
+> **EPIC-01 完成出口（2026-08-01）**：TASK-001~008 全部实现并合入 main，三区 dev/staging 拓扑就绪、
+> CI 门禁全绿（18 套件 + 14 个 golangci 模块），密钥/日志/备份/恢复演练契约齐备；
+> EPIC-02（领域核心）开工条件满足。
+
 ## 7. 实施顺序与依赖
 
 ```mermaid

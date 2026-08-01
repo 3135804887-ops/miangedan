@@ -39,6 +39,14 @@ topology:
     otlp_endpoint: https://mgd-cn-prod-otel.example.com:4318
     redaction: strict
     status_page: mgd-cn-prod-status
+  backup:
+    bucket: mgd-cn-prod-backups
+    schedule: daily_full_plus_wal
+    pitr: true
+    evidence_rpo_seconds: 0
+    other_rpo_seconds: 5
+    rto_seconds: 1800
+    tombstone_filter: true
   secrets:
     kms_name: mgd-cn-prod-kms
     refs:
