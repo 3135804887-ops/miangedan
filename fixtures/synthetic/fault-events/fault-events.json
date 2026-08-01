@@ -1,0 +1,69 @@
+{
+  "synthetic": true,
+  "notice": "合成测试数据（synthetic）。虚构故障事件序列，用于混沌/重放测试：数字人故障降级路径与 3 分钟重连窗口路径。事件名与 docs/api/realtime-events.md 一致。",
+  "scenarios": [
+    {
+      "scenario_id": "fault-avatar-downgrade-01",
+      "description": "数字人音频持续故障：暂停计时→自动重连失败→询问降级→用户同意→文字模式继续；故障点起不计数字人额度。",
+      "session_id": "00000000-0000-4000-8000-00000000e001",
+      "data_region": "cn",
+      "expected_project_outcome": "TEXT_DEGRADED 继续，正常收尾评分",
+      "events": [
+        {"room_seq": 41, "event": "avatar.failed", "payload": {"failed_component": "audio", "error_code": "AVATAR_AUDIO_STREAM_LOST", "retry_attempt": 1}, "billable_impact": "none"},
+        {"room_seq": 42, "event": "timer.paused", "payload": {"reason": "system_fault"}, "billable_impact": "none"},
+        {"room_seq": 43, "event": "usage.meter.stopped", "payload": {"meter_period_id": "mp-e001-0001"}, "billable_impact": "none"},
+        {"room_seq": 44, "event": "avatar.failed", "payload": {"failed_component": "audio", "error_code": "AVATAR_AUDIO_STREAM_LOST", "retry_attempt": 2}, "billable_impact": "none"},
+        {"room_seq": 45, "event": "avatar.unrecoverable", "payload": {"attempts_made": 3, "last_error_code": "AVATAR_AUDIO_STREAM_LOST"}, "billable_impact": "none"},
+        {"room_seq": 46, "event": "avatar.downgrade_prompted", "payload": {"prompt_id": "dp-e001-0001", "options": ["text_interview", "end"]}, "billable_impact": "none"},
+        {"room_seq": 47, "event": "avatar.downgrade_accepted", "payload": {"prompt_id": "dp-e001-0001", "consent_confirmed": true}, "billable_impact": "none"},
+        {"room_seq": 48, "event": "timer.resumed", "payload": {"reason_cleared": "system_fault", "mode": "text"}, "billable_impact": "text_mode_no_avatar_seconds"}
+      ],
+      "expected_invariants": [
+        "故障段（room_seq 41-47）billable_seconds 不增加",
+        "已确认回合与证据不丢失",
+        "口语项按文字模式规则：oral_delivery = not_evaluated",
+        "不判定 FAIL"
+      ]
+    },
+    {
+      "scenario_id": "fault-avatar-downgrade-rejected-02",
+      "description": "数字人故障降级被用户拒绝：结束并标记 EVALUATION_INCOMPLETE（不判失败），系统责任全额返还本轮预留。",
+      "session_id": "00000000-0000-4000-8000-00000000e002",
+      "data_region": "cn",
+      "expected_project_outcome": "EVALUATION_INCOMPLETE + 全额返还本轮预留额度",
+      "events": [
+        {"room_seq": 12, "event": "avatar.failed", "payload": {"failed_component": "both", "error_code": "AVATAR_RENDER_FAILED", "retry_attempt": 1}, "billable_impact": "none"},
+        {"room_seq": 13, "event": "timer.paused", "payload": {"reason": "system_fault"}, "billable_impact": "none"},
+        {"room_seq": 14, "event": "avatar.unrecoverable", "payload": {"attempts_made": 3, "last_error_code": "AVATAR_RENDER_FAILED"}, "billable_impact": "none"},
+        {"room_seq": 15, "event": "avatar.downgrade_prompted", "payload": {"prompt_id": "dp-e002-0001", "options": ["text_interview", "end"]}, "billable_impact": "none"},
+        {"room_seq": 16, "event": "avatar.downgrade_rejected", "payload": {"prompt_id": "dp-e002-0001"}, "billable_impact": "none"},
+        {"room_seq": 17, "event": "session.ended", "payload": {"end_reason": "downgrade_rejected"}, "billable_impact": "refund_full_reservation"}
+      ],
+      "expected_invariants": [
+        "结果为 EVALUATION_INCOMPLETE 而非 FAIL",
+        "本轮预留额度自动全额返还（REFUNDED_FULL）",
+        "提供重试或退款入口"
+      ]
+    },
+    {
+      "scenario_id": "fault-reconnect-window-03",
+      "description": "用户断线：179 秒内恢复成功（继续）；181 秒未恢复（评估未完成）。两个子用例验证 3 分钟窗口边界。",
+      "session_id": "00000000-0000-4000-8000-00000000e003",
+      "data_region": "cn",
+      "expected_project_outcome": "子用例 A 恢复 LIVE；子用例 B EVALUATION_INCOMPLETE",
+      "events": [
+        {"room_seq": 88, "event": "session.reconnect.window_started", "payload": {"window_seconds": 180, "last_confirmed_room_seq": 87}, "billable_impact": "none"},
+        {"room_seq": 88, "event": "timer.paused", "payload": {"reason": "reconnect"}, "billable_impact": "none"},
+        {"room_seq": 89, "event": "session.reconnected", "payload": {"from_room_seq": 87, "elapsed_seconds": 179, "case": "A"}, "billable_impact": "none"},
+        {"room_seq": 90, "event": "timer.resumed", "payload": {"reason_cleared": "reconnect", "case": "A"}, "billable_impact": "resume"},
+        {"room_seq": 88, "event": "session.reconnect.expired", "payload": {"elapsed_seconds": 181, "case": "B"}, "billable_impact": "none"},
+        {"room_seq": 89, "event": "session.ended", "payload": {"end_reason": "unrecoverable", "case": "B"}, "billable_impact": "settle_actual_usage"}
+      ],
+      "expected_invariants": [
+        "179s 内恢复：回到最后已确认回合，不扣时间、不判失败",
+        "181s 超时：EVALUATION_INCOMPLETE，非系统责任按实际使用结算",
+        "重连窗口内不产生 billable_seconds"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+# ---- 机密与环境（任何真实环境文件禁止入库；只提交 .env.example）----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/secrets/
+
+# ---- 依赖与构建产物 ----
+node_modules/
+dist/
+build/
+out/
+.next/
+coverage/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- 运行时与临时文件 ----
+*.log
+tmp/
+temp/
+.cache/
+
+# ---- 操作系统与编辑器 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# ---- 用户内容（真实简历/媒体等任何用户数据禁止入库；fixtures/synthetic 除外）----
+uploads/
+media/
+exports/

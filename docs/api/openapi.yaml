@@ -1,0 +1,1817 @@
+# =============================================================================
+# 面个蛋（MianGeDan）业务 API 契约
+# 追踪：PRD-001 "API and Integration Principles"；US-01 ~ US-08；FR-001 ~ FR-040
+# 一致性锚点：docs/domain/DOMAIN-MODEL.md、INTERVIEW-STATE-MACHINE.md、
+#             BILLING-STATE-MACHINE.md、docs/ai/SCORING-SPEC.md、ai/schemas/
+#
+# 【平台级硬约束】
+# 1. 本系统不存在任何修改个人分数或解锁状态的端点；个体结果只能由正式复核
+#    服务（POST /v1/projects/{projectId}/rounds/{sequence}/review）产生新版本。
+# 2. 浏览器不直接持有模型、支付或数字人供应商密钥；实时媒体使用短期房间令牌，
+#    业务 API 令牌与媒体令牌相互隔离。
+# 3. 所有写操作要求 Idempotency-Key；删除、导出、评分、退款为异步任务，
+#    必须返回真实进度查询端点。
+# 4. 第三方回调采用签名验证、重放防护和幂等处理。
+# 5. 外部网页内容仅作为不可信数据进入结构化提取，不得作为系统指令。
+# =============================================================================
+openapi: 3.1.0
+info:
+  title: 面个蛋 MianGeDan API
+  version: "1.0.0"
+  description: |
+    面个蛋（MianGeDan）业务 API v1。追踪 PRD-001 V1.0（docs/prd/PRD-001-面个蛋-V1.0.md）。
+
+    ## 统一约定
+    - **幂等**：所有 POST/PATCH/DELETE 写操作必须携带 `Idempotency-Key` 请求头；
+      相同键重复提交返回首个结果，不产生重复副作用（NFR-006）。
+    - **分页**：列表端点使用 `cursor` + `limit`（默认 20，最大 100），响应含 `next_cursor`。
+    - **区域**：`data_region ∈ {cn, eu, intl}` 随 JWT claim 与响应返回；跨区域访问返回 `region_mismatch`。
+    - **错误**：统一 Error 结构（见 components.schemas.Error）。
+    - **异步任务**：删除、导出、评分、退款返回任务 ID，通过对应 GET 端点查询真实进度。
+    - **版本**：路径版本 `/v1`；响应不携带供应商密钥、内部模型端点等机密信息。
+servers:
+  - url: https://{region}.api.miangedan.example
+    description: 区域化 API 入口（三数据区相互隔离）
+    variables:
+      region:
+        enum: [cn, eu, intl]
+        default: intl
+        description: 数据区域；用户请求必须路由到其账户所属区域
+
+tags:
+  - name: auth
+    description: 登录与身份验证（邮箱验证码、Google、Apple、微信；US-05、FR-027）
+  - name: account
+    description: 账户与多身份绑定（US-05、FR-027、FR-029）
+  - name: consents
+    description: 授权中心：六类独立授权与机构分享授权（FR-040、隐私规则）
+  - name: resumes
+    description: 简历上传、解析、校对与版本（US-01、FR-001 ~ FR-003、FR-006）
+  - name: jobs
+    description: 岗位 JD 解析与版本（US-01、FR-004、FR-005）
+  - name: projects
+    description: 面试项目生命周期（US-05、FR-029、FR-030）
+  - name: plans
+    description: 面试计划生成、编辑与冻结（US-02、FR-009 ~ FR-012）
+  - name: sessions
+    description: 实时面试房间与会话控制（US-03、FR-013 ~ FR-020）
+  - name: scores
+    description: 评分结果与正式复核（US-04、FR-021、FR-025）
+  - name: reports
+    description: 报告生成、局部重试与导出（US-04、FR-023、FR-026）
+  - name: practice
+    description: 非评分练习（永不改变正式分数；FR-024）
+  - name: retries
+    description: 正式重试与维度锁定（FR-024）
+  - name: billing
+    description: 报价、订单、额度账本、退款与订阅（US-06、FR-031 ~ FR-033）
+  - name: organizations
+    description: 机构租户、任务、细粒度授权与聚合（US-07、FR-034 ~ FR-036）
+  - name: deletion
+    description: 数据删除任务与真实进度（FR-040、US-05 场景 5）
+  - name: admin
+    description: |
+      运营治理（US-08、FR-037 ~ FR-040）。默认脱敏；职责分离；全部敏感操作写审计。
+      **本系统不存在任何修改个人分数或解锁状态的端点；个体结果只能由正式复核服务产生新版本。**
+
+paths:
+  # ============================== auth ==============================
+  /v1/auth/email/code:
+    post:
+      tags: [auth]
+      operationId: requestEmailCode
+      summary: 发送邮箱验证码（有效期、频率限制与风险验证）
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, data_region]
+              properties:
+                email: { type: string, format: email, example: "demo.user@example.com" }
+                data_region: { $ref: '#/components/schemas/Region' }
+      responses:
+        '200': { description: 验证码已发送（不泄露账户是否存在）, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/auth/email/verify:
+    post:
+      tags: [auth]
+      operationId: verifyEmailCode
+      summary: 校验邮箱验证码并签发业务令牌（含 data_region claim）
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, data_region]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, minLength: 4, maxLength: 8 }
+                data_region: { $ref: '#/components/schemas/Region' }
+      responses:
+        '200': { description: 登录成功, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/auth/oauth/{provider}:
+    post:
+      tags: [auth]
+      operationId: oauthLogin
+      summary: 第三方登录（Google / Apple / 微信；故障时提供邮箱替代）
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { enum: [google, apple, wechat] }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [authorization_code, data_region]
+              properties:
+                authorization_code: { type: string, description: 第三方授权码（服务端换取身份，浏览器不持密钥） }
+                data_region: { $ref: '#/components/schemas/Region' }
+      responses:
+        '200': { description: 登录成功, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== account ==============================
+  /v1/me:
+    get:
+      tags: [account]
+      operationId: getMe
+      summary: 获取当前账户（语言、年龄状态、数据区域）
+      responses:
+        '200': { description: 账户信息, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [account]
+      operationId: updateMe
+      summary: 更新界面语言等账户偏好（界面语言与面试语言相互独立）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ui_language: { $ref: '#/components/schemas/Language' }
+                display_name: { type: string, description: 可选称呼 }
+      responses:
+        '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/me/identities:
+    post:
+      tags: [account]
+      operationId: bindIdentity
+      summary: 绑定新登录身份（双侧验证；存在账户冲突时不合并，返回恢复路径）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, credential]
+              properties:
+                provider: { enum: [email_otp, google, apple, wechat] }
+                credential: { type: string, description: 待验证的身份凭证（验证码或授权码） }
+      responses:
+        '200': { description: 绑定成功 }
+        '409': { description: 身份冲突，未执行合并，提供恢复与人工支持路径, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/me/deletion:
+    post:
+      tags: [account]
+      operationId: requestAccountDeletion
+      summary: 创建账户删除任务（重新验证后；级联删除或不可逆匿名化；法定财务记录保留但解除内容关联）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reauth_proof, confirmation_text]
+              properties:
+                reauth_proof: { type: string, description: 重新认证凭证 }
+                confirmation_text: { type: string, description: 用户输入的确认文案 }
+      responses:
+        '202': { description: 删除任务已创建，返回任务 ID 查询真实进度, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/me/export:
+    get:
+      tags: [account]
+      operationId: requestDataExport
+      summary: 创建数据导出任务（异步，返回任务进度）
+      responses:
+        '202': { description: 导出任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== consents ==============================
+  /v1/me/consents:
+    get:
+      tags: [consents]
+      operationId: listConsents
+      summary: 列出当前全部授权状态（六类独立授权）
+      responses:
+        '200': { description: 授权列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/ConsentGrant' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/me/consents/{consentType}:
+    put:
+      tags: [consents]
+      operationId: upsertConsent
+      summary: 授予或撤回某类授权（撤回立即生效并写审计；模型训练默认关闭，拒绝不影响核心服务）
+      parameters:
+        - name: consentType
+          in: path
+          required: true
+          schema: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, consent_text_version]
+              properties:
+                status: { enum: [granted, withdrawn] }
+                consent_text_version: { type: string, description: 同意文案版本（授权证据） }
+                scope: { type: object, description: 可选范围（如机构分享限定 assignment_id 与数据类别）, additionalProperties: true }
+                expires_at: { type: ['string', 'null'], format: date-time }
+      responses:
+        '200': { description: 授权已更新（新版本追加）, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== resumes ==============================
+  /v1/resumes:
+    post:
+      tags: [resumes]
+      operationId: uploadResume
+      summary: 上传简历（.pdf/.doc/.docx，单文件 ≤10MB；损坏/加密/超限/伪装/恶意拒绝并给出具体原因）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: 简历文件；在隔离环境解析 }
+      responses:
+        '201': { description: 上传成功，待解析, content: { application/json: { schema: { $ref: '#/components/schemas/Resume' } } } }
+        '422': { description: 文件被拒绝（含具体原因：corrupted/encrypted/oversized/type_spoofed/unsafe）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    get:
+      tags: [resumes]
+      operationId: listResumes
+      summary: 简历库列表
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: 分页列表, content: { application/json: { schema: { $ref: '#/components/schemas/ResumePage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/resumes/{resumeId}:
+    get:
+      tags: [resumes]
+      operationId: getResume
+      summary: 获取简历元信息与当前确认版本
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+      responses:
+        '200': { description: 简历详情, content: { application/json: { schema: { $ref: '#/components/schemas/Resume' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [resumes]
+      operationId: deleteResume
+      summary: 删除简历（级联：结构化版本与对象存储原件；不影响已冻结项目的历史版本引用）
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { description: 删除任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/resumes/{resumeId}/parse:
+    post:
+      tags: [resumes]
+      operationId: parseResume
+      summary: 触发结构化解析（可重试失败步骤；P95 ≤60s @10MB，NFR-015）
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { description: 解析任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/resumes/{resumeId}/versions:
+    get:
+      tags: [resumes]
+      operationId: listResumeVersions
+      summary: 简历版本列表（历史版本全部保留）
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: 版本分页, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/ResumeVersion' } }, next_cursor: { type: ['string', 'null'] } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/resumes/{resumeId}/versions/{version}:
+    patch:
+      tags: [resumes]
+      operationId: editResumeVersion
+      summary: 逐字段编辑（新增/修改/删除字段；低置信度标记；编辑产生新版本草稿）
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_version, field_ops]
+              properties:
+                base_version: { type: integer, description: 乐观锁基版本 }
+                field_ops:
+                  type: array
+                  items:
+                    type: object
+                    required: [op, path]
+                    properties:
+                      op: { enum: [add, replace, remove] }
+                      path: { type: string, description: 字段路径（对应 resume-profile.schema.json） }
+                      value: {}
+      responses:
+        '200': { description: 编辑后的版本草稿, content: { application/json: { schema: { $ref: '#/components/schemas/ResumeVersion' } } } }
+        '409': { description: 版本冲突（基于最新版本重新编辑）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/resumes/{resumeId}/versions/{version}/confirm:
+    post:
+      tags: [resumes]
+      operationId: confirmResumeVersion
+      summary: 用户校对确认（确认后方可用于计划生成；写 resume_parse_confirmed）
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 已确认并冻结该版本, content: { application/json: { schema: { $ref: '#/components/schemas/ResumeVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== jobs ==============================
+  /v1/jobs:
+    post:
+      tags: [jobs]
+      operationId: createJob
+      summary: 粘贴完整 JD 创建岗位（薪资福利与招聘联系人不进入评分上下文）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jd_text]
+              properties:
+                jd_text: { type: string, minLength: 1, description: 完整 JD 原文（视为不可信数据，仅结构化提取） }
+      responses:
+        '201': { description: 已创建，待解析, content: { application/json: { schema: { $ref: '#/components/schemas/JobProfile' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    get:
+      tags: [jobs]
+      operationId: listJobs
+      summary: 岗位库列表
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: 分页列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/JobProfile' } }, next_cursor: { type: ['string', 'null'] } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/jobs/{jobId}/parse:
+    post:
+      tags: [jobs]
+      operationId: parseJob
+      summary: 触发 JD 结构化解析（AI 推导内容必须标记）
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { description: 解析任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/jobs/{jobId}/versions/{version}:
+    patch:
+      tags: [jobs]
+      operationId: editJobVersion
+      summary: 人工校对编辑 JD 结构化结果（产生新版本草稿）
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_version, field_ops]
+              properties:
+                base_version: { type: integer }
+                field_ops:
+                  type: array
+                  items:
+                    type: object
+                    required: [op, path]
+                    properties:
+                      op: { enum: [add, replace, remove] }
+                      path: { type: string }
+                      value: {}
+      responses:
+        '200': { description: 编辑后的版本草稿, content: { application/json: { schema: { $ref: '#/components/schemas/JobVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/jobs/{jobId}/versions/{version}/confirm:
+    post:
+      tags: [jobs]
+      operationId: confirmJobVersion
+      summary: 用户确认 JD 版本（写 jd_parse_confirmed）
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 已确认, content: { application/json: { schema: { $ref: '#/components/schemas/JobVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== projects ==============================
+  /v1/projects:
+    post:
+      tags: [projects]
+      operationId: createProject
+      summary: 创建面试项目（缺失材料时须先取得降级模式明确同意）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [interview_language, degraded_mode]
+              properties:
+                resume_id: { type: ['string', 'null'], format: uuid }
+                resume_version: { type: ['integer', 'null'], minimum: 1 }
+                job_id: { type: ['string', 'null'], format: uuid }
+                job_version: { type: ['integer', 'null'], minimum: 1 }
+                interview_language: { $ref: '#/components/schemas/Language' }
+                degraded_mode: { enum: [full, jd_only, resume_only, neither] }
+                degraded_mode_consent_id: { type: ['string', 'null'], format: uuid, description: 非 full 时必填（明确同意记录） }
+                assignment_id: { type: ['string', 'null'], format: uuid, description: 机构任务（可选） }
+      responses:
+        '201': { description: 项目已创建（DRAFT）, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    get:
+      tags: [projects]
+      operationId: listProjects
+      summary: 项目列表（按公司、岗位、日期、语言、状态筛选；跨设备同步）
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ProjectStatus' } }
+        - { name: company, in: query, schema: { type: string } }
+        - { name: job_title, in: query, schema: { type: string } }
+        - { name: interview_language, in: query, schema: { $ref: '#/components/schemas/Language' } }
+        - { name: date_from, in: query, schema: { type: string, format: date } }
+        - { name: date_to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: 分页列表, content: { application/json: { schema: { $ref: '#/components/schemas/ProjectPage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}:
+    get:
+      tags: [projects]
+      operationId: getProject
+      summary: 项目详情（状态、当前轮、下一动作）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200': { description: 项目详情, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [projects]
+      operationId: renameProject
+      summary: 重命名项目
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [projects]
+      operationId: deleteProject
+      summary: 删除项目（活动项目明确说明将终止面试；级联删除报告、训练与媒体；真实进度）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { description: 删除任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionTask' } } } }
+        '409': { description: 活动项目需先确认终止（state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/duplicate:
+    post:
+      tags: [projects]
+      operationId: duplicateProject
+      summary: 复制项目（复用简历/JD 创建不同难度、语言或风格的独立项目）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                interview_language: { $ref: '#/components/schemas/Language' }
+      responses:
+        '201': { description: 新项目（DRAFT）, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== plans ==============================
+  /v1/projects/{projectId}/plan:generate:
+    post:
+      tags: [plans]
+      operationId: generatePlan
+      summary: 生成个性化多轮计划（P95 ≤120s，NFR-016；来源元数据 + 安全检查通过才可用）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202': { description: 生成任务已创建（部分失败只重试失败模块）, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/plan:
+    get:
+      tags: [plans]
+      operationId: getPlan
+      summary: 获取当前计划版本（含来源、可信度、轮次与权重；不展示正式问题）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200': { description: 计划详情, content: { application/json: { schema: { $ref: '#/components/schemas/Plan' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [plans]
+      operationId: editPlan
+      summary: 编辑计划（轮次增删重排、角色、重点、难度、时长、风格、数字人、声音、工具；开始前；重新校验总权重与量表）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [base_plan_version, rounds]
+              properties:
+                base_plan_version: { type: integer, minimum: 1 }
+                rounds:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  items: { $ref: '#/components/schemas/RoundConfigInput' }
+      responses:
+        '200': { description: 新计划版本（未冻结）, content: { application/json: { schema: { $ref: '#/components/schemas/Plan' } } } }
+        '409': { description: 已冻结不可修改（state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/plan:confirm:
+    post:
+      tags: [plans]
+      operationId: confirmPlan
+      summary: 确认计划与额度（冻结量表、轮次权重、流程、问题覆盖方案与计费版本；写 plan_confirmed）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_version, accommodations]
+              properties:
+                plan_version: { type: integer, minimum: 1 }
+                accommodations:
+                  type: array
+                  items: { enum: [text_only, mixed_input, slower_avatar_speech, repeat_questions, extended_time, silence_threshold_adjusted, no_proactive_interruption, reduced_motion, tool_keyboard_alternative] }
+                quote_id: { type: ['string', 'null'], format: uuid, description: 付费项目的已确认报价 }
+      responses:
+        '200': { description: 已确认并冻结，项目进入 READY, content: { application/json: { schema: { $ref: '#/components/schemas/Project' } } } }
+        '422': { description: 计划不完整（某轮缺问题覆盖方案或量表），仅重试缺失部分, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== sessions ==============================
+  /v1/projects/{projectId}/rounds/{sequence}/session:
+    post:
+      tags: [sessions]
+      operationId: createSession
+      summary: 创建正式/重试轮次房间并签发短期房间令牌（与业务令牌隔离）
+      description: |
+        前置条件（全部满足，否则 state_conflict/insufficient_entitlement）：
+        覆盖方案与量表就绪；第 2 轮起交接包就绪；额度预留成功；单活动设备；便利设置已冻结。
+        房间令牌短期有效，仅用于媒体面；浏览器不持有任何供应商密钥。
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/RoundSequence'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, device_id]
+              properties:
+                kind: { enum: [formal, formal_retry] }
+                attempt_id: { type: ['string', 'null'], format: uuid, description: formal_retry 时必填 }
+                device_id: { type: string, description: 单活动设备标识 }
+      responses:
+        '201': { description: 房间已创建, content: { application/json: { schema: { $ref: '#/components/schemas/SessionCreated' } } } }
+        '402': { description: 额度不足（阻止开始并提供购买；面试中不提示余额）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 前置条件未满足或他设备活动（state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}:
+    get:
+      tags: [sessions]
+      operationId: getSession
+      summary: 会话状态（房间状态机、计时、计费秒数、当前回合）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200': { description: 会话详情, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/end:
+    post:
+      tags: [sessions]
+      operationId: endSession
+      summary: 用户主动退出（需确认；项目标记 EVALUATION_INCOMPLETE；按实际使用扣减）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm]
+              properties:
+                confirm: { type: boolean, const: true }
+      responses:
+        '200': { description: 会话已结束, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/reconnect:
+    post:
+      tags: [sessions]
+      operationId: reconnectSession
+      summary: 重连会话（3 分钟窗口内恢复到最后已确认回合；不扣时间、不判失败）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, last_confirmed_room_seq]
+              properties:
+                device_id: { type: string }
+                last_confirmed_room_seq: { type: integer, minimum: 0 }
+      responses:
+        '200': { description: 已重连（返回新的短期房间令牌）, content: { application/json: { schema: { $ref: '#/components/schemas/SessionCreated' } } } }
+        '410': { description: 重连窗口已过（项目进入 EVALUATION_INCOMPLETE）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/device-transfer:
+    post:
+      tags: [sessions]
+      operationId: transferSessionDevice
+      summary: 安全转移会话到另一设备（用户确认；原设备令牌立即失效）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_device_id, confirm]
+              properties:
+                new_device_id: { type: string }
+                confirm: { type: boolean, const: true }
+      responses:
+        '200': { description: 已转移（返回新设备短期房间令牌）, content: { application/json: { schema: { $ref: '#/components/schemas/SessionCreated' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== scores ==============================
+  /v1/projects/{projectId}/rounds/{sequence}/result:
+    get:
+      tags: [scores]
+      operationId: getRoundResult
+      summary: 当前轮最新有效评分结果（含门槛判定、弱项、解释与输入模式标注）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/RoundSequence'
+      responses:
+        '200': { description: 评分结果（结构对齐 scoring-result.schema.json）, content: { application/json: { schema: { $ref: '#/components/schemas/ScoreResult' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/rounds/{sequence}/scores:
+    get:
+      tags: [scores]
+      operationId: listScoreVersions
+      summary: 评分版本历史（追加式；全部版本保留）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/RoundSequence'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { description: 版本分页, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/ScoreResult' } }, next_cursor: { type: ['string', 'null'] } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/rounds/{sequence}/review:
+    post:
+      tags: [scores]
+      operationId: requestFormalReview
+      summary: 正式复核（每次正式尝试仅一次；冻结证据+量表+权重重算；展示前后结果与原因）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/RoundSequence'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attempt_id, scope]
+              properties:
+                attempt_id: { type: string, format: uuid }
+                scope: { enum: [question, dimension, round], description: 复核范围声明（计算均基于完整冻结输入） }
+      responses:
+        '202': { description: 复核任务已创建（异步；产生新 ScoreVersion）, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        '409': { description: 本次尝试已复核过（state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== reports ==============================
+  /v1/projects/{projectId}/report:
+    get:
+      tags: [reports]
+      operationId: getReport
+      summary: 获取完整或部分报告（六维雷达+文字等价、岗位匹配、逐题证据、训练计划）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200': { description: 报告（结构对齐 report.schema.json；模块级状态）, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/report:regenerate:
+    post:
+      tags: [reports]
+      operationId: regenerateReportModule
+      summary: 局部失败模块重试（不丢失评分证据；FR-026）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [modules]
+              properties:
+                modules:
+                  type: array
+                  minItems: 1
+                  items: { enum: [overview, radar, job_match, rounds, communication_analysis, tool_performance, training_plan] }
+      responses:
+        '202': { description: 重新生成任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/report/export:
+    post:
+      tags: [reports]
+      operationId: exportReport
+      summary: 导出报告（必带“模拟训练结果，不代表真实企业录用结论”标记）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format: { enum: [pdf, json], default: pdf }
+      responses:
+        '202': { description: 导出任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== practice ==============================
+  /v1/projects/{projectId}/practice:
+    post:
+      tags: [practice]
+      operationId: startPractice
+      summary: 开始非评分练习（原题/变体；永不改变正式分数或解锁状态）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [practice_type, target_dimensions]
+              properties:
+                practice_type: { enum: [original_question, variant, framework, example] }
+                target_dimensions:
+                  type: array
+                  items: { $ref: '#/components/schemas/DimensionKey' }
+      responses:
+        '201': { description: 练习会话已创建（独立证据链）, content: { application/json: { schema: { $ref: '#/components/schemas/PracticeSession' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/practice/{practiceId}/end:
+    post:
+      tags: [practice]
+      operationId: endPractice
+      summary: 结束练习（正式分数与解锁状态不变）
+      parameters:
+        - name: practiceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 练习已结束, content: { application/json: { schema: { $ref: '#/components/schemas/PracticeSession' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== retries ==============================
+  /v1/projects/{projectId}/rounds/{sequence}/retry:
+    post:
+      tags: [retries]
+      operationId: startFormalRetry
+      summary: 发起正式重试（新题针对失败/未覆盖点；维度锁定生效；权益校验）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/RoundSequence'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: 重试尝试已创建（RETRY_SCHEDULED；新问题生成中）, content: { application/json: { schema: { $ref: '#/components/schemas/RetryAttempt' } } } }
+        '402': { description: 无可用重试权益, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 当前轮状态不允许重试（state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== billing ==============================
+  /v1/entitlements:
+    get:
+      tags: [billing]
+      operationId: listEntitlements
+      summary: 当前权益与余额（免费 60 分钟、项目包、Pro、加油包）
+      responses:
+        '200': { description: 权益列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/Entitlement' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/quotes:
+    post:
+      tags: [billing]
+      operationId: createQuote
+      summary: 生成完整报价（轮次/时长/数字人规格/重试/税费/有效期；开始前修改重新报价）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project_id, plan_version]
+              properties:
+                project_id: { type: string, format: uuid }
+                plan_version: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: 报价已生成, content: { application/json: { schema: { $ref: '#/components/schemas/Quote' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orders:
+    post:
+      tags: [billing]
+      operationId: createOrder
+      summary: 创建订单（幂等键去重；同一订单只记一次权益和一次扣款）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quote_id, payment_method]
+              properties:
+                quote_id: { type: string, format: uuid }
+                payment_method: { type: string, description: 区域化支付方式标识（供应商中立） }
+                auto_renew_consent: { type: boolean, default: false, description: 自动续费须单独勾选 }
+      responses:
+        '201': { description: 订单已创建（PAYMENT_PENDING）, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orders/{orderId}:
+    get:
+      tags: [billing]
+      operationId: getOrder
+      summary: 订单状态（含处理中状态的真实进度）
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 订单详情, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/usage-ledger:
+    get:
+      tags: [billing]
+      operationId: listUsageLedger
+      summary: 逐笔账单（项目/轮次/使用秒数/返还原因/余额快照）
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: project_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: 账本分页, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/UsageLedgerEntry' } }, next_cursor: { type: ['string', 'null'] } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/refunds:
+    post:
+      tags: [billing]
+      operationId: requestRefund
+      summary: 申请退款（系统故障自动返还除外；大额双人审批；不影响评分与解锁）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order_id, reason]
+              properties:
+                order_id: { type: string, format: uuid }
+                reason: { type: string }
+      responses:
+        '202': { description: 退款任务已创建（异步，可查真实进度）, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/subscription:
+    get:
+      tags: [billing]
+      operationId: getSubscription
+      summary: 当前订阅（月度时长、结转、账期）
+      responses:
+        '200': { description: 订阅详情, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        '404': { description: 无订阅, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/subscription/cancel:
+    post:
+      tags: [billing]
+      operationId: cancelSubscription
+      summary: 取消续费（权益保留至账期结束；到期不删历史；进行中轮次可完成）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 已取消续费, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/payments/callback/{provider}:
+    post:
+      tags: [billing]
+      operationId: paymentCallback
+      summary: 支付服务商回调（签名验证 + 时间戳重放窗口 + payment_event_id 去重；服务端到服务端）
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, description: 供应商中立标识，如 psp_cn_primary }
+        - name: X-Provider-Signature
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-Provider-Timestamp
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_event_id, order_id, event_type]
+              properties:
+                payment_event_id: { type: string, description: 支付侧事件唯一 ID（幂等去重） }
+                order_id: { type: string, format: uuid }
+                event_type: { enum: [payment_succeeded, payment_failed, refund_succeeded] }
+                payload: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: 已受理（重复事件返回相同应答，无副作用） }
+        '401': { description: 签名验证失败或重放窗口外, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== organizations ==============================
+  /v1/orgs:
+    post:
+      tags: [organizations]
+      operationId: createOrg
+      summary: 创建机构租户（角色分离：所有者/管理员/指导老师/隐私审计/财务/求职者）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '201': { description: 机构已创建, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}:
+    get:
+      tags: [organizations]
+      operationId: getOrg
+      summary: 机构详情（按调用者角色过滤可见字段）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200': { description: 机构详情, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/members/invite:
+    post:
+      tags: [organizations]
+      operationId: inviteOrgMember
+      summary: 邀请成员（邀请链接/机构邮箱/批量名单/SSO/SCIM；用户以个人账户加入，无影子账户）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invite_method, role]
+              properties:
+                invite_method: { enum: [link, org_email, bulk_list, sso, scim] }
+                role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate] }
+                email: { type: ['string', 'null'], format: email }
+      responses:
+        '201': { description: 邀请已创建（加入前展示机构名称、可见数据、期限与退出影响） }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/assignments:
+    post:
+      tags: [organizations]
+      operationId: createAssignment
+      summary: 创建训练任务（可配岗位/轮次/语言/工具/截止时间/练习次数/机构额度；不得改 60 分线、量表、证据规则、解锁与复核）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, deadline_at]
+              properties:
+                title: { type: string }
+                job_category: { type: ['string', 'null'] }
+                round_template: { type: object, additionalProperties: true, description: 轮次/角色/时长/难度/语言/工具模板（平台硬性限制由服务端强制） }
+                deadline_at: { type: string, format: date-time }
+                max_practice_count: { type: ['integer', 'null'], minimum: 0 }
+                org_credit_seconds: { type: ['integer', 'null'], minimum: 0 }
+      responses:
+        '201': { description: 任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' } } } }
+        '422': { description: 模板试图修改及格线/量表/证据规则（拒绝并写审计）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/assignments/{assignmentId}:
+    get:
+      tags: [organizations]
+      operationId: getAssignment
+      summary: 任务完成情况（默认仅状态：接受/未开始/进行中/已完成/退出、完成时间、系统故障、机构额度消耗；拒绝分享时只显示“已完成但未共享结果”）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200': { description: 任务详情（默认最小可见）, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/assignments/{assignmentId}/shares:
+    post:
+      tags: [organizations]
+      operationId: grantAssignmentShare
+      summary: 用户针对具体任务授权分享结果（范围、有效期、可撤回；写入 ConsentGrant）
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data_categories, expires_at]
+              properties:
+                data_categories:
+                  type: array
+                  minItems: 1
+                  items: { enum: [total_score, radar, round_results, full_report, transcript, media] }
+                expires_at: { type: string, format: date-time }
+      responses:
+        '201': { description: 授权已创建, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/assignments/{assignmentId}/shares/{shareId}:
+    delete:
+      tags: [organizations]
+      operationId: revokeAssignmentShare
+      summary: 撤回分享授权（在线访问立即失效；写 AccessAudit）
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+        - name: shareId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: 已撤回 }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/aggregates:
+    get:
+      tags: [organizations]
+      operationId: getOrgAggregates
+      summary: 聚合分析（岗位类别/能力维度/完成率/提升趋势；细分群体 <10 人不展示；无个人排名/搜索）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - { name: job_category, in: query, schema: { type: string } }
+        - { name: dimension, in: query, schema: { $ref: '#/components/schemas/DimensionKey' } }
+      responses:
+        '200': { description: 聚合结果（不足 10 人的细分返回 hidden 标记）, content: { application/json: { schema: { $ref: '#/components/schemas/AggregateResult' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== deletion ==============================
+  /v1/deletion-tasks:
+    post:
+      tags: [deletion]
+      operationId: createDeletionTask
+      summary: 创建删除任务（单次面试级联：报告、练习、重试、媒体；覆盖缓存、索引、对象存储与第三方处理器）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_type, target_id]
+              properties:
+                target_type: { enum: [project, resume, job, account] }
+                target_id: { type: string, format: uuid }
+      responses:
+        '202': { description: 删除任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/deletion-tasks/{taskId}:
+    get:
+      tags: [deletion]
+      operationId: getDeletionTask
+      summary: 删除任务真实进度（数据库/缓存/索引/对象存储/备份/第三方逐项状态）
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 删除进度, content: { application/json: { schema: { $ref: '#/components/schemas/DeletionTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== admin ==============================
+  /v1/admin/providers:
+    get:
+      tags: [admin]
+      operationId: listProviders
+      summary: 供应商与模型注册表（按区域、语言、能力；默认仅匿名技术指标）
+      responses:
+        '200': { description: 供应商列表（不展示完整密钥）, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/ProviderInfo' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/providers/{providerId}/status:
+    put:
+      tags: [admin]
+      operationId: updateProviderStatus
+      summary: 供应商状态变更（灰度/禁用；紧急停用后新会话按区域规则切换已验证替代；活跃会话按冻结/故障恢复规则）
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { enum: [active, ramping, disabled] }
+                ramp_percent: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
+                reason: { type: string, description: 故障切换必须记录原因 }
+      responses:
+        '200': { description: 已更新（写审计与 Incident） }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/rubrics:
+    get:
+      tags: [admin]
+      operationId: listRubrics
+      summary: 量表版本列表（维度、权重边界、锚点、门槛全部版本化）
+      responses:
+        '200': { description: 量表版本列表 }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/rubrics/{rubricId}/deprecate:
+    post:
+      tags: [admin]
+      operationId: deprecateRubric
+      summary: 停用存在系统性偏差的量表版本（受影响项目标记“评估待复核”并提供免费重试；不批量改写历史分数）
+      parameters:
+        - name: rubricId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, approvals]
+              properties:
+                reason: { type: string }
+                approvals:
+                  type: array
+                  minItems: 3
+                  description: 产品、面试专业、安全/公平性三方审批
+                  items:
+                    type: object
+                    required: [role, approver_id]
+                    properties:
+                      role: { enum: [product, interview_professional, safety_fairness] }
+                      approver_id: { type: string }
+      responses:
+        '202': { description: 停用任务已创建（受影响项目标记与免费重试为异步）, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/audit-logs:
+    get:
+      tags: [admin]
+      operationId: listAuditLogs
+      summary: 追加式审计日志查询（管理员不可删除；默认脱敏）
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: actor_id, in: query, schema: { type: string } }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: date_from, in: query, schema: { type: string, format: date } }
+        - { name: date_to, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: 审计分页, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/AuditLog' } }, next_cursor: { type: ['string', 'null'] } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 业务 JWT，含 user_id 与 data_region claim；与媒体房间令牌相互隔离
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 幂等键（UUID 推荐）；相同键重复提交返回首个结果
+      schema: { type: string, minLength: 8, maxLength: 128 }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: ['string', 'null'] }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    ResumeId: { name: resumeId, in: path, required: true, schema: { type: string, format: uuid } }
+    JobId: { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+    ProjectId: { name: projectId, in: path, required: true, schema: { type: string, format: uuid } }
+    SessionId: { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+    OrgId: { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
+    AssignmentId: { name: assignmentId, in: path, required: true, schema: { type: string, format: uuid } }
+    RoundSequence: { name: sequence, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 5 } }
+
+  responses:
+    Error:
+      description: 统一错误响应
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: 触发频率限制
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Region:
+      enum: [cn, eu, intl]
+      description: 数据区域（三数据区相互隔离，不为容灾擅自跨境）
+    Language:
+      enum: [zh-CN, en-US]
+      description: 首发语言；界面语言与面试语言相互独立
+    DimensionKey:
+      enum: [professional_competence, problem_solving, communication, experience_evidence, behavioral_collaboration, learning_adaptability]
+    ProjectStatus:
+      enum: [DRAFT, PARSING, MATERIAL_REVIEW, PARSE_FAILED, PLAN_GENERATING, PLAN_REVIEW, PLAN_FAILED, READY, IN_SESSION, SCORING, ROUND_PASSED, ROUND_FAILED, PRACTICING, EVALUATION_INCOMPLETE, COMPLETED]
+    ResultStatus:
+      enum: [PASS, FAIL, EVALUATION_INCOMPLETE]
+      description: 评估未完成 ≠ 失败
+    ErrorCode:
+      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, idempotency_conflict, rate_limited, region_mismatch, insufficient_entitlement, state_conflict, internal]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, trace_id, data_region]
+          properties:
+            code: { $ref: '#/components/schemas/ErrorCode' }
+            message: { type: string, description: 用户可见错误（说明影响、数据是否保留、可重试动作、是否计费、是否影响评分） }
+            details: { type: ['object', 'null'], additionalProperties: true }
+            trace_id: { type: string }
+            data_region: { $ref: '#/components/schemas/Region' }
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: integer, description: 最小货币单位（分/cent） }
+        currency: { type: string, example: CNY }
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string }
+        data_region: { $ref: '#/components/schemas/Region' }
+    AuthToken:
+      type: object
+      required: [access_token, token_type, expires_in, data_region]
+      properties:
+        access_token: { type: string }
+        token_type: { const: Bearer }
+        expires_in: { type: integer }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Account:
+      type: object
+      required: [user_id, data_region, ui_language, age_status, status]
+      properties:
+        user_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        ui_language: { $ref: '#/components/schemas/Language' }
+        age_status: { enum: [adult, minor_guardian_verified, minor_pending, under_16_demo_only] }
+        status: { enum: [active, deletion_pending, deleted_anonymized] }
+        display_name: { type: ['string', 'null'] }
+        identities:
+          type: array
+          items:
+            type: object
+            properties:
+              provider: { enum: [email_otp, google, apple, wechat] }
+              verified_at: { type: ['string', 'null'], format: date-time }
+    ConsentGrant:
+      type: object
+      required: [grant_id, consent_type, status, granted_at]
+      properties:
+        grant_id: { type: string, format: uuid }
+        consent_type: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+        scope: { type: ['object', 'null'], additionalProperties: true }
+        status: { enum: [granted, withdrawn, expired] }
+        granted_at: { type: string, format: date-time }
+        expires_at: { type: ['string', 'null'], format: date-time }
+        withdrawn_at: { type: ['string', 'null'], format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Resume:
+      type: object
+      required: [resume_id, data_region, status]
+      properties:
+        resume_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        language: { $ref: '#/components/schemas/Language' }
+        status: { enum: [uploaded, parsing, awaiting_confirmation, confirmed, parse_failed] }
+        current_version: { type: ['integer', 'null'], minimum: 1 }
+        rejected_reason: { enum: [corrupted, encrypted, oversized, type_spoofed, unsafe, null], default: null }
+    ResumeVersion:
+      type: object
+      required: [resume_id, resume_version, confirmed_by_user]
+      properties:
+        resume_id: { type: string, format: uuid }
+        resume_version: { type: integer, minimum: 1 }
+        confirmed_by_user: { type: boolean }
+        profile: { type: ['object', 'null'], description: 结构对齐 ai/schemas/resume-profile.schema.json（面试上下文安全版，不含敏感字段）, additionalProperties: true }
+        low_confidence_paths: { type: array, items: { type: string } }
+        excluded_sensitive_fields: { type: array, items: { type: string }, description: 仅存类别不存值 }
+    ResumePage:
+      type: object
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        items: { type: array, items: { $ref: '#/components/schemas/Resume' } }
+        next_cursor: { type: ['string', 'null'] }
+    JobProfile:
+      type: object
+      required: [job_id, data_region, status]
+      properties:
+        job_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        language: { $ref: '#/components/schemas/Language' }
+        status: { enum: [created, parsing, awaiting_confirmation, confirmed, parse_failed] }
+        current_version: { type: ['integer', 'null'], minimum: 1 }
+    JobVersion:
+      type: object
+      required: [job_id, job_version, confirmed_by_user]
+      properties:
+        job_id: { type: string, format: uuid }
+        job_version: { type: integer, minimum: 1 }
+        confirmed_by_user: { type: boolean }
+        profile: { type: ['object', 'null'], description: 结构对齐 ai/schemas/job-profile.schema.json, additionalProperties: true }
+    Project:
+      type: object
+      required: [project_id, data_region, interview_language, degraded_mode, status, current_round_sequence]
+      properties:
+        project_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        name: { type: ['string', 'null'] }
+        interview_language: { $ref: '#/components/schemas/Language' }
+        degraded_mode: { enum: [full, jd_only, resume_only, neither] }
+        status: { $ref: '#/components/schemas/ProjectStatus' }
+        current_round_sequence: { type: integer, minimum: 0, maximum: 5 }
+        plan_version: { type: ['integer', 'null'], minimum: 1 }
+        active_device_id: { type: ['string', 'null'], description: 同一正式面试仅一台活动设备 }
+        assignment_id: { type: ['string', 'null'], format: uuid }
+        created_at: { type: string, format: date-time }
+    ProjectPage:
+      type: object
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        items: { type: array, items: { $ref: '#/components/schemas/Project' } }
+        next_cursor: { type: ['string', 'null'] }
+    RoundConfigInput:
+      type: object
+      required: [sequence, round_type, duration_minutes, difficulty, critical_dimensions]
+      properties:
+        sequence: { type: integer, minimum: 1, maximum: 5 }
+        round_type: { enum: [screening_resume_deepdive, role_professional, comprehensive_final, case_study, portfolio_review, management_scenario, business_scenario] }
+        role: { type: ['string', 'null'] }
+        focus: { type: ['string', 'null'] }
+        duration_minutes: { type: integer, minimum: 10, maximum: 60 }
+        difficulty: { enum: [basic, standard, challenge] }
+        critical_dimensions:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/DimensionKey' }
+        tools: { type: array, items: { enum: [code_editor, whiteboard, case_materials, portfolio] } }
+        style_parameters: { type: ['object', 'null'], additionalProperties: true }
+        avatar_character_id: { type: ['string', 'null'], description: 固定授权角色库角色 ID }
+        voice_id: { type: ['string', 'null'] }
+    Plan:
+      type: object
+      required: [project_id, plan_version, rubric_version, frozen, rounds]
+      properties:
+        project_id: { type: string, format: uuid }
+        plan_version: { type: integer, minimum: 1 }
+        rubric_version: { type: string, example: "rubrics/v1/default" }
+        dimension_weights:
+          type: object
+          additionalProperties: { type: integer, minimum: 0, maximum: 100 }
+          description: 六维权重，总和 100，单维 ±5（结构对齐 interview-plan.schema.json）
+        rounds:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            allOf:
+              - { $ref: '#/components/schemas/RoundConfigInput' }
+              - type: object
+                properties:
+                  rubric_bound: { type: boolean }
+                  question_coverage_plan_ready: { type: boolean, description: false 时禁止开始该轮 }
+        round_weights:
+          type: array
+          items:
+            type: object
+            properties:
+              sequence: { type: integer }
+              weight: { type: integer, minimum: 0, maximum: 100 }
+        process_source_refs:
+          type: array
+          items:
+            type: object
+            properties:
+              source_id: { type: string }
+              source_type: { enum: [official_careers_page, official_recruiting_content, credible_public_material, candidate_experience, generic_template] }
+              url: { type: ['string', 'null'], format: uri }
+              retrieved_at: { type: string, format: date-time }
+              credibility: { enum: [high, medium, low] }
+              is_unofficial_experience: { type: boolean }
+        flow_uses_generic_template: { type: boolean }
+        frozen: { type: boolean }
+        data_region: { $ref: '#/components/schemas/Region' }
+    SessionCreated:
+      type: object
+      required: [session_id, room_token, room_token_expires_at, data_region]
+      properties:
+        session_id: { type: string, format: uuid }
+        room_url: { type: string, format: uri }
+        room_token: { type: string, description: 短期房间令牌（媒体面），与业务令牌相互隔离 }
+        room_token_expires_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Session:
+      type: object
+      required: [session_id, project_id, round_sequence, kind, room_status, billable_seconds, data_region]
+      properties:
+        session_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        round_sequence: { type: integer, minimum: 1, maximum: 5 }
+        attempt_id: { type: ['string', 'null'], format: uuid }
+        kind: { enum: [formal, formal_retry, practice] }
+        room_status: { enum: [ROOM_CREATED, PRE_CHECK, AVATAR_CONNECTING, LIVE, PAUSED_SYSTEM, RECONNECTING, DOWNGRADE_PROMPTED, TEXT_DEGRADED, AUTH_PAUSED, ENDED] }
+        elapsed_seconds: { type: integer, minimum: 0, description: 正式计时（暂停与重连不计） }
+        billable_seconds: { type: integer, minimum: 0, description: 计费秒数（仅数字人已连接且 LIVE） }
+        current_turn_index: { type: ['integer', 'null'], minimum: 0 }
+        input_modes_used: { type: array, items: { enum: [voice, text, camera, job_tool] } }
+        reconnect_deadline_at: { type: ['string', 'null'], format: date-time, description: 3 分钟重连窗口截止 }
+        data_region: { $ref: '#/components/schemas/Region' }
+    ScoreResult:
+      type: object
+      required: [score_id, score_version, round_sequence, result_status, data_region]
+      properties:
+        score_id: { type: string, format: uuid }
+        score_version: { type: integer, minimum: 1 }
+        round_sequence: { type: integer, minimum: 1, maximum: 5 }
+        attempt_id: { type: ['string', 'null'], format: uuid }
+        result_status: { $ref: '#/components/schemas/ResultStatus' }
+        round_total: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
+        dimension_results:
+          type: array
+          items:
+            type: object
+            properties:
+              dimension: { $ref: '#/components/schemas/DimensionKey' }
+              weight: { type: integer }
+              score_status: { enum: [scored, insufficient_evidence, uncovered, not_applicable, locked_carried] }
+              score: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
+              is_critical: { type: boolean }
+        weak_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+        rubric_version: { type: string }
+        explanations: { type: ['object', 'null'], additionalProperties: true, description: 可解释评分（对齐 scoring-result.schema.json） }
+        input_mode_notes: { type: ['string', 'null'] }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Report:
+      type: object
+      required: [report_id, project_id, report_kind, project_status, training_use_disclaimer, data_region]
+      properties:
+        report_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        report_kind: { enum: [full, partial] }
+        project_status: { enum: [ROUND_PASSED, ROUND_FAILED, EVALUATION_INCOMPLETE, COMPLETED] }
+        modules: { type: object, description: 模块级状态与内容（对齐 report.schema.json）, additionalProperties: true }
+        training_use_disclaimer: { type: string, example: 模拟训练结果，不代表真实企业录用结论 }
+        data_region: { $ref: '#/components/schemas/Region' }
+    PracticeSession:
+      type: object
+      required: [practice_id, project_id, status]
+      properties:
+        practice_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        status: { enum: [PRACTICE_ACTIVE, PRACTICE_ENDED] }
+        affects_formal_scores: { const: false, description: 练习永不改变正式分数 }
+        data_region: { $ref: '#/components/schemas/Region' }
+    RetryAttempt:
+      type: object
+      required: [attempt_id, project_id, round_sequence, status]
+      properties:
+        attempt_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        round_sequence: { type: integer, minimum: 1, maximum: 5 }
+        status: { enum: [RETRY_SCHEDULED, RETRY_IN_PROGRESS, SCORING, COMPLETED] }
+        locked_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+        rescope_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' }, description: 失败维度与未覆盖点对应维度 }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Entitlement:
+      type: object
+      required: [entitlement_id, kind, balance_seconds, data_region]
+      properties:
+        entitlement_id: { type: string, format: uuid }
+        kind: { enum: [free_credit, project_pack, pro_subscription, topup_pack, org_pool] }
+        balance_seconds: { type: integer, minimum: 0 }
+        included_retry_count: { type: ['integer', 'null'], minimum: 0 }
+        expires_at: { type: ['string', 'null'], format: date-time }
+        project_id: { type: ['string', 'null'], format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Quote:
+      type: object
+      required: [quote_id, project_id, plan_version, total, status, expires_at]
+      properties:
+        quote_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        plan_version: { type: integer, minimum: 1 }
+        status: { enum: [QUOTE_DRAFT, QUOTE_PRESENTED, QUOTE_RECALCULATED, QUOTE_ACCEPTED] }
+        total: { $ref: '#/components/schemas/Money' }
+        tax: { $ref: '#/components/schemas/Money' }
+        included_rounds: { type: integer, minimum: 1, maximum: 5 }
+        max_estimated_seconds: { type: integer, minimum: 0 }
+        included_retry_per_failed_round: { type: integer, const: 1 }
+        expires_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Order:
+      type: object
+      required: [order_id, quote_id, status, total, created_at]
+      properties:
+        order_id: { type: string, format: uuid }
+        quote_id: { type: string, format: uuid }
+        status: { enum: [ORDER_CREATED, PAYMENT_PENDING, PAID, PAYMENT_FAILED, PAYMENT_TIMEOUT, ORDER_CANCELLED] }
+        total: { $ref: '#/components/schemas/Money' }
+        progress_note: { type: ['string', 'null'], description: 支付成功未到账时保持处理中的真实进度说明 }
+        created_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    UsageLedgerEntry:
+      type: object
+      required: [entry_id, entry_type, occurred_at, balance_after_seconds]
+      properties:
+        entry_id: { type: string, format: uuid }
+        entry_type: { enum: [reservation, consumption, release, refund, reversal] }
+        project_id: { type: ['string', 'null'], format: uuid }
+        round_sequence: { type: ['integer', 'null'], minimum: 1, maximum: 5 }
+        usage_seconds: { type: ['integer', 'null'], minimum: 0 }
+        reason: { type: ['string', 'null'] }
+        balance_after_seconds: { type: integer, description: 余额快照（追加式账本） }
+        occurred_at: { type: string, format: date-time }
+    Subscription:
+      type: object
+      required: [subscription_id, status, current_period_end, balance_seconds]
+      properties:
+        subscription_id: { type: string, format: uuid }
+        status: { enum: [SUB_ACTIVE, SUB_CANCELLED, SUB_EXPIRED] }
+        monthly_quota_seconds: { type: integer, minimum: 0 }
+        balance_seconds: { type: integer, minimum: 0, description: 总余额 ≤ 月度额度 2 倍 }
+        carryover_cap_note: { type: string, description: 未使用时长最多结转一个账期 }
+        current_period_end: { type: string, format: date-time }
+        auto_renew: { type: boolean }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Organization:
+      type: object
+      required: [org_id, name, data_region, status]
+      properties:
+        org_id: { type: string, format: uuid }
+        name: { type: string }
+        data_region: { $ref: '#/components/schemas/Region' }
+        status: { enum: [active, suspended, deactivated] }
+        caller_role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate, null], default: null }
+    Assignment:
+      type: object
+      required: [assignment_id, org_id, title, status]
+      properties:
+        assignment_id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        title: { type: string }
+        status: { enum: [draft, published, closed] }
+        completion_summary:
+          type: object
+          description: 默认最小可见（未授权不展示分数/简历/报告/录像）
+          properties:
+            not_started: { type: integer, minimum: 0 }
+            in_progress: { type: integer, minimum: 0 }
+            completed: { type: integer, minimum: 0 }
+            quit: { type: integer, minimum: 0 }
+            system_fault_count: { type: integer, minimum: 0 }
+            org_credit_used_seconds: { type: integer, minimum: 0 }
+            result_shared: { type: integer, minimum: 0 }
+            result_not_shared: { type: integer, minimum: 0, description: 只显示“已完成但未共享结果”，不显示失败 }
+        data_region: { $ref: '#/components/schemas/Region' }
+    AggregateResult:
+      type: object
+      required: [data_region, groups]
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        groups:
+          type: array
+          items:
+            type: object
+            required: [group_key, member_count]
+            properties:
+              group_key: { type: string }
+              member_count: { type: integer, minimum: 0 }
+              hidden: { type: boolean, description: member_count < 10 时 true 且不返回指标 }
+              completion_rate: { type: ['number', 'null'], minimum: 0, maximum: 1 }
+              dimension_avg: { type: ['object', 'null'], additionalProperties: { type: ['number', 'null'] } }
+              improvement_trend: { type: ['number', 'null'] }
+        personal_ranking_available: { const: false, description: 平台不提供个人排名/搜索/雇主推荐 }
+    DeletionTask:
+      type: object
+      required: [task_id, target_type, target_id, status, progress]
+      properties:
+        task_id: { type: string, format: uuid }
+        target_type: { enum: [project, resume, job, account] }
+        target_id: { type: string, format: uuid }
+        status: { enum: [REQUESTED, VERIFYING, IN_PROGRESS, COMPLETED, FAILED] }
+        progress:
+          type: object
+          description: 真实进度（逐项状态；FAILED 可重试）
+          properties:
+            database: { enum: [pending, in_progress, done, failed] }
+            cache: { enum: [pending, in_progress, done, failed] }
+            search_index: { enum: [pending, in_progress, done, failed] }
+            object_storage: { enum: [pending, in_progress, done, failed] }
+            backups: { enum: [pending, in_progress, done, failed], description: 备份按保留策略到期清除，状态如实展示 }
+            third_party_processors: { enum: [pending, in_progress, done, failed] }
+        legal_retention_note: { type: ['string', 'null'], description: 法定财务记录保留但解除内容关联 }
+        data_region: { $ref: '#/components/schemas/Region' }
+    AsyncTask:
+      type: object
+      required: [task_id, task_type, status]
+      properties:
+        task_id: { type: string, format: uuid }
+        task_type: { enum: [parse, plan_generate, scoring, review, report_generate, export, refund, rubric_deprecate] }
+        status: { enum: [queued, running, succeeded, failed] }
+        progress_note: { type: ['string', 'null'], description: 真实进度说明（失败含可重试动作） }
+        data_region: { $ref: '#/components/schemas/Region' }
+    ProviderInfo:
+      type: object
+      required: [provider_id, capability, status]
+      properties:
+        provider_id: { type: string }
+        capability: { enum: [llm, asr, tts, avatar, search] }
+        status: { enum: [active, ramping, disabled] }
+        ramp_percent: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
+        pinned_model_version: { type: ['string', 'null'], description: 活跃正式面试固定开始时版本 }
+        health: { type: ['object', 'null'], description: 匿名技术指标（延迟/错误率/熔断状态）, additionalProperties: true }
+        note: { type: string, const: 密钥由独立密钥系统管理，本接口永不返回完整值 }
+    AuditLog:
+      type: object
+      required: [audit_id, actor_role, action, occurred_at]
+      properties:
+        audit_id: { type: string, format: uuid }
+        actor_id: { type: ['string', 'null'], description: 默认脱敏 }
+        actor_role: { type: string }
+        action: { type: string }
+        target_ref: { type: ['string', 'null'] }
+        authorization_basis: { type: ['string', 'null'], description: 授权依据（ConsentGrant/破窗流程） }
+        occurred_at: { type: string, format: date-time }
+
+security:
+  - bearerAuth: []

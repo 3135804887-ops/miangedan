@@ -1,0 +1,43 @@
+{
+  "synthetic": true,
+  "notice": "合成测试数据（synthetic）。虚构企业流程来源样例，用于来源可信度（FR-007/FR-008）与计划生成测试；URL 使用保留域 example.com。",
+  "schema_note": "字段命名贴近 ai/schemas/interview-plan.schema.json 的 process_source_refs。",
+  "sources": [
+    {
+      "source_id": "src-fict-0001",
+      "source_type": "official_careers_page",
+      "url": "https://careers.chengjiang-yunke.example.com/hiring-process",
+      "retrieved_at": "2026-07-10T08:30:00Z",
+      "credibility": "high",
+      "is_unofficial_experience": false,
+      "expires_at": "2027-01-10T00:00:00Z",
+      "region": "cn",
+      "job_family": "data_engineering",
+      "summary": "虚构公司澄江云科官方招聘页：数据工程岗位通常为 3 轮——HR 筛选、技术深挖、综合终面。"
+    },
+    {
+      "source_id": "src-fict-0002",
+      "source_type": "candidate_experience",
+      "url": "https://blog.example.com/posts/fictional-novalake-interview-exp",
+      "retrieved_at": "2026-07-12T14:05:00Z",
+      "credibility": "low",
+      "is_unofficial_experience": true,
+      "expires_at": "2026-10-12T00:00:00Z",
+      "region": "intl",
+      "job_family": "data_engineering",
+      "summary": "候选人经验帖（非官方，必须标记）：称 Novalake Analytics 技术轮包含白板设计题；仅作参考，不得冒充企业流程。"
+    },
+    {
+      "source_id": "src-fict-0003",
+      "source_type": "generic_template",
+      "url": null,
+      "retrieved_at": "2026-07-12T14:05:01Z",
+      "credibility": "medium",
+      "is_unofficial_experience": false,
+      "expires_at": null,
+      "region": "cn",
+      "job_family": "data_engineering",
+      "summary": "无可靠来源时使用的通用岗位/级别模板（标记 AI 推导）：筛选与简历深挖 → 岗位专业能力 → 综合终面。"
+    }
+  ]
+}

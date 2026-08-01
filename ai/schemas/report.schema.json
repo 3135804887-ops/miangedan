@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/report.schema.json",
+  "title": "Report",
+  "description": "面个蛋面试报告结构。追踪 PRD-001 US-04 规则 3、FR-023、FR-026。支持完整与部分报告；雷达图必须有文字等价版本；所有导出标记“模拟训练结果，不代表真实企业录用结论”。",
+  "type": "object",
+  "required": ["schema_version", "report_id", "project_id", "data_region", "interview_language", "report_kind", "project_status", "modules", "training_use_disclaimer", "generated_at"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "report_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "interview_language": { "enum": ["zh-CN", "en-US"] },
+    "report_kind": { "enum": ["full", "partial"], "description": "有未完成轮次或模块失败时为 partial" },
+    "project_status": { "enum": ["ROUND_PASSED", "ROUND_FAILED", "EVALUATION_INCOMPLETE", "COMPLETED"] },
+    "modules": {
+      "type": "object",
+      "description": "报告模块；单模块失败不影响其他模块，可单独重试（FR-026）",
+      "required": ["overview", "radar", "rounds", "training_plan"],
+      "properties": {
+        "overview": {
+          "type": "object",
+          "required": ["status", "content"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": "object",
+              "properties": {
+                "round_count": { "type": "integer" },
+                "round_scores": { "type": "array", "items": { "type": ["integer", "null"] } },
+                "final_weighted_score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+                "all_required_passed": { "type": ["boolean", "null"] }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "radar": {
+          "type": "object",
+          "required": ["status", "content"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": "object",
+              "required": ["dimensions", "text_equivalent"],
+              "properties": {
+                "dimensions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["dimension", "score_status"],
+                    "properties": {
+                      "dimension": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] },
+                      "score_status": { "enum": ["scored", "insufficient_evidence", "uncovered", "not_applicable"] },
+                      "score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "text_equivalent": { "type": "string", "description": "雷达图文字/表格等价版本（无障碍强制）" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "job_match": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": ["object", "null"],
+              "description": "无 JD 时 content 为 null 且原因记录在 notes",
+              "properties": {
+                "must_have_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+                "nice_to_have_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+                "proven_by_resume": { "type": "array", "items": { "type": "string" } },
+                "proven_by_interview": { "type": "array", "items": { "type": "string" } },
+                "unproven": { "type": "array", "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            },
+            "notes": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "rounds": {
+          "type": "object",
+          "required": ["status", "content"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["round_sequence", "result_status", "per_question"],
+                "properties": {
+                  "round_sequence": { "type": "integer" },
+                  "result_status": { "enum": ["PASS", "FAIL", "EVALUATION_INCOMPLETE"] },
+                  "score_ref": { "type": ["string", "null"], "format": "uuid" },
+                  "per_question": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["question_summary", "answer_summary"],
+                      "properties": {
+                        "question_summary": { "type": "string" },
+                        "answer_summary": { "type": "string" },
+                        "followups": { "type": "array", "items": { "type": "string" } },
+                        "dimension_scores": { "type": "object", "additionalProperties": { "type": ["integer", "null"] } },
+                        "evidence_ids": { "type": "array", "items": { "type": "string" } },
+                        "done_well": { "type": "array", "items": { "type": "string" } },
+                        "missing": { "type": "array", "items": { "type": "string" } },
+                        "contradictions": { "type": "array", "items": { "type": "string" } },
+                        "suggested_structure": { "type": ["string", "null"] }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "handoff_impact": { "type": ["string", "null"], "description": "跨轮交接影响说明" },
+                  "dimension_locks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["dimension", "locked"],
+                      "properties": {
+                        "dimension": { "type": "string" },
+                        "locked": { "type": "boolean" },
+                        "score_change": { "type": ["integer", "null"], "description": "重试前后分数变化" }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "trajectory_text": { "type": ["string", "null"], "description": "多轮轨迹文字等价" }
+          },
+          "additionalProperties": false
+        },
+        "communication_analysis": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": "object",
+              "properties": {
+                "input_mode": { "enum": ["voice", "text", "mixed"] },
+                "structure_clarity_notes": { "type": "string" },
+                "oral_delivery_notes": { "type": ["string", "null"], "description": "文字模式为 null，且明确标注未评估" },
+                "evidence_limitations": { "type": ["string", "null"], "description": "输入模式证据限制说明（报告必须标注）" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "tool_performance": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": "object",
+              "properties": {
+                "tools_used": { "type": "array", "items": { "type": "string" } },
+                "summary": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "training_plan": {
+          "type": "object",
+          "required": ["status", "content"],
+          "properties": {
+            "status": { "$ref": "#/$defs/module_status" },
+            "content": {
+              "type": "object",
+              "properties": {
+                "strengths": { "type": "array", "items": { "type": "string" } },
+                "risks": { "type": "array", "items": { "type": "string" } },
+                "priority_items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["dimension", "action", "practice_type"],
+                    "properties": {
+                      "dimension": { "type": "string" },
+                      "action": { "type": "string" },
+                      "practice_type": { "enum": ["original_question", "variant", "framework", "example"] },
+                      "formal_retry_available": { "type": "boolean" }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "raw_record_refs": {
+      "type": "object",
+      "properties": {
+        "transcript_available": { "type": "boolean", "description": "逐字稿默认保存" },
+        "media_available": { "type": "boolean", "description": "原始音视频仅在用户明确授权时存在，保留 30 天" },
+        "deletion_entry": { "type": "boolean", "const": true, "description": "报告必须提供删除入口" }
+      },
+      "additionalProperties": false
+    },
+    "training_use_disclaimer": { "const": "模拟训练结果，不代表真实企业录用结论" },
+    "generated_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "module_status": { "enum": ["ok", "failed", "pending"], "description": "单模块状态；failed 可单独重试" }
+  },
+  "additionalProperties": false
+}

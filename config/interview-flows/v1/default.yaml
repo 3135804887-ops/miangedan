@@ -1,0 +1,164 @@
+# =============================================================================
+# 面个蛋 默认多轮面试流程配置
+# 追踪：PRD-001 US-02；FR-009 ~ FR-012
+# 一致性要求：与 docs/domain/INTERVIEW-STATE-MACHINE.md、
+#             docs/ai/SCORING-SPEC.md、config/rubrics/v1/default.yaml 保持一致。
+# 说明：本文件定义"默认推荐"流程；AI 可生成 2–5 轮，用户可调整为 1–5 轮。
+#       用户不能修改统一评分算法、60 分门槛、解锁逻辑与跨轮交接规则。
+# =============================================================================
+
+flow_id: default
+flow_version: "interview-flows/v1/default"
+version: "1.0.0"
+status: draft_for_review
+
+# ---- 全局边界 ---------------------------------------------------------------------
+bounds:
+  rounds:
+    ai_generated: { min: 2, max: 5 }     # AI 可生成 2–5 轮
+    user_configurable: { min: 1, max: 5 } # 用户可调整为 1–5 轮
+    default_recommended: 3
+  duration_minutes:
+    default: 30
+    ai_recommended: { min: 15, max: 60 }
+    user_configurable: { min: 10, max: 60 }
+    overtime_policy: 到达目标时间后不再开启新的主问题，允许当前回答、必要追问与收尾；目标偏差约 ±5 分钟
+  difficulty:
+    values: [basic, standard, challenge]  # 基础 / 标准 / 挑战
+    effect: 只改变问题深度与追问压力，不改变及格线
+  style_parameters: [tone, pace, followup_intensity, polite_interruption_allowed, hint_level, pressure_level]
+  style_hard_limits: 任何模式禁止侮辱、歧视、人身攻击与无关隐私问题（见 config/safety/policy.yaml）
+
+# ---- 轮次类型注册 -------------------------------------------------------------------
+round_types:
+  - key: screening_resume_deepdive
+    zh_name: 筛选与简历深挖
+    typical_role: 招聘角色（HR/筛选官）
+    focus: 简历事实核验、经历深挖、求职动机、基础沟通
+    default_critical_dimensions: [experience_evidence, communication]
+    tool_capabilities: []                # 默认无岗位工具
+  - key: role_professional
+    zh_name: 岗位专业能力
+    typical_role: 专业角色（用人经理/资深同事）
+    focus: 岗位知识、方法、工具实操、问题解决
+    default_critical_dimensions: [professional_competence, problem_solving]
+    tool_capabilities: [code_editor, whiteboard, case_materials, portfolio]
+  - key: comprehensive_final
+    zh_name: 综合/终面
+    typical_role: 主管角色（总监/负责人）
+    focus: 综合判断、协作与冲突、职业判断、学习与适应、文化契合（非保护属性）
+    default_critical_dimensions: [behavioral_collaboration, learning_adaptability]
+    tool_capabilities: [case_materials, whiteboard]
+  - key: case_study
+    zh_name: 案例轮
+    typical_role: 专业角色
+    focus: 结构化案例分析、假设、权衡、呈现
+    default_critical_dimensions: [problem_solving, communication]
+    tool_capabilities: [case_materials, whiteboard]
+  - key: portfolio_review
+    zh_name: 作品集轮
+    typical_role: 专业角色
+    focus: 作品讲解、设计/技术决策、过程证据
+    default_critical_dimensions: [professional_competence, experience_evidence]
+    tool_capabilities: [portfolio, whiteboard]
+  - key: management_scenario
+    zh_name: 管理场景轮
+    typical_role: 主管角色
+    focus: 团队管理、冲突、资源权衡、责任
+    default_critical_dimensions: [behavioral_collaboration, problem_solving]
+    tool_capabilities: [case_materials, whiteboard]
+  - key: business_scenario
+    zh_name: 业务场景轮
+    typical_role: 业务负责人
+    focus: 业务理解、数据分析、决策与影响
+    default_critical_dimensions: [problem_solving, professional_competence]
+    tool_capabilities: [case_materials, whiteboard]
+
+# ---- 默认三轮推荐 ---------------------------------------------------------------------
+default_rounds:
+  - sequence: 1
+    type: screening_resume_deepdive
+    duration_minutes: 30
+    difficulty: standard
+  - sequence: 2
+    type: role_professional
+    duration_minutes: 40
+    difficulty: standard
+  - sequence: 3
+    type: comprehensive_final
+    duration_minutes: 30
+    difficulty: standard
+
+# ---- 问题策略 ---------------------------------------------------------------------------
+question_strategy:
+  mode: hybrid                          # 预生成主线 + 实时动态追问
+  pre_interview:                        # 会前生成（随计划冻结）
+    - capability_targets                # 能力目标
+    - main_question_directions          # 主问题方向（不向用户展示）
+    - behavior_anchors                  # 行为锚点引用
+    - coverage_points                   # 覆盖点
+    - backup_questions                  # 备用问题
+  in_interview:
+    dynamic_followup: true
+    followup_constraint: 不得越出已确认范围（计划确认的能力目标与覆盖点）
+  user_visibility:
+    before_start: 只展示范围与标准；不展示正式问题与答案
+    before_later_rounds: 不提前给完整标准答案
+  repeat_rule: 已通过的相同问题不得重复；仅当出现直接矛盾或新的岗位场景需要迁移验证时可重新验证
+
+# ---- 工具能力注册 -------------------------------------------------------------------------
+tool_registry:
+  - key: code_editor
+    zh_name: 代码编辑器
+    preconfig_required: true            # 由 AI 按 JD/轮次/问题预配置，计划中由用户启停
+    evidence: tool_events               # 工具事件进入证据账本
+  - key: whiteboard
+    zh_name: 白板
+    preconfig_required: true
+    evidence: tool_events
+  - key: case_materials
+    zh_name: 案例材料
+    preconfig_required: true
+    evidence: tool_events
+  - key: portfolio
+    zh_name: 作品集展示
+    preconfig_required: true
+    evidence: tool_events
+tool_rules:
+  no_adhoc_tools_in_formal_room: true   # 正式房间不能临时加载未配置的辅助工具
+  mobile_guidance: 复杂代码与白板在移动 Web 明确推荐桌面或平板
+
+# ---- 轮次开始前置条件（缺一禁止开始） --------------------------------------------------------
+round_start_prerequisites:
+  - question_coverage_plan_ready        # 本轮问题覆盖方案已就绪
+  - rubric_bound                        # 本轮评分量表已绑定且版本冻结
+  - handoff_package_ready               # 第 2 轮起：跨轮交接包已生成
+  - entitlement_reserved                # 本轮额度已预留（EPIC-07）
+
+# ---- 用户可编辑/禁止编辑 ---------------------------------------------------------------------
+user_editable:
+  - round_count（1–5）
+  - round_order
+  - round_role / focus / difficulty / duration（边界内）
+  - style_parameters
+  - avatar_character / voice（固定授权角色库内选择）
+  - tools（预配置范围内启停）
+  - accommodations（会前设置，开始后冻结）
+user_forbidden:
+  - 统一评分算法与 60 分门槛
+  - 解锁逻辑与跨轮交接规则
+  - 提前查看正式问题与答案
+  - 开始后的量表、轮次权重、流程与计费版本
+
+# ---- 缺失材料降级模式 ---------------------------------------------------------------------------
+degraded_modes:
+  jd_only:
+    label: 通用岗位面试
+    rules: [不虚构候选人经历, 不做简历深挖, 不做经历匹配评分]
+  resume_only:
+    label: AI 推导岗位画像
+    rules: [推导内容标记 AI 推理, 用户确认后进入面试]
+  neither:
+    label: 通用面试
+    rules: [只评估表达、逻辑、沟通和应变]
+  consent_required: 任一缺失先弹窗说明影响，用户明确同意才继续

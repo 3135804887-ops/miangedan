@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/scoring-input.schema.json",
+  "title": "ScoringInput",
+  "description": "面个蛋评分服务输入（冻结证据包）。追踪 PRD-001 Scoring & Decision Model、FR-021、FR-025。评分服务只读取本结构：冻结证据 + 冻结量表 + 冻结权重；问题生成模型只提交证据，不能直接写最终分数；正式复核使用完全相同的输入结构重算。",
+  "type": "object",
+  "required": ["schema_version", "scoring_request_id", "idempotency_key", "project_id", "round_sequence", "attempt_id", "data_region", "interview_language", "rubric_version", "dimension_weights", "critical_dimensions", "evidence_items", "input_mode_context", "is_formal_review", "submitted_at"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "scoring_request_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "description": "评分请求幂等键；重复提交返回首个结果" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "round_sequence": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "attempt_id": { "type": "string", "format": "uuid" },
+    "attempt_kind": { "enum": ["initial", "formal_retry"], "description": "首轮正式尝试或正式重试；练习永不进入本结构" },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "interview_language": { "enum": ["zh-CN", "en-US"] },
+    "rubric_version": { "type": "string" },
+    "dimension_weights": {
+      "type": "object",
+      "required": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"],
+      "properties": {
+        "professional_competence": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "problem_solving": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "communication": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "experience_evidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "behavioral_collaboration": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "learning_adaptability": { "type": "integer", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "critical_dimensions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] }
+    },
+    "evidence_items": {
+      "type": "array",
+      "minItems": 1,
+      "description": "冻结的回合证据（turn-evidence 结构或其持久化引用）",
+      "items": {
+        "oneOf": [
+          { "$ref": "turn-evidence.schema.json" },
+          {
+            "type": "object",
+            "required": ["evidence_ref"],
+            "properties": {
+              "evidence_ref": { "type": "string", "description": "证据账本中的不可变引用" },
+              "evidence_hash": { "type": "string", "description": "内容散列，保证复核时证据未被改写" }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "locked_dimension_scores": {
+      "type": "array",
+      "description": "正式重试时：来自前次尝试的锁定维度分（≥60 且无矛盾）",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "score", "source_attempt_id"],
+        "properties": {
+          "dimension": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] },
+          "score": { "type": "integer", "minimum": 60, "maximum": 100 },
+          "source_attempt_id": { "type": "string", "format": "uuid" },
+          "source_score_version": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "dimensions_to_rescore": {
+      "type": "array",
+      "description": "正式重试范围：失败维度与未覆盖点对应维度",
+      "items": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] }
+    },
+    "input_mode_context": {
+      "type": "object",
+      "required": ["modes_used", "communication_mode"],
+      "properties": {
+        "modes_used": { "type": "array", "items": { "enum": ["voice", "text", "camera", "job_tool"] } },
+        "communication_mode": { "enum": ["voice", "text", "mixed"], "description": "沟通维度计分模式" },
+        "mixed_mode_voice_share": { "type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "混合模式下语音有效证据占比" },
+        "accommodations_in_effect": {
+          "type": "array",
+          "items": { "enum": ["text_only", "mixed_input", "slower_avatar_speech", "repeat_questions", "extended_time", "silence_threshold_adjusted", "no_proactive_interruption", "reduced_motion", "tool_keyboard_alternative"] },
+          "description": "只记录，不进入评分证据"
+        }
+      },
+      "additionalProperties": false
+    },
+    "is_formal_review": { "type": "boolean", "description": "true 表示本次为正式复核重算；输入必须与原始评分完全一致" },
+    "original_score_version": { "type": ["integer", "null"], "minimum": 1, "description": "复核时指向被复核的 ScoreVersion" },
+    "submitted_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/handoff-package.schema.json",
+  "title": "HandoffPackage",
+  "description": "面个蛋跨轮交接包。追踪 PRD-001 Cross-Round Handoff、US-04。后一轮必须获得：简历、JD、前序轮次纪要、评价、风险、已验证能力、未覆盖点与禁止重复问题。详细压缩与完整性规则见 docs/ai/HANDOFF-SPEC.md。",
+  "type": "object",
+  "required": ["schema_version", "package_id", "project_id", "from_round_sequence", "to_round_sequence", "data_region", "interview_language", "resume_snapshot_ref", "job_snapshot_ref", "rounds_history", "verified_capabilities", "failed_points", "uncovered_points", "risks", "contradictions", "follow_up_focus", "do_not_repeat_questions", "allowed_reverification", "suggested_difficulty", "context_budget", "generated_at"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "package_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "from_round_sequence": { "type": "integer", "minimum": 1, "maximum": 4 },
+    "to_round_sequence": { "type": "integer", "minimum": 2, "maximum": 5 },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "interview_language": { "enum": ["zh-CN", "en-US"] },
+    "resume_snapshot_ref": {
+      "type": ["object", "null"],
+      "properties": {
+        "resume_id": { "type": "string", "format": "uuid" },
+        "resume_version": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["resume_id", "resume_version"],
+      "additionalProperties": false,
+      "description": "简历结构化事实快照（面试上下文安全版，不含敏感字段）"
+    },
+    "job_snapshot_ref": {
+      "type": ["object", "null"],
+      "properties": {
+        "job_id": { "type": "string", "format": "uuid" },
+        "job_version": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["job_id", "job_version"],
+      "additionalProperties": false
+    },
+    "rounds_history": {
+      "type": "array",
+      "description": "从第一轮到前一轮的纪要",
+      "items": {
+        "type": "object",
+        "required": ["round_sequence", "attempt_id", "result_status", "questions", "dimension_scores", "pass_status"],
+        "properties": {
+          "round_sequence": { "type": "integer", "minimum": 1 },
+          "attempt_id": { "type": "string", "format": "uuid" },
+          "result_status": { "enum": ["PASS", "FAIL", "EVALUATION_INCOMPLETE"] },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["question_id", "question_kind", "question_summary", "answer_summary", "answer_status"],
+              "properties": {
+                "question_id": { "type": "string" },
+                "question_kind": { "enum": ["main", "followup", "backup"] },
+                "question_summary": { "type": "string", "description": "压缩后的问题摘要（事实完整性规则见 HANDOFF-SPEC）" },
+                "answer_summary": { "type": "string", "description": "回答摘要；未回答时为空字符串" },
+                "answer_status": { "enum": ["answered", "partial", "skipped", "unrecoverable"] },
+                "followups": { "type": "array", "items": { "type": "string" }, "description": "追问摘要" },
+                "tool_behavior_summary": { "type": ["string", "null"] },
+                "score_contribution_refs": { "type": "array", "items": { "type": "string" }, "description": "贡献到评分的证据 ID" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "dimension_scores": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["dimension", "score_status"],
+              "properties": {
+                "dimension": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] },
+                "score_status": { "enum": ["scored", "insufficient_evidence", "uncovered", "not_applicable"] },
+                "score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+                "locked": { "type": "boolean", "description": "≥60 锁定为已验证" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "strengths": { "type": "array", "items": { "type": "string" } },
+          "weaknesses": { "type": "array", "items": { "type": "string" } },
+          "pass_status": { "enum": ["passed", "failed", "incomplete"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "verified_capabilities": { "type": "array", "items": { "type": "string" }, "description": "已验证能力（锁定维度与已证明 JD 要求）" },
+    "failed_points": {
+      "type": "array",
+      "description": "失败点：未达 60 的维度与具体失败证据摘要",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "summary"],
+        "properties": {
+          "dimension": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] },
+          "summary": { "type": "string" },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "uncovered_points": { "type": "array", "items": { "type": "string" }, "description": "未覆盖点（进入后续轮次补问与重试范围）" },
+    "risks": { "type": "array", "items": { "type": "string" }, "description": "待验证风险（如简历线索未澄清）" },
+    "contradictions": {
+      "type": "array",
+      "description": "已发现的前后矛盾，后续轮次需验证",
+      "items": {
+        "type": "object",
+        "required": ["summary", "evidence_refs"],
+        "properties": {
+          "summary": { "type": "string" },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "follow_up_focus": { "type": "array", "items": { "type": "string" }, "description": "后续重点：弱项更深入、风险需验证、未覆盖点补问" },
+    "do_not_repeat_questions": {
+      "type": "array",
+      "description": "不应重复的问题（已通过）",
+      "items": {
+        "type": "object",
+        "required": ["question_id", "question_summary"],
+        "properties": {
+          "question_id": { "type": "string" },
+          "question_summary": { "type": "string" },
+          "passed": { "const": true }
+        },
+        "additionalProperties": false
+      }
+    },
+    "allowed_reverification": {
+      "type": "array",
+      "description": "允许重新验证的例外原因",
+      "items": {
+        "type": "object",
+        "required": ["reason_type", "description"],
+        "properties": {
+          "reason_type": { "enum": ["direct_contradiction", "new_job_scenario_transfer"] },
+          "description": { "type": "string" },
+          "related_question_id": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "suggested_difficulty": { "enum": ["basic", "standard", "challenge"] },
+    "context_budget": {
+      "type": "object",
+      "required": ["max_tokens", "compression_applied"],
+      "properties": {
+        "max_tokens": { "type": "integer", "minimum": 1, "description": "交接包注入面试官上下文的最大预算" },
+        "compression_applied": { "type": "boolean" },
+        "compression_rule_version": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "factual_integrity": {
+      "type": "object",
+      "properties": {
+        "no_new_facts": { "type": "boolean", "description": "压缩不得引入原文不存在的事实" },
+        "source_refs_complete": { "type": "boolean", "description": "每条摘要可回溯到证据 ID" }
+      },
+      "additionalProperties": false
+    },
+    "generated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

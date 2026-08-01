@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/turn-evidence.schema.json",
+  "title": "TurnEvidence",
+  "description": "面个蛋单回合证据记录（追加式账本条目）。追踪 PRD-001 US-03、FR-015~FR-019、NFR-005。只记录实际播放的问题内容与已提交的回答；未播放内容不进入正式证据；修订文本作为评分证据，原始 ASR 仅用于诊断。追加式：禁止更新或删除历史条目，纠正以新条目实现。",
+  "type": "object",
+  "required": ["schema_version", "evidence_id", "project_id", "session_id", "round_sequence", "attempt_id", "turn_index", "data_region", "question", "answer", "input_modes_used", "coverage_points_addressed", "timing", "frozen", "recorded_at"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "evidence_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "session_id": { "type": "string", "format": "uuid" },
+    "round_sequence": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "attempt_id": { "type": "string", "format": "uuid", "description": "正式尝试 ID（首轮或某次正式重试）；练习使用独立 Practice 记录，不得写入正式证据链" },
+    "turn_index": { "type": "integer", "minimum": 0, "description": "回合在会话内的顺序号，保证顺序性" },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "question": {
+      "type": "object",
+      "required": ["question_id", "played_text", "actually_played"],
+      "properties": {
+        "question_id": { "type": "string" },
+        "question_kind": { "enum": ["main", "followup", "backup"], "description": "主问题 / 动态追问 / 备用问题" },
+        "coverage_ids": { "type": "array", "items": { "type": "string" }, "description": "对应的计划覆盖点" },
+        "played_text": { "type": "string", "description": "数字人实际播放的文本（被打断时只记录实际播放部分）" },
+        "actually_played": { "type": "boolean" },
+        "interrupted": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": false
+    },
+    "answer": {
+      "type": ["object", "null"],
+      "required": ["answer_status"],
+      "properties": {
+        "answer_status": { "enum": ["answered", "partial", "skipped", "unrecoverable"], "description": "unrecoverable = 关键转写不可恢复（触发评估未完成判定输入）" },
+        "asr_final_text": { "type": ["string", "null"], "description": "原始 ASR 最终文本，仅用于诊断审计" },
+        "revised_text": { "type": ["string", "null"], "description": "用户修订文本；评分证据使用修订文本" },
+        "revision_id": { "type": ["string", "null"], "format": "uuid" },
+        "revision_window_closed": { "type": "boolean", "description": "进入下一主问题后关闭修订窗口并冻结" },
+        "text_answer": { "type": ["string", "null"], "description": "文字模式直接输入的回答" },
+        "tool_event_refs": { "type": "array", "items": { "type": "string" }, "description": "岗位工具事件引用（代码/白板/案例/作品集）" }
+      },
+      "additionalProperties": false
+    },
+    "input_modes_used": {
+      "type": "array",
+      "items": { "enum": ["voice", "text", "camera", "job_tool"] },
+      "description": "本回合实际使用的输入模式；摄像头开关不影响分数"
+    },
+    "coverage_points_addressed": { "type": "array", "items": { "type": "string" } },
+    "timing": {
+      "type": "object",
+      "required": ["question_started_at"],
+      "properties": {
+        "question_started_at": { "type": "string", "format": "date-time" },
+        "answer_started_at": { "type": ["string", "null"], "format": "date-time" },
+        "answer_ended_at": { "type": ["string", "null"], "format": "date-time" },
+        "billable_seconds": { "type": "integer", "minimum": 0, "description": "仅数字人已连接且正式进行中的实际秒数；故障暂停与重连不计" }
+      },
+      "additionalProperties": false
+    },
+    "accommodations_in_effect": {
+      "type": "array",
+      "description": "本回合生效的便利设置（只记录类别，不进入评分证据）",
+      "items": { "enum": ["text_only", "mixed_input", "slower_avatar_speech", "repeat_questions", "extended_time", "silence_threshold_adjusted", "no_proactive_interruption", "reduced_motion", "tool_keyboard_alternative"] }
+    },
+    "frozen": { "type": "boolean", "description": "true 后不可改写（下一主问题开始时冻结上一回合）" },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

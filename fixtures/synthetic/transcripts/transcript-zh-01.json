@@ -1,0 +1,97 @@
+{
+  "synthetic": true,
+  "notice": "合成测试数据（synthetic），不含真实个人信息。虚构中文面试逐字稿，含一次 ASR 修订示例，用于转写修订（FR-018）与证据管道测试。",
+  "schema_note": "字段命名贴近 ai/schemas/turn-evidence.schema.json；完整结构以 Schema 为准。",
+  "session_id": "00000000-0000-4000-8000-00000000d001",
+  "project_id": "00000000-0000-4000-8000-00000000d002",
+  "data_region": "cn",
+  "interview_language": "zh-CN",
+  "round_sequence": 1,
+  "round_type": "screening_resume_deepdive",
+  "attempt_kind": "initial",
+  "turns": [
+    {
+      "turn_index": 0,
+      "question": {
+        "question_id": "q-zh-01-0001",
+        "question_kind": "main",
+        "coverage_ids": ["cp-exp-01", "cp-comm-01"],
+        "played_text": "请介绍你在澄江云科实习期间负责的数据同步项目，重点讲你个人的贡献和结果。",
+        "actually_played": true,
+        "interrupted": false
+      },
+      "answer": {
+        "answer_status": "answered",
+        "asr_final_text": "我把串行同步任务拆成四个并行分片，整体吞吐提升了约百分之十三，延迟从四十分钟降到八分钟。",
+        "revised_text": "我把串行同步任务拆成四个并行分片，整体吞吐提升了约百分之三十，延迟从四十分钟降到八分钟。",
+        "revision_id": "00000000-0000-4000-8000-00000000d101",
+        "revision_window_closed": true,
+        "revision_note": "ASR 将“百分之三十”误识别为“百分之十三”，用户在下一主问题前完成修订；评分使用修订文本。"
+      },
+      "input_modes_used": ["voice"],
+      "coverage_points_addressed": ["cp-exp-01", "cp-comm-01"],
+      "timing": {
+        "question_started_at": "2026-07-15T02:00:10Z",
+        "answer_started_at": "2026-07-15T02:00:26Z",
+        "answer_ended_at": "2026-07-15T02:01:48Z",
+        "billable_seconds": 98
+      },
+      "frozen": true
+    },
+    {
+      "turn_index": 1,
+      "question": {
+        "question_id": "q-zh-01-0002",
+        "question_kind": "followup",
+        "coverage_ids": ["cp-exp-01"],
+        "played_text": "延迟从 40 分钟降到 8 分钟，这个数字是怎么统计的？",
+        "actually_played": true,
+        "interrupted": false
+      },
+      "answer": {
+        "answer_status": "answered",
+        "asr_final_text": "调度系统记录每次运行的开始和结束时间，取上线前后各四周的 P95 运行时长对比，去掉了两次上游故障的异常值。",
+        "revised_text": null,
+        "revision_id": null,
+        "revision_window_closed": true
+      },
+      "input_modes_used": ["voice"],
+      "coverage_points_addressed": ["cp-exp-01"],
+      "timing": {
+        "question_started_at": "2026-07-15T02:02:01Z",
+        "answer_started_at": "2026-07-15T02:02:09Z",
+        "answer_ended_at": "2026-07-15T02:02:51Z",
+        "billable_seconds": 50
+      },
+      "frozen": true
+    },
+    {
+      "turn_index": 2,
+      "question": {
+        "question_id": "q-zh-01-0003",
+        "question_kind": "main",
+        "coverage_ids": ["cp-beh-01"],
+        "played_text": "实习中和同事发生过意见不一致吗？你是怎么处理的？",
+        "actually_played": true,
+        "interrupted": true
+      },
+      "answer": {
+        "answer_status": "answered",
+        "asr_final_text": "有。mentor 想直接加字段兼容旧任务，我主张先补字段口径文档。最后各让一步：先写口径说明，再按他的方案上线，我负责回归验证。",
+        "revised_text": null,
+        "revision_id": null,
+        "revision_window_closed": true
+      },
+      "input_modes_used": ["voice"],
+      "coverage_points_addressed": ["cp-beh-01"],
+      "timing": {
+        "question_started_at": "2026-07-15T02:03:30Z",
+        "answer_started_at": "2026-07-15T02:03:44Z",
+        "answer_ended_at": "2026-07-15T02:04:40Z",
+        "billable_seconds": 70
+      },
+      "frozen": true,
+      "interruption_note": "问题播放末尾被用户语音打断，played_text 仅含实际播放部分（NFR-009）。"
+    }
+  ]
+}

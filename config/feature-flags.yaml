@@ -1,0 +1,162 @@
+# =============================================================================
+# 面个蛋 功能开关（Feature Flags）
+# 追踪：PRD-001 Technical Considerations（灰度/回滚）、Commercial Model、
+#       US-07（机构版）、FR-019（岗位工具）、Design（语言）
+# 核心规则：
+# 1. 安全、评分透明、隐私、无障碍、故障恢复能力属于 protected=true，
+#    不得通过普通商业开关关闭；仅治理流程（三人审批+审计）可变更。
+# 2. 供应商灰度按数据区独立进行；活跃正式面试固定开始时版本，不中途切换。
+# 3. 开关默认值遵循"最安全、最保守"原则。
+# =============================================================================
+
+flags_version: "1.0.0"
+status: draft_for_review
+
+environments: [dev, staging, production]
+regions: [cn, eu, intl]
+
+flags:
+
+  # ---- 地区与语言 ----------------------------------------------------------------
+  - key: region.cn.enabled
+    type: boolean
+    default: false                    # 未通过区域生产验证前保持关闭
+    scope: [region]
+    description: 中国数据区开放注册与正式服务
+  - key: region.eu.enabled
+    type: boolean
+    default: false
+    scope: [region]
+    description: 欧盟数据区开放注册与正式服务
+  - key: region.intl.enabled
+    type: boolean
+    default: false
+    scope: [region]
+    description: 国际数据区开放注册与正式服务
+  - key: locale.zh-CN.enabled
+    type: boolean
+    default: true
+    description: 中文界面（首发语言）
+  - key: locale.en-US.enabled
+    type: boolean
+    default: true
+    description: 英文界面（首发语言）
+
+  # ---- 供应商灰度（按区域独立） ------------------------------------------------------
+  - key: provider.llm.secondary_ramp_percent
+    type: number
+    default: 0
+    range: [0, 100]
+    scope: [region, language]
+    description: LLM 备用供应商灰度流量百分比；正式面试会话内固定版本
+  - key: provider.asr.secondary_ramp_percent
+    type: number
+    default: 0
+    range: [0, 100]
+    scope: [region, language]
+    description: ASR 备用供应商灰度
+  - key: provider.tts.secondary_ramp_percent
+    type: number
+    default: 0
+    range: [0, 100]
+    scope: [region, language]
+    description: TTS 备用供应商灰度
+  - key: provider.avatar.secondary_ramp_percent
+    type: number
+    default: 0
+    range: [0, 100]
+    scope: [region, language]
+    description: 数字人备用供应商灰度
+
+  # ---- 录制（默认关闭；需用户单独明确授权） ----------------------------------------------
+  - key: recording.raw_audio.enabled
+    type: boolean
+    default: false
+    description: 原始音频保存；开启也仅在用户单独明确授权且同意有效时生效；未成年用户强制关闭
+  - key: recording.raw_video.enabled
+    type: boolean
+    default: false
+    description: 原始视频保存；规则同上
+
+  # ---- 机构版 -------------------------------------------------------------------------
+  - key: org.enabled
+    type: boolean
+    default: false
+    scope: [region]
+    description: 机构租户功能总开关（按区域开放）
+  - key: org.sso_scim.enabled
+    type: boolean
+    default: false
+    description: 机构 SSO/SCIM 接入
+  - key: org.aggregate_analytics.enabled
+    type: boolean
+    default: false
+    description: 机构聚合分析；小样本保护（<10 人隐藏）为平台规则，不受本开关控制
+
+  # ---- 岗位工具 ------------------------------------------------------------------------
+  - key: tools.code_editor.enabled
+    type: boolean
+    default: true
+    description: 代码编辑器工具
+  - key: tools.whiteboard.enabled
+    type: boolean
+    default: true
+    description: 白板工具
+  - key: tools.case_materials.enabled
+    type: boolean
+    default: true
+    description: 案例材料工具
+  - key: tools.portfolio.enabled
+    type: boolean
+    default: true
+    description: 作品集展示工具
+
+  # ---- 商业 --------------------------------------------------------------------------
+  - key: commerce.pro_subscription.enabled
+    type: boolean
+    default: false
+    scope: [region]
+    description: Pro 订阅售卖
+  - key: commerce.topup_pack.enabled
+    type: boolean
+    default: false
+    scope: [region]
+    description: 时长加油包售卖
+
+  # ---- 受保护能力（protected=true：禁止商业开关关闭） ---------------------------------------
+  - key: safety.content_filter.enabled
+    type: boolean
+    default: true
+    protected: true
+    description: 内容安全过滤；任何环境不得关闭
+  - key: scoring.transparency.enabled
+    type: boolean
+    default: true
+    protected: true
+    description: 评分证据与解释展示；不得关闭
+  - key: privacy.consent_center.enabled
+    type: boolean
+    default: true
+    protected: true
+    description: 授权中心；不得关闭
+  - key: privacy.deletion_export.enabled
+    type: boolean
+    default: true
+    protected: true
+    description: 数据删除与导出权利；不得收费、不得关闭
+  - key: accessibility.wcag_features.enabled
+    type: boolean
+    default: true
+    protected: true
+    description: 字幕、文字模式、便利设置等无障碍能力；不得关闭
+  - key: reliability.fault_recovery.enabled
+    type: boolean
+    default: true
+    protected: true
+    description: 暂停计时/重连/降级/故障返还等恢复能力；不得关闭
+
+governance:
+  change_control:
+    protected_flags: 仅治理流程可变更：产品+安全+法务三方审批并写审计
+    provider_flags: 遵循离线→影子→灰度→放量；活跃正式会话固定开始版本
+    rollback: 任何灰度指标退化时新会话回滚稳定版本，进行中会话不被中途改变

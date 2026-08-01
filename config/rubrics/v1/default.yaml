@@ -1,0 +1,161 @@
+# =============================================================================
+# 面个蛋 六维评分量表（默认版）
+# 追踪：PRD-001 "Scoring & Decision Model"；FR-021 ~ FR-025
+# 一致性要求：本文件与 docs/ai/SCORING-SPEC.md 必须逐条一致；
+#             任何修改需要产品、面试专业、安全/公平性三方审批并提升版本号。
+# 版本规则：量表、维度、权重边界、行为锚点、门槛全部版本化；
+#           计划确认时冻结 rubric_version，活跃正式面试固定开始时版本。
+# =============================================================================
+
+rubric_id: default
+rubric_version: "rubrics/v1/default"
+version: "1.0.0"
+status: draft_for_review        # draft_for_review | approved | deprecated
+locale_calibration:             # 中英文各自校准，不用机翻代替专业验证
+  - zh-CN
+  - en-US
+
+# ---- 六维与默认权重（总和必须 = 100） ------------------------------------------
+dimensions:
+  - key: professional_competence   # 专业能力
+    zh_name: 专业能力
+    en_name: Professional Competence
+    default_weight: 25
+    main_evidence: 岗位知识、方法、工具、正确性、深度
+  - key: problem_solving           # 问题解决
+    zh_name: 问题解决
+    en_name: Problem Solving
+    default_weight: 20
+    main_evidence: 分析、拆解、方案、权衡、验证与复盘
+  - key: communication             # 沟通表达
+    zh_name: 沟通表达
+    en_name: Communication
+    default_weight: 15
+    main_evidence: 结构、清晰度、相关性、口语表现或文字表达
+  - key: experience_evidence       # 经验证据
+    zh_name: 经验证据
+    en_name: Experience Evidence
+    default_weight: 15
+    main_evidence: 简历主张的具体性、一致性、行动、结果与量化
+  - key: behavioral_collaboration  # 行为与协作
+    zh_name: 行为与协作
+    en_name: Behavioral & Collaboration
+    default_weight: 15
+    main_evidence: 合作、冲突、责任、影响、职业判断
+  - key: learning_adaptability     # 学习与适应
+    zh_name: 学习与适应
+    en_name: Learning & Adaptability
+    default_weight: 10
+    main_evidence: 反思、学习速度、变化应对、迁移能力
+
+weight_rules:
+  total_must_equal: 100
+  per_dimension_adjustment_max: 5      # 岗位对单一维度最多 ±5 个百分点
+  not_applicable_dimension: reallocate_at_plan_time   # 不适用维度在计划阶段重新分配权重，禁止评分后临时删除
+  freeze_at: plan_confirmed            # 权重在正式项目开始前公开；开始后冻结
+
+# ---- 行为锚点（等级 → 映射分） --------------------------------------------------
+anchors:
+  - level: 1
+    mapped_score: 20
+    descriptor_zh: 无法回答、严重偏题或关键事实错误
+    descriptor_en: Unable to answer, severely off-topic, or critical factual errors
+  - level: 2
+    mapped_score: 40
+    descriptor_zh: 部分回答、模糊、缺少证据或未完成关键推理
+    descriptor_en: Partial answer, vague, lacking evidence, or incomplete key reasoning
+  - level: 3
+    mapped_score: 60
+    descriptor_zh: 达到岗位基础要求，内容正确且基本完整
+    descriptor_en: Meets baseline job requirements; correct and mostly complete
+  - level: 4
+    mapped_score: 80
+    descriptor_zh: 具体、结构清楚、证据充分，体现成熟实践
+    descriptor_en: Specific, well-structured, well-evidenced; mature practice
+  - level: 5
+    mapped_score: 100
+    descriptor_zh: 深入、量化、能解释权衡、边界、反思和迁移
+    descriptor_en: Deep, quantified; explains trade-offs, boundaries, reflection, transfer
+
+interpolation:
+  allowed: true
+  rule: 仅允许在相邻锚点间按证据完整度插值；必须引用对应锚点等级与证据 ID；插值结果为整数
+  cite_required: [anchor_levels, evidence_ids]
+
+# ---- 取整与证据充分度 -----------------------------------------------------------------
+rounding:
+  dimension_score: half_up_integer      # 维度分四舍五入到整数
+  round_total: half_up_integer          # 加权总分四舍五入到整数，门槛比较使用取整后值
+  note: OD-07 已于 2026-08-01 由需求发起人/产品决策人确认
+
+evidence_sufficiency:
+  min_coverage_ratio: 0.5               # 维度已作答覆盖点权重占比 ≥0.5 视为证据充分（初始值，随校准调整）
+  unrecoverable_key_transcript: EVALUATION_INCOMPLETE   # 关键转写不可恢复 → 评估未完成
+  note: 与 docs/ai/SCORING-SPEC.md 6.3 一致；OD-08 规则已于 2026-08-01 确认，0.5 为规则下的可校准参数
+
+# ---- 通过门槛 ---------------------------------------------------------------------
+pass_gate:
+  round_total_min: 60                   # 本轮加权总分 ≥ 60（取整后）
+  critical_dimensions_min: 60           # 本轮指定的每个关键维度 ≥ 60
+  non_critical_below_60: weak_point_only  # 非关键维度 <60 记弱项，不单独导致失败
+  difficulty_invariant: true            # 基础/标准/挑战难度使用同一门槛
+  insufficient_evidence_result: EVALUATION_INCOMPLETE   # 证据不足/评分故障/关键转写不可恢复 → 评估未完成，不判失败、不解锁
+
+# ---- 沟通维度输入模式规则 -----------------------------------------------------------
+communication_by_input_mode:
+  voice:
+    structure_clarity_weight: 0.6
+    oral_delivery_weight: 0.4
+  text:
+    rule: 结构与清晰度归一化为沟通维度得分；口语表现标记 not_evaluated，不记零、不扣分
+  mixed:
+    rule: 按实际有效证据合并（以各模式有效证据占比加权）；报告明确标识模式
+  camera_switch: no_score_effect        # 摄像头开关不影响任何分数
+  accommodations_not_evidence: true     # 字幕/延时/降速/禁止打断等便利设置不进入评分证据
+
+# ---- 岗位匹配度 ---------------------------------------------------------------------
+job_match:
+  formula: 已被简历或面试证据证明的 JD 要求权重之和 ÷ 全部 JD 要求权重之和
+  separate_lists: [must_have, nice_to_have]
+  no_jd: not_displayed                  # 没有 JD 时不展示岗位匹配百分比
+  no_resume: no_experience_consistency  # 只有 JD 时不得生成经历一致性评分
+  independence: 与面试分数相互独立，不作为单轮解锁的隐藏因素
+
+# ---- 跨轮与重试 ---------------------------------------------------------------------
+round_weights:
+  default: equal                        # 各轮默认等权
+  adjustable_by_ai: 仅当可靠企业流程明确核心轮次时，AI 可在开始前建议调整
+  freeze_at: plan_confirmed
+
+dimension_locking:
+  lock_threshold: 60                    # 达到 60 的维度锁定为已验证
+  retry_scope: [failed_dimensions, uncovered_points]
+  retry_questions: new_only             # 重试使用新问题，不重复已通过的相同问题
+  failed_answers_usage: review_only     # 历史失败回答仅供练习与回顾
+  new_evidence_replaces: failed_dimensions   # 新分替换失败维度旧分，与锁定分重新加权计算总分
+  contradiction_rule: 新回答直接否定锁定维度旧证据时，该维度解锁并重新评估
+  practice_never_scores: true           # 练习从不参与正式分数
+
+# ---- 最终结果 ------------------------------------------------------------------------
+final_result:
+  formula: 各轮最新有效正式得分的公开权重加权值
+  all_required_rounds_must_pass: true   # 高平均分不能覆盖任何一轮未通过
+  incomplete_round: 整场为 EVALUATION_INCOMPLETE 并生成部分报告
+  display: 最终结果与岗位匹配度分开显示
+
+# ---- 正式复核 ------------------------------------------------------------------------
+formal_review:
+  max_per_attempt: 1                    # 每次正式尝试允许一次自动复核
+  inputs: 相同不可变证据、量表、权重与版本；不允许补充或改写回答
+  output: 展示原结果、新结果与改变原因；全部版本保留
+  pass_effect: 复核后达到门槛则解锁
+  still_insufficient: 标记 EVALUATION_INCOMPLETE 并允许重试
+
+# ---- 禁止项（评分侧） ------------------------------------------------------------------
+prohibited_scoring_inputs:
+  - 外貌、照片
+  - 性别、年龄、种族、国籍
+  - 残障、婚育状况
+  - 情绪、微表情、人格推断
+  - 便利设置使用情况（只记录使用了便利模式，不作评分证据）
+  - 付费状态

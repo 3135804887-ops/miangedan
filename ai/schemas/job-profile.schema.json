@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/job-profile.schema.json",
+  "title": "JobProfile",
+  "description": "面个蛋岗位 JD 结构化画像。追踪 PRD-001 US-01、FR-004、FR-005。薪资福利与招聘联系人不进入面试评分上下文；AI 推导内容必须标记。",
+  "type": "object",
+  "required": ["schema_version", "job_id", "job_version", "data_region", "language", "parse_meta", "confirmed_by_user"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "job_id": { "type": "string", "format": "uuid" },
+    "job_version": { "type": "integer", "minimum": 1 },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "language": { "enum": ["zh-CN", "en-US"] },
+    "job_title": { "type": "string" },
+    "job_level": { "type": "string", "description": "岗位级别，如 初级/中级/高级/专家/管理" },
+    "company_name": { "type": ["string", "null"], "description": "可为空；为空时计划使用通用模板" },
+    "industry": { "type": ["string", "null"] },
+    "location_region": { "type": ["string", "null"], "description": "岗位所在地区（用于流程参考，不用于评分）" },
+    "responsibilities": { "type": "array", "items": { "type": "string" } },
+    "requirements": {
+      "type": "array",
+      "description": "JD 要求项，岗位匹配度的计算基数",
+      "items": {
+        "type": "object",
+        "required": ["requirement_id", "text", "requirement_type", "weight"],
+        "properties": {
+          "requirement_id": { "type": "string" },
+          "text": { "type": "string" },
+          "requirement_type": { "enum": ["must_have", "nice_to_have"] },
+          "category": { "enum": ["skill", "experience", "education", "domain", "competency", "other"], "default": "other" },
+          "weight": { "type": "number", "exclusiveMinimum": 0, "description": "相对权重；全部要求项权重归一化后参与岗位匹配度计算" },
+          "ai_inferred": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "domain_scenarios": { "type": "array", "items": { "type": "string" }, "description": "领域业务场景" },
+    "general_competencies": { "type": "array", "items": { "type": "string" }, "description": "通用能力要求" },
+    "ai_inferred_interview_focus": {
+      "type": "array",
+      "description": "AI 推导的面试重点，必须明确标注为 AI 推导",
+      "items": {
+        "type": "object",
+        "required": ["focus", "rationale"],
+        "properties": {
+          "focus": { "type": "string" },
+          "rationale": { "type": "string" },
+          "ai_inferred": { "const": true }
+        }
+      }
+    },
+    "excluded_from_scoring": {
+      "type": "array",
+      "description": "不进入面试评分上下文的 JD 内容类别",
+      "items": { "enum": ["salary_benefits", "recruiter_contact", "company_perks"] }
+    },
+    "parse_meta": {
+      "type": "object",
+      "required": ["parser_version", "parsed_at", "overall_confidence"],
+      "properties": {
+        "parser_version": { "type": "string" },
+        "parsed_at": { "type": "string", "format": "date-time" },
+        "overall_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "low_confidence_paths": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "confirmed_by_user": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

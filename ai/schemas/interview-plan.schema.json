@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/interview-plan.schema.json",
+  "title": "InterviewPlan",
+  "description": "面个蛋面试计划版本（PlanVersion + RoundConfig）。追踪 PRD-001 US-02、FR-009~FR-012。计划确认后量表、轮次权重、流程与问题覆盖方案冻结；用户不可修改统一评分算法、60 分门槛与解锁逻辑。",
+  "type": "object",
+  "required": ["schema_version", "project_id", "plan_version", "data_region", "interview_language", "rubric_version", "dimension_weights", "rounds", "round_weights", "degraded_mode", "frozen", "created_at"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "plan_version": { "type": "integer", "minimum": 1, "description": "开始后冻结的计费/评分所引用版本" },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "interview_language": { "enum": ["zh-CN", "en-US"], "description": "面试语言，由用户确认，独立于界面语言" },
+    "resume_ref": {
+      "type": ["object", "null"],
+      "properties": {
+        "resume_id": { "type": "string", "format": "uuid" },
+        "resume_version": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["resume_id", "resume_version"],
+      "additionalProperties": false
+    },
+    "job_ref": {
+      "type": ["object", "null"],
+      "properties": {
+        "job_id": { "type": "string", "format": "uuid" },
+        "job_version": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["job_id", "job_version"],
+      "additionalProperties": false
+    },
+    "degraded_mode": { "enum": ["full", "jd_only", "resume_only", "neither"], "description": "材料缺失降级模式；非 full 须经用户明确同意" },
+    "degraded_mode_consent_id": { "type": ["string", "null"], "format": "uuid", "description": "降级模式同意授权记录" },
+    "rubric_version": { "type": "string", "description": "如 rubrics/v1/default；确认后冻结" },
+    "dimension_weights": {
+      "type": "object",
+      "description": "六维权重，总和必须为 100；相对默认权重单维调整不超过 ±5",
+      "required": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"],
+      "properties": {
+        "professional_competence": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "problem_solving": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "communication": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "experience_evidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "behavioral_collaboration": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "learning_adaptability": { "type": "integer", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "rounds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["sequence", "round_type", "role", "focus", "duration_minutes", "difficulty", "critical_dimensions", "tools", "question_coverage_plan", "rubric_bound"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "round_type": { "enum": ["screening_resume_deepdive", "role_professional", "comprehensive_final", "case_study", "portfolio_review", "management_scenario", "business_scenario"] },
+          "role": { "type": "string", "description": "面试官角色，如 招聘角色/专业角色/主管角色" },
+          "focus": { "type": "string" },
+          "duration_minutes": { "type": "integer", "minimum": 10, "maximum": 60 },
+          "difficulty": { "enum": ["basic", "standard", "challenge"] },
+          "critical_dimensions": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/dimension_key" },
+            "description": "本轮必须 ≥60 的关键维度"
+          },
+          "tools": { "type": "array", "items": { "enum": ["code_editor", "whiteboard", "case_materials", "portfolio"] } },
+          "style_parameters": {
+            "type": "object",
+            "properties": {
+              "tone": { "type": "string" },
+              "pace": { "type": "string" },
+              "followup_intensity": { "enum": ["low", "medium", "high"] },
+              "polite_interruption_allowed": { "type": "boolean" },
+              "hint_level": { "enum": ["none", "low", "medium"] },
+              "pressure_level": { "enum": ["low", "medium", "high"] }
+            },
+            "additionalProperties": false
+          },
+          "avatar_character_id": { "type": "string", "description": "固定授权角色库内角色 ID" },
+          "voice_id": { "type": "string" },
+          "question_coverage_plan": {
+            "type": "object",
+            "required": ["capability_targets", "coverage_points", "backup_question_count"],
+            "properties": {
+              "capability_targets": { "type": "array", "items": { "type": "string" }, "description": "会前生成了能力目标（正式问题方向不向用户展示）" },
+              "coverage_points": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["coverage_id", "dimension", "description"],
+                  "properties": {
+                    "coverage_id": { "type": "string" },
+                    "dimension": { "$ref": "#/$defs/dimension_key" },
+                    "description": { "type": "string" },
+                    "weight_in_dimension": { "type": "number", "exclusiveMinimum": 0, "description": "该覆盖点在其维度内的相对权重" }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "backup_question_count": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          },
+          "rubric_bound": { "type": "boolean", "description": "本轮量表已绑定；false 时禁止开始该轮" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "round_weights": {
+      "type": "array",
+      "description": "各轮权重，总和必须为 100；默认等权；仅可靠企业流程明确核心轮次时 AI 可在开始前建议调整",
+      "items": {
+        "type": "object",
+        "required": ["sequence", "weight"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1 },
+          "weight": { "type": "integer", "minimum": 0, "maximum": 100 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "process_source_refs": {
+      "type": "array",
+      "description": "公开企业流程来源；无可靠来源时必须使用通用模板并标记 AI 推导",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "source_type", "url", "retrieved_at", "credibility"],
+        "properties": {
+          "source_id": { "type": "string" },
+          "source_type": { "enum": ["official_careers_page", "official_recruiting_content", "credible_public_material", "candidate_experience", "generic_template"] },
+          "url": { "type": ["string", "null"], "format": "uri" },
+          "retrieved_at": { "type": "string", "format": "date-time" },
+          "credibility": { "enum": ["high", "medium", "low"] },
+          "is_unofficial_experience": { "type": "boolean", "default": false },
+          "expires_at": { "type": ["string", "null"], "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "flow_uses_generic_template": { "type": "boolean", "description": "无公司/无可靠来源/断网时为 true，并标记 AI 推导" },
+    "safety_check": {
+      "type": "object",
+      "required": ["passed", "checked_at", "policy_version"],
+      "properties": {
+        "passed": { "type": "boolean", "description": "安全检查通过才允许进入用户房间" },
+        "checked_at": { "type": "string", "format": "date-time" },
+        "policy_version": { "type": "string", "description": "如 safety/v1" }
+      },
+      "additionalProperties": false
+    },
+    "frozen": { "type": "boolean", "description": "true 后量表、轮次权重、流程、正式问题覆盖方案与计费版本不可修改" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "dimension_key": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] }
+  },
+  "additionalProperties": false
+}

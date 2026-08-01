@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.miangedan.example/v1/resume-profile.schema.json",
+  "title": "ResumeProfile",
+  "description": "面个蛋简历结构化画像（面试上下文安全版）。追踪 PRD-001 US-01、FR-002、FR-003。电话、邮箱、证件号、详细地址、照片、性别、婚育等敏感字段不属于本结构，单独隔离存储且不得进入面试上下文。",
+  "type": "object",
+  "required": ["schema_version", "resume_id", "resume_version", "data_region", "language", "parse_meta", "confirmed_by_user"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "resume_id": { "type": "string", "format": "uuid" },
+    "resume_version": { "type": "integer", "minimum": 1, "description": "每次用户确认产生新版本" },
+    "data_region": { "enum": ["cn", "eu", "intl"] },
+    "language": { "enum": ["zh-CN", "en-US"], "description": "简历自动识别语言；面试语言由用户另行确认" },
+    "display_name": { "type": "string", "description": "可选称呼；非真实姓名必填" },
+    "years_of_experience": { "type": ["number", "null"], "minimum": 0 },
+    "job_seeking_status": { "enum": ["active", "passive", "not_seeking", "unknown"], "default": "unknown" },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["institution", "degree", "field_of_study"],
+        "properties": {
+          "institution": { "type": "string" },
+          "degree": { "type": "string" },
+          "field_of_study": { "type": "string" },
+          "start_year": { "type": ["integer", "null"] },
+          "end_year": { "type": ["integer", "null"], "description": "null 表示在读" },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+    "work_experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["organization", "role"],
+        "properties": {
+          "organization": { "type": "string" },
+          "role": { "type": "string" },
+          "start_date": { "type": ["string", "null"] },
+          "end_date": { "type": ["string", "null"], "description": "null 表示至今" },
+          "responsibilities": { "type": "array", "items": { "type": "string" } },
+          "actions": { "type": "array", "items": { "type": "string" } },
+          "results": { "type": "array", "items": { "type": "string" } },
+          "quantified_outcomes": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "background": { "type": "string" },
+          "role": { "type": "string" },
+          "actions": { "type": "array", "items": { "type": "string" } },
+          "technologies": { "type": "array", "items": { "type": "string" } },
+          "results": { "type": "array", "items": { "type": "string" } },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "category": { "type": "string", "description": "专业技能 / 工具 / 方法" },
+          "proficiency": { "enum": ["beginner", "intermediate", "advanced", "expert", "unknown"], "default": "unknown" },
+          "confidence": { "$ref": "#/$defs/confidence" }
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["language"],
+        "properties": {
+          "language": { "type": "string" },
+          "proficiency": { "enum": ["basic", "conversational", "professional", "native", "unknown"], "default": "unknown" }
+        }
+      }
+    },
+    "certifications": { "type": "array", "items": { "type": "string" } },
+    "awards": { "type": "array", "items": { "type": "string" } },
+    "publications": { "type": "array", "items": { "type": "string" } },
+    "portfolio_links": { "type": "array", "items": { "type": "string", "format": "uri" } },
+    "interview_clues": {
+      "type": "array",
+      "description": "面试线索：空档、频繁变动、模糊主张、缺少量化、前后不一致、岗位不匹配",
+      "items": {
+        "type": "object",
+        "required": ["clue_type", "description"],
+        "properties": {
+          "clue_type": { "enum": ["gap", "frequent_change", "vague_claim", "missing_quantification", "inconsistency", "job_mismatch"] },
+          "description": { "type": "string" },
+          "related_field_path": { "type": "string" }
+        }
+      }
+    },
+    "excluded_sensitive_fields": {
+      "type": "array",
+      "description": "已从面试上下文排除的敏感字段类别（仅存类别，不存值）",
+      "items": { "enum": ["phone", "email", "id_number", "address", "photo", "gender", "marital_status", "other_pii"] }
+    },
+    "parse_meta": {
+      "type": "object",
+      "required": ["parser_version", "parsed_at", "overall_confidence"],
+      "properties": {
+        "parser_version": { "type": "string" },
+        "parsed_at": { "type": "string", "format": "date-time" },
+        "overall_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "low_confidence_paths": { "type": "array", "items": { "type": "string" }, "description": "低置信度字段路径，UI 高亮" }
+      }
+    },
+    "confirmed_by_user": { "type": "boolean", "description": "用户校对确认后才可用于计划生成" }
+  },
+  "$defs": {
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "additionalProperties": false
+}
