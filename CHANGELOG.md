@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-008 备份与恢复（`task/TASK-008-backup-recovery` 分支）：
+  - 新增 `services/backup` 共享包与 CLI（yaml.v3）：备份契约 fail-closed（每日完整+WAL+PITR、
+    证据 RPO=0、其他 RPO ≤5s、RTO ≤30 分钟、区域内备份桶、恢复前强制 tombstone 过滤）、
+    一键恢复 dry-run 固定步骤序列；含正常/异常/幂等单测。（TASK-008、SEC-050、SEC-052）
+  - 新增 `infra/modules/backup/` 模块契约与三区×三环境 `topology.backup` 配置，
+    纳入 `regions` 套件校验（策略/PITR/RPO/RTO/tombstone）；`tools/validate_docs.py` 新增
+    `backup` 套件（第 18 套件）并接入 CI 阶段 1、golangci 矩阵与本地检查。（TASK-008）
+  - 新增 `docs/operations/RECOVERY-RUNBOOK.md`（一键恢复流程）与
+    `tools/backup/quarterly-drill-template.md`（季度恢复演练模板，含 RPO/RTO 结果记录表）。
+    **EPIC-01（TASK-001~008）全部完成。**（TASK-008）
 - TASK-007 区域化通知与身份通道（`task/TASK-007-notification-identity-channels` 分支）：
   - 新增 `services/notify` 共享 Go 包：区域化邮件通道契约（`Config.Validate` fail-closed）、
     `Router` 按 `data_region` 路由（单区通道故障不影响他区，未配置区拒绝发送）、消息强制幂等键、

@@ -50,6 +50,8 @@ REQUIRED_FILES = [
     "docs/security/THREAT-MODEL.md", "docs/security/PRIVACY-DATA-MAP.md",
     "docs/security/SECURITY-REQUIREMENTS.md",
     "docs/operations/KEY-ROTATION-RUNBOOK.md",
+    "docs/operations/RECOVERY-RUNBOOK.md",
+    "tools/backup/quarterly-drill-template.md",
     "docs/design/SCREEN-SPEC.md", "docs/design/DESIGN-SYSTEM.md", "docs/design/ACCESSIBILITY.md",
     "docs/testing/ACCEPTANCE-MATRIX.md", "docs/testing/TEST-STRATEGY.md",
     "docs/testing/RELEASE-CHECKLIST.md",
@@ -312,7 +314,7 @@ EVENT_TOPICS = [
 ]
 TOPOLOGY_REQUIRED_KEYS = [
     "network", "database", "object_storage", "event_stream", "sfu", "temporal", "observability",
-    "secrets", "provider_allowlist", "notification", "identity_providers", "routing",
+    "backup", "secrets", "provider_allowlist", "notification", "identity_providers", "routing",
 ]
 TASK_QUEUES = ["ingestion", "plan", "interview", "scoring", "report", "billing", "deletion"]
 OBSERVABILITY_LABELS = [
@@ -338,6 +340,7 @@ RESOURCE_NAME_PATHS = [
     ("observability", "otel_collector"),
     ("observability", "status_page"),
     ("secrets", "kms_name"),
+    ("backup", "bucket"),
 ]
 
 
@@ -402,6 +405,21 @@ def _validate_region_topology(data, region: str, env: str, p: Path) -> None:
     endpoint = obs.get("otlp_endpoint")
     if not isinstance(endpoint, str) or not endpoint.startswith("https://"):
         fail(f"[区域拓扑] {rel} observability.otlp_endpoint 必须为 https:// 地址")
+    backup_cfg = topo.get("backup", {})
+    if backup_cfg.get("schedule") != "daily_full_plus_wal":
+        fail(f"[区域拓扑] {rel} backup.schedule 必须为 daily_full_plus_wal（SEC-052）")
+    if backup_cfg.get("pitr") is not True:
+        fail(f"[区域拓扑] {rel} backup.pitr 必须为 true")
+    if backup_cfg.get("evidence_rpo_seconds") != 0:
+        fail(f"[区域拓扑] {rel} backup.evidence_rpo_seconds 必须为 0（证据 RPO=0）")
+    other_rpo = backup_cfg.get("other_rpo_seconds")
+    if not isinstance(other_rpo, int) or not (1 <= other_rpo <= 5):
+        fail(f"[区域拓扑] {rel} backup.other_rpo_seconds 必须为 1-5 秒")
+    rto = backup_cfg.get("rto_seconds")
+    if not isinstance(rto, int) or not (1 <= rto <= 1800):
+        fail(f"[区域拓扑] {rel} backup.rto_seconds 必须为 1-1800 秒（≤30 分钟）")
+    if backup_cfg.get("tombstone_filter") is not True:
+        fail(f"[区域拓扑] {rel} backup.tombstone_filter 必须为 true（RETENTION-MATRIX）")
     event_stream = topo.get("event_stream", {})
     topics = event_stream.get("topics", [])
     for topic in EVENT_TOPICS:
@@ -759,6 +777,65 @@ def check_channels() -> None:
                 fail(f"[通道] services/identity/provider 缺少测试 {symbol}")
 
 
+# ---------- 9h. 备份与恢复契约校验（TASK-008） ----------
+def check_backup() -> None:
+    import yaml
+    module_rel = "infra/modules/backup/module.yaml"
+    p = ROOT / module_rel
+    if not p.exists():
+        fail(f"[备份] 缺少模块清单 {module_rel}")
+        return
+    try:
+        data = yaml.safe_load(read(p))
+    except Exception as e:  # noqa: BLE001
+        fail(f"[备份] 模块清单解析失败: {e}")
+        return
+    if data.get("kind") != "backup":
+        fail("[备份] 模块清单 kind 应为 backup")
+    strategy = data.get("strategy", {})
+    if strategy.get("schedule") != "daily_full_plus_wal" or strategy.get("pitr") is not True:
+        fail("[备份] 模块清单 strategy 必须 schedule=daily_full_plus_wal 且 pitr=true")
+    if strategy.get("per_region_bucket") is not True:
+        fail("[备份] 模块清单 strategy.per_region_bucket 必须为 true（SEC-050）")
+    targets = data.get("targets", {})
+    if targets.get("evidence_rpo_seconds") != 0:
+        fail("[备份] 模块清单 targets.evidence_rpo_seconds 必须为 0")
+    if targets.get("other_rpo_seconds_max") != 5 or targets.get("rto_seconds_max") != 1800:
+        fail("[备份] 模块清单 targets 必须 other_rpo_seconds_max=5 且 rto_seconds_max=1800")
+    restore = data.get("restore", {})
+    if restore.get("tombstone_filter") is not True or restore.get("one_click") is not True:
+        fail("[备份] 模块清单 restore 必须 tombstone_filter=true 且 one_click=true")
+    pkg = ROOT / "services/backup/config.go"
+    if pkg.exists():
+        pkg_text = read(pkg)
+        for symbol in ["Config", "Validate", "LoadConfig"]:
+            if symbol not in pkg_text:
+                fail(f"[备份] services/backup 缺少 {symbol}")
+    restore_pkg = ROOT / "services/backup/restore.go"
+    if restore_pkg.exists() and "RestorePlan" not in read(restore_pkg):
+        fail("[备份] services/backup 缺少 RestorePlan")
+    test_file = ROOT / "services/backup/backup_test.go"
+    if test_file.exists():
+        test_text = read(test_file)
+        for symbol in ["TestBackupConfig", "TestLoadConfig", "TestBackupIdempotent"]:
+            if symbol not in test_text:
+                fail(f"[备份] services/backup 缺少测试 {symbol}")
+    cli = ROOT / "services/backup/cmd/backup/main.go"
+    if not cli.exists() or "restore-dry-run" not in read(cli):
+        fail("[备份] 缺少一键恢复 CLI services/backup/cmd/backup（restore-dry-run）")
+    drill = ROOT / "tools/backup/quarterly-drill-template.md"
+    if not drill.exists() or "RPO" not in read(drill):
+        fail("[备份] 缺少季度恢复演练模板 tools/backup/quarterly-drill-template.md")
+    runbook = ROOT / "docs/operations/RECOVERY-RUNBOOK.md"
+    if not runbook.exists():
+        fail("[备份] 缺少 docs/operations/RECOVERY-RUNBOOK.md")
+    else:
+        text = read(runbook)
+        for keyword in ["tombstone", "RPO=0", "30 分钟"]:
+            if keyword not in text:
+                fail(f"[备份] RECOVERY-RUNBOOK.md 缺少关键词 {keyword}")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -797,6 +874,7 @@ SUITES = [
     ("observability", "观测契约", check_observability),
     ("key-mgmt", "密钥管理", check_key_mgmt),
     ("channels", "通知与身份通道", check_channels),
+    ("backup", "备份与恢复", check_backup),
     ("secrets", "密钥扫描", check_secrets),
 ]
 
