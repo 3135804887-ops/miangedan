@@ -39,8 +39,8 @@ servers:
         description: 数据区域；用户请求必须路由到其账户所属区域
 
 tags:
-  - name: auth
-    description: 登录与身份验证（邮箱验证码、Google、Apple、微信；US-05、FR-027）
+  - name: identity
+    description: 登录、会话、账户与多身份绑定（US-05、FR-027；TASK-010）
   - name: account
     description: 账户与多身份绑定（US-05、FR-027、FR-029）
   - name: consents
@@ -75,12 +75,15 @@ tags:
       **本系统不存在任何修改个人分数或解锁状态的端点；个体结果只能由正式复核服务产生新版本。**
 
 paths:
-  # ============================== auth ==============================
-  /v1/auth/email/code:
+  # ============================== identity (TASK-010) ==============================
+  /v1/identity/email/challenges:
     post:
-      tags: [auth]
-      operationId: requestEmailCode
-      summary: 发送邮箱验证码（有效期、频率限制与风险验证）
+      tags: [identity]
+      operationId: createEmailIdentityChallenge
+      summary: 创建邮箱验证码挑战（有效期、频率限制与风险验证；不泄露账户是否存在）
+      description: |
+        邮件必须经 `services/notify` 的所属数据区通道投递。服务端仅持久化邮箱主体摘要与
+        验证码散列；通知模板变量不得携带简历/回答正文、业务令牌或媒体。
       security: []
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -92,19 +95,20 @@ paths:
               type: object
               required: [email, data_region]
               properties:
-                email: { type: string, format: email, example: "demo.user@example.com" }
+                email: { type: string, format: email, example: "synthetic.user@example.com" }
                 data_region: { $ref: '#/components/schemas/Region' }
       responses:
-        '200': { description: 验证码已发送（不泄露账户是否存在）, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        '202': { description: 挑战已创建或返回同一幂等结果, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityVerificationChallenge' } } } }
         '429': { $ref: '#/components/responses/RateLimited' }
         default: { $ref: '#/components/responses/Error' }
-  /v1/auth/email/verify:
+  /v1/identity/email/challenges/{challengeId}/verify:
     post:
-      tags: [auth]
-      operationId: verifyEmailCode
-      summary: 校验邮箱验证码并签发业务令牌（含 data_region claim）
+      tags: [identity]
+      operationId: verifyEmailIdentityChallenge
+      summary: 校验邮箱验证码并签发短期、单次使用的身份验证证明
       security: []
       parameters:
+        - $ref: '#/components/parameters/IdentityChallengeId'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -112,19 +116,22 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, code, data_region]
+              required: [code, data_region]
               properties:
-                email: { type: string, format: email }
-                code: { type: string, minLength: 4, maxLength: 8 }
+                code: { type: string, pattern: '^[0-9]{6}$' }
                 data_region: { $ref: '#/components/schemas/Region' }
       responses:
-        '200': { description: 登录成功, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } }
+        '200': { description: 验证成功；证明可用于登录或绑定且只能消费一次, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityVerificationProof' } } } }
+        '401': { description: 验证码无效、过期、已消费或超过尝试次数, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
-  /v1/auth/oauth/{provider}:
+  /v1/identity/oauth/{provider}/verify:
     post:
-      tags: [auth]
-      operationId: oauthLogin
-      summary: 第三方登录（Google / Apple / 微信；故障时提供邮箱替代）
+      tags: [identity]
+      operationId: verifyOAuthIdentity
+      summary: 验证 Google / Apple / 微信身份并签发短期、单次使用证明
+      description: |
+        调用供应商中立的身份适配器；Google/Apple 仅 eu/intl，微信仅 cn。供应商故障返回
+        `provider_unavailable` 且明确 `email_fallback_available=true`，不接收或暴露供应商密钥。
       security: []
       parameters:
         - name: provider
@@ -140,24 +147,70 @@ paths:
               type: object
               required: [authorization_code, data_region]
               properties:
-                authorization_code: { type: string, description: 第三方授权码（服务端换取身份，浏览器不持密钥） }
+                authorization_code: { type: string, minLength: 1, description: 一次性授权码（仅服务端适配器消费） }
+                redirect_uri: { type: ['string', 'null'], format: uri }
                 data_region: { $ref: '#/components/schemas/Region' }
       responses:
-        '200': { description: 登录成功, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } }
+        '200': { description: 验证成功, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityVerificationProof' } } } }
+        '503': { description: 第三方不可用；可改用邮箱验证码, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
-
-  # ============================== account ==============================
-  /v1/me:
+  /v1/identity/sessions:
+    post:
+      tags: [identity]
+      operationId: createIdentitySession
+      summary: 使用已验证证明登录；首次身份同时创建所属数据区账户
+      description: 未满 16 岁不得创建账户；首次注册必须提交服务条款、隐私政策与数据处理说明版本证据。
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proof_token, data_region]
+              properties:
+                proof_token: { type: string, minLength: 32, description: 短期单次身份验证证明；禁止写日志 }
+                data_region: { $ref: '#/components/schemas/Region' }
+                registration: { oneOf: [{ $ref: '#/components/schemas/IdentityRegistration' }, { type: 'null' }] }
+      responses:
+        '201': { description: 会话已创建；重复幂等请求返回同一结果, content: { application/json: { schema: { $ref: '#/components/schemas/IdentitySession' } } } }
+        '409': { description: 已验证身份与请求区域冲突或注册资料缺失, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/identity/sessions/refresh:
+    post:
+      tags: [identity]
+      operationId: refreshIdentitySession
+      summary: 轮换刷新令牌并签发新业务令牌（旧刷新令牌立即失效）
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token, data_region]
+              properties:
+                refresh_token: { type: string, minLength: 32, description: 禁止写日志 }
+                data_region: { $ref: '#/components/schemas/Region' }
+      responses:
+        '200': { description: 令牌已轮换, content: { application/json: { schema: { $ref: '#/components/schemas/IdentitySession' } } } }
+        '401': { description: 刷新令牌无效、已轮换或已过期, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/identity/account:
     get:
-      tags: [account]
-      operationId: getMe
-      summary: 获取当前账户（语言、年龄状态、数据区域）
+      tags: [identity]
+      operationId: getIdentityAccount
+      summary: 获取当前账户与已绑定身份（不返回 provider_subject）
       responses:
         '200': { description: 账户信息, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
         default: { $ref: '#/components/responses/Error' }
     patch:
-      tags: [account]
-      operationId: updateMe
+      tags: [identity]
+      operationId: updateIdentityAccount
       summary: 更新界面语言等账户偏好（界面语言与面试语言相互独立）
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -167,17 +220,18 @@ paths:
           application/json:
             schema:
               type: object
+              minProperties: 1
               properties:
                 ui_language: { $ref: '#/components/schemas/Language' }
-                display_name: { type: string, description: 可选称呼 }
+                display_name: { type: ['string', 'null'], maxLength: 120, description: 可选称呼 }
       responses:
         '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
         default: { $ref: '#/components/responses/Error' }
-  /v1/me/identities:
+  /v1/identity/bindings:
     post:
-      tags: [account]
-      operationId: bindIdentity
-      summary: 绑定新登录身份（双侧验证；存在账户冲突时不合并，返回恢复路径）
+      tags: [identity]
+      operationId: bindVerifiedIdentity
+      summary: 使用当前侧与目标侧两个独立验证证明绑定身份；任何冲突均不合并账户
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -186,14 +240,16 @@ paths:
           application/json:
             schema:
               type: object
-              required: [provider, credential]
+              required: [source_proof_token, target_proof_token]
               properties:
-                provider: { enum: [email_otp, google, apple, wechat] }
-                credential: { type: string, description: 待验证的身份凭证（验证码或授权码） }
+                source_proof_token: { type: string, minLength: 32, description: 当前账户已绑定身份的重新验证证明 }
+                target_proof_token: { type: string, minLength: 32, description: 待绑定身份的独立验证证明 }
       responses:
-        '200': { description: 绑定成功 }
-        '409': { description: 身份冲突，未执行合并，提供恢复与人工支持路径, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '201': { description: 绑定成功；两份证明均被单次消费, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityBinding' } } } }
+        '409': { description: 双侧验证不完整或目标身份属于另一账户；未合并，返回恢复案件与人工支持路径, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
+
+  # ============================== account data rights ==============================
   /v1/me/deletion:
     post:
       tags: [account]
@@ -1341,6 +1397,11 @@ components:
       required: true
       description: 幂等键（UUID 推荐）；相同键重复提交返回首个结果
       schema: { type: string, minLength: 8, maxLength: 128 }
+    IdentityChallengeId:
+      name: challengeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     Cursor:
       name: cursor
       in: query
@@ -1384,7 +1445,7 @@ components:
       enum: [PASS, FAIL, EVALUATION_INCOMPLETE]
       description: 评估未完成 ≠ 失败
     ErrorCode:
-      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, idempotency_conflict, rate_limited, region_mismatch, insufficient_entitlement, state_conflict, internal]
+      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, idempotency_conflict, rate_limited, risk_verification_required, verification_invalid, verification_expired, identity_conflict, provider_unavailable, region_mismatch, insufficient_entitlement, state_conflict, internal]
     Error:
       type: object
       required: [error]
@@ -1404,18 +1465,63 @@ components:
       properties:
         amount: { type: integer, description: 最小货币单位（分/cent） }
         currency: { type: string, example: CNY }
-    MessageResponse:
+    IdentityProvider:
+      enum: [email_otp, google, apple, wechat]
+      description: 登录身份提供商；手机号码不是必填身份
+    IdentityVerificationChallenge:
       type: object
+      required: [challenge_id, expires_at, delivery_status, data_region]
       properties:
-        message: { type: string }
+        challenge_id: { type: string, format: uuid }
+        expires_at: { type: string, format: date-time }
+        retry_after_seconds: { type: integer, minimum: 0 }
+        delivery_status: { enum: [accepted] }
         data_region: { $ref: '#/components/schemas/Region' }
-    AuthToken:
+    IdentityVerificationProof:
       type: object
-      required: [access_token, token_type, expires_in, data_region]
+      required: [proof_token, provider, expires_at, data_region]
       properties:
-        access_token: { type: string }
+        proof_token: { type: string, minLength: 32, description: 短期单次证明；不得写日志或持久化明文 }
+        provider: { $ref: '#/components/schemas/IdentityProvider' }
+        expires_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    IdentityRegistration:
+      type: object
+      required: [ui_language, age_status, terms_version, privacy_version, data_processing_version, accepted_at, acceptance_context]
+      properties:
+        ui_language: { $ref: '#/components/schemas/Language' }
+        age_status: { enum: [adult, minor_guardian_verified, minor_pending], description: 未满 16 岁仅可使用无登录样例演示 }
+        terms_version: { type: string, minLength: 1 }
+        privacy_version: { type: string, minLength: 1 }
+        data_processing_version: { type: string, minLength: 1 }
+        accepted_at: { type: string, format: date-time }
+        acceptance_context:
+          type: object
+          required: [ui_language, surface]
+          properties:
+            ui_language: { $ref: '#/components/schemas/Language' }
+            surface: { enum: [web, pwa, mobile_web] }
+          additionalProperties: false
+      additionalProperties: false
+    IdentityBinding:
+      type: object
+      required: [identity_id, provider, verified_at, data_region]
+      properties:
+        identity_id: { type: string, format: uuid }
+        provider: { $ref: '#/components/schemas/IdentityProvider' }
+        verified_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    IdentitySession:
+      type: object
+      required: [session_id, access_token, refresh_token, token_type, expires_in, refresh_expires_in, account, data_region]
+      properties:
+        session_id: { type: string, format: uuid }
+        access_token: { type: string, description: 业务 JWT；禁止写日志 }
+        refresh_token: { type: string, description: 单次轮换刷新令牌；禁止写日志 }
         token_type: { const: Bearer }
-        expires_in: { type: integer }
+        expires_in: { type: integer, minimum: 1 }
+        refresh_expires_in: { type: integer, minimum: 1 }
+        account: { $ref: '#/components/schemas/Account' }
         data_region: { $ref: '#/components/schemas/Region' }
     Account:
       type: object
@@ -1429,11 +1535,7 @@ components:
         display_name: { type: ['string', 'null'] }
         identities:
           type: array
-          items:
-            type: object
-            properties:
-              provider: { enum: [email_otp, google, apple, wechat] }
-              verified_at: { type: ['string', 'null'], format: date-time }
+          items: { $ref: '#/components/schemas/IdentityBinding' }
     ConsentGrant:
       type: object
       required: [grant_id, consent_type, status, granted_at]
