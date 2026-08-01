@@ -122,6 +122,36 @@ func TestBaselineMigrationEnforcesLedgerConstraints(t *testing.T) {
 	}
 }
 
+// TASK-012 契约：上传状态表必须强制区域 uploads 桶、10 MiB 上限与两级幂等键。
+func TestResumeUploadMigrationEnforcesIsolationAndIdempotency(t *testing.T) {
+	migrations, err := LoadMigrations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var uploadSQL string
+	for _, migration := range migrations {
+		if migration.Version == "0012" {
+			uploadSQL = migration.SQL
+			break
+		}
+	}
+	if uploadSQL == "" {
+		t.Fatal("缺少 TASK-012 迁移 0012")
+	}
+	for _, required := range []string{
+		"CREATE TABLE resume_uploads",
+		"CREATE TABLE upload_scan_attempts",
+		"size_bytes <= 10485760",
+		"data_region, user_id, idempotency_key",
+		"object_bucket = btrim(data_region) || '-uploads'",
+		"upload_id, idempotency_key",
+	} {
+		if !strings.Contains(uploadSQL, required) {
+			t.Errorf("TASK-012 迁移缺少约束 %q", required)
+		}
+	}
+}
+
 // 正常路径：状态报告区分已应用与待应用。
 func TestInspectStatus(t *testing.T) {
 	migrations, err := LoadMigrations()

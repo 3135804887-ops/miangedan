@@ -45,6 +45,8 @@ tags:
     description: 账户与多身份绑定（US-05、FR-027、FR-029）
   - name: consents
     description: 授权中心：六类独立授权与机构分享授权（FR-040、隐私规则）
+  - name: uploads
+    description: 简历隔离上传、恶意文件扫描与可重试状态（TASK-012、FR-001、FR-006）
   - name: resumes
     description: 简历上传、解析、校对与版本（US-01、FR-001 ~ FR-003、FR-006）
   - name: jobs
@@ -257,6 +259,90 @@ paths:
                 expires_at: { type: ['string', 'null'], format: date-time }
       responses:
         '200': { description: 授权已更新（新版本追加）, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== uploads ==============================
+  /v1/uploads/resumes:
+    post:
+      tags: [uploads]
+      operationId: createResumeUpload
+      summary: 上传简历到所属数据区 uploads 隔离桶并启动一次性沙箱安全扫描
+      description: |
+        追踪 TASK-012、FR-001、FR-006、TM-02、SEC-020。仅接受 PDF、DOC、DOCX，
+        单文件最大 10 MiB。服务不信任扩展名或 Content-Type；对象先写入所属区域
+        `{region}-uploads/quarantine/` 前缀，绝不写入 exports/media 桶，再由无出站网络、
+        只读根文件系统、无凭证挂载的一次性沙箱检测病毒、宏、压缩炸弹、伪装、
+        损坏与加密。安全拒绝会删除隔离对象；扫描器暂时不可用或超时时保留隔离原件，
+        可通过 retry 端点只重试扫描步骤。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 合法扩展名为 .pdf/.doc/.docx，实际大小不超过 10 MiB
+      responses:
+        '202':
+          description: 已进入隔离扫描；相同 Idempotency-Key 返回同一 upload_id，不重复写对象或扫描
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumeUpload' }
+        '413':
+          description: 实际文件超过 10 MiB，未写入任何对象存储桶
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadRejectedError' }
+        '415':
+          description: 扩展名或实际类型不受支持，或二者不一致（伪装）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadRejectedError' }
+        '422':
+          description: 文件损坏、加密，或检测到病毒、宏、压缩炸弹等不安全内容
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadRejectedError' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/uploads/{uploadId}:
+    get:
+      tags: [uploads]
+      operationId: getResumeUpload
+      summary: 查询隔离上传与扫描真实状态
+      parameters:
+        - $ref: '#/components/parameters/UploadId'
+      responses:
+        '200':
+          description: 上传状态；拒绝时包含具体可理解原因，暂时失败时说明原件保留与重试动作
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumeUpload' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/uploads/{uploadId}:retry:
+    post:
+      tags: [uploads]
+      operationId: retryResumeUploadScan
+      summary: 只重试暂时失败的安全扫描步骤（复用隔离原件）
+      parameters:
+        - $ref: '#/components/parameters/UploadId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 重试已受理；相同 Idempotency-Key 返回首个结果，不重复扫描
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumeUpload' }
+        '409':
+          description: 已接受、已安全拒绝或正在扫描的上传不可重试
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         default: { $ref: '#/components/responses/Error' }
 
   # ============================== resumes ==============================
@@ -1350,6 +1436,7 @@ components:
       in: query
       schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
     ResumeId: { name: resumeId, in: path, required: true, schema: { type: string, format: uuid } }
+    UploadId: { name: uploadId, in: path, required: true, schema: { type: string, format: uuid } }
     JobId: { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
     ProjectId: { name: projectId, in: path, required: true, schema: { type: string, format: uuid } }
     SessionId: { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -1384,7 +1471,7 @@ components:
       enum: [PASS, FAIL, EVALUATION_INCOMPLETE]
       description: 评估未完成 ≠ 失败
     ErrorCode:
-      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, idempotency_conflict, rate_limited, region_mismatch, insufficient_entitlement, state_conflict, internal]
+      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, upload_rejected, scan_retryable, idempotency_conflict, rate_limited, region_mismatch, insufficient_entitlement, state_conflict, internal]
     Error:
       type: object
       required: [error]
@@ -1446,6 +1533,56 @@ components:
         expires_at: { type: ['string', 'null'], format: date-time }
         withdrawn_at: { type: ['string', 'null'], format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
+    UploadRejectionReason:
+      enum: [unsupported_type, oversized, type_spoofed, corrupted, encrypted, virus_detected, macros_detected, archive_bomb_detected, sandbox_policy_violation]
+      description: 安全拒绝的稳定机器码；用户界面同时展示具体 message 与 UploadImpact
+    UploadImpact:
+      type: object
+      required: [original_input_retained, retryable, billable, scoring_affected]
+      properties:
+        original_input_retained: { type: boolean, description: 安全拒绝为 false；扫描超时/暂时不可用为 true }
+        retryable: { type: boolean, description: 仅暂时失败可通过 retry 端点重试 }
+        billable: { type: boolean, const: false }
+        scoring_affected: { type: boolean, const: false }
+        retry_action: { type: ['string', 'null'], description: 可执行的下一步；不可重试时为空 }
+    ResumeUpload:
+      type: object
+      required: [upload_id, data_region, status, filename, size_bytes, storage_scope, impact, created_at, updated_at]
+      properties:
+        upload_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        status: { enum: [QUARANTINED, SCANNING, ACCEPTED, REJECTED, RETRYABLE_FAILURE] }
+        filename: { type: string }
+        size_bytes: { type: integer, minimum: 0, maximum: 10485760 }
+        detected_media_type: { type: ['string', 'null'], enum: [application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, null] }
+        storage_scope: { type: string, const: uploads, description: 对外只公开逻辑存储范围；内部桶名与对象键永不返回 }
+        rejection_reason: { anyOf: [{ $ref: '#/components/schemas/UploadRejectionReason' }, { type: 'null' }] }
+        message: { type: ['string', 'null'], description: 具体用户可见说明，不含文件正文或检测样本内容 }
+        impact: { $ref: '#/components/schemas/UploadImpact' }
+        sandbox_attestation:
+          type: ['object', 'null']
+          properties:
+            network_disabled: { type: boolean, const: true }
+            ephemeral: { type: boolean, const: true }
+            read_only_root_filesystem: { type: boolean, const: true }
+            credentials_mounted: { type: boolean, const: false }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    UploadRejectedError:
+      allOf:
+        - { $ref: '#/components/schemas/Error' }
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                code: { const: upload_rejected }
+                details:
+                  type: object
+                  required: [reason, impact]
+                  properties:
+                    reason: { $ref: '#/components/schemas/UploadRejectionReason' }
+                    impact: { $ref: '#/components/schemas/UploadImpact' }
     Resume:
       type: object
       required: [resume_id, data_region, status]
