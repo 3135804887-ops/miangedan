@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 区域代码 | `intl`（OD-09） |
-| 状态 | 目录骨架（TASK-001）；拓扑与资源实例化在 TASK-002 落地 |
+| 状态 | TASK-002 已落地：`envs/{dev,staging,production}.yaml` 三环境拓扑实例 |
 | 追踪 | ADR-0005；docs/architecture/DEPLOYMENT.md；docs/security/PRIVACY-DATA-MAP.md |
 
 ## 本区独立持有的资源

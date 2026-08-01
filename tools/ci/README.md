@@ -8,8 +8,8 @@
 ## 本地检查
 
 - 一键执行阶段 1~4 + 6（含阶段 5 本地等价项）：`bash tools/ci/run_local_checks.sh`
-- 全量规范校验：`python tools/validate_docs.py`（默认全部套件）
-- 分套件示例：`python tools/validate_docs.py --suites yaml,json,schema,openapi`（套件键见 `tools/validate_docs.py` 的 `SUITES`）
+- 全量规范校验：`python tools/validate_docs.py`（默认全部 12 套件）
+- 分套件示例：`python tools/validate_docs.py --suites yaml,json,schema,openapi,regions`（套件键见 `tools/validate_docs.py` 的 `SUITES`；`regions` 为 TASK-002 三数据区拓扑校验）
 
 ## 说明
 

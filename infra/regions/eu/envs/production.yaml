@@ -1,0 +1,54 @@
+# 数据区 eu · 环境 production 拓扑实例（TASK-002）
+# 追踪：IMPLEMENTATION_PLAN.md TASK-002；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；
+#       docs/architecture/DEPLOYMENT.md 第 5、9 节；ADR-0005；OD-09
+region: eu
+environment: production
+topology:
+  network:
+    vpc_name: mgd-eu-prod-vpc
+    availability_zones: [az-1, az-2, az-3]
+    cross_region_peering: []
+  database:
+    postgres:
+      cluster_name: mgd-eu-prod-postgres
+      replicas: 3
+      cross_az_replicas: true
+    redis:
+      cluster_name: mgd-eu-prod-redis
+      replicas: 3
+      evidence_storage: false
+  object_storage:
+    buckets:
+      uploads: mgd-eu-prod-uploads
+      exports: mgd-eu-prod-exports
+      media: mgd-eu-prod-media
+  event_stream:
+    name: mgd-eu-prod-events
+  sfu:
+    node_group: mgd-eu-prod-sfu
+  temporal:
+    namespace: mgd-eu-prod-temporal
+    task_queues: [ingestion, plan, interview, scoring, report, billing, deletion]
+  secrets:
+    refs:
+      identity_signing_key: IDENTITY_SIGNING_KEY_REF
+      field_encryption_key: DB_FIELD_ENCRYPTION_KEY_REF
+      database_url: DATABASE_URL
+      object_storage_keys: OBJECT_STORAGE_ACCESS_KEY
+      temporal_api_key: TEMPORAL_API_KEY
+      provider_api_keys: LLM_PRIMARY_API_KEY
+      payment_webhook_signing_secret_ref: PAYMENT_WEBHOOK_SIGNING_SECRET
+      otp_pepper: EMAIL_OTP_PEPPER_REF
+  provider_allowlist:
+    llm: [llm_eu_primary, llm_eu_backup]
+    asr: [asr_eu_primary, asr_eu_backup]
+    tts: [tts_eu_primary, tts_eu_backup]
+    avatar: [avatar_eu_primary, avatar_eu_backup]
+    email: [email_eu_primary]
+    payment: [psp_eu_primary]
+  notification:
+    email_from: mgd-eu-prod@miangedan.example
+  routing:
+    gateway_region: eu
+    reject_mismatch: true
+    alert_event: region_mismatch

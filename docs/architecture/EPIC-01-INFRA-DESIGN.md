@@ -91,6 +91,10 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 
 - 环境变量按 `.env.example` 分组；`[REGION-SCOPED]` 变量在每区密钥管理系统独立配置。
 - 部署校验（fail-closed）：服务启动时校验 `DATA_REGION` 与所连基础设施区域一致，不一致即拒绝启动——防止配置错误导致静默跨区。
+- TASK-002 实施（2026-08-01）：新增 `INFRA_REGION`（`[REGION-SCOPED]`）承载所连基础设施区域；
+  Go/Python 服务启动校验 `DATA_REGION == INFRA_REGION` 且 `SERVICE_ENV ∈ {dev, staging, production}`，
+  不一致拒绝启动。区域路由决策由 `services/region` 包提供，跨区返回 `region_mismatch`
+  （SEC-051、OpenAPI 错误码）。
 
 ## 6. TASK-003 ~ TASK-008 实施要点
 

@@ -8,7 +8,10 @@
 ## 结构
 
 - `modules/`：可复用 IaC 模块（网络、数据库、对象存储、事件流、SFU、Temporal）。
-- `regions/`：cn / eu / intl 三数据区实例化配置，每区一套完整独立环境。
+- `regions/`：cn / eu / intl 三数据区实例化配置；每区 `envs/{dev,staging,production}.yaml`
+  共 9 个环境拓扑实例（TASK-002）。
+- 区域拓扑由 `python tools/validate_docs.py --suites regions` 自动校验（区域/环境/3 AZ/
+  资源命名/无跨区引用），配置错误即 CI 失败，防止静默跨区。
 
 ## 红线
 

@@ -300,6 +300,136 @@ def check_semantics() -> None:
             fail("[语义] safety policy 缺少 protected_attributes")
 
 
+# ---------- 9c. 区域拓扑校验（TASK-002） ----------
+REGION_CODES = ["cn", "eu", "intl"]
+ENVIRONMENTS = ["dev", "staging", "production"]
+TOPOLOGY_REQUIRED_KEYS = [
+    "network", "database", "object_storage", "event_stream", "sfu", "temporal",
+    "secrets", "provider_allowlist", "notification", "routing",
+]
+TASK_QUEUES = ["ingestion", "plan", "interview", "scoring", "report", "billing", "deletion"]
+PROVIDER_CATEGORIES = ["llm", "asr", "tts", "avatar", "email", "payment"]
+RESOURCE_NAME_PATHS = [
+    ("network", "vpc_name"),
+    ("database", "postgres", "cluster_name"),
+    ("database", "redis", "cluster_name"),
+    ("object_storage", "buckets", "uploads"),
+    ("object_storage", "buckets", "exports"),
+    ("object_storage", "buckets", "media"),
+    ("event_stream", "name"),
+    ("sfu", "node_group"),
+    ("temporal", "namespace"),
+]
+
+
+def _iter_string_values(node: object):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _iter_string_values(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _iter_string_values(value)
+
+
+def _validate_region_topology(data, region: str, env: str, p: Path) -> None:
+    rel = p.relative_to(ROOT)
+    if data.get("region") != region:
+        fail(f"[区域拓扑] {rel} region 应为 {region}")
+    if data.get("environment") != env:
+        fail(f"[区域拓扑] {rel} environment 应为 {env}")
+    topo = data.get("topology")
+    if not isinstance(topo, dict):
+        fail(f"[区域拓扑] {rel} 缺少 topology 段")
+        return
+    for key in TOPOLOGY_REQUIRED_KEYS:
+        if key not in topo:
+            fail(f"[区域拓扑] {rel} 缺少 topology.{key}")
+    network = topo.get("network", {})
+    azs = network.get("availability_zones")
+    if not isinstance(azs, list) or len(azs) < 3 or len(set(azs)) < 3:
+        fail(f"[区域拓扑] {rel} 可用区不足 3（NFR-004）")
+    if network.get("cross_region_peering"):
+        fail(f"[区域拓扑] {rel} 禁止跨区对等连接（ADR-0005）")
+    db = topo.get("database", {})
+    pg = db.get("postgres", {})
+    min_replicas = {"dev": 1, "staging": 2, "production": 3}[env]
+    if not isinstance(pg.get("replicas"), int) or pg.get("replicas", 0) < min_replicas:
+        fail(f"[区域拓扑] {rel} postgres replicas 应 ≥ {min_replicas}")
+    redis_cfg = db.get("redis", {})
+    if redis_cfg.get("evidence_storage") is not False:
+        fail(f"[区域拓扑] {rel} Redis 必须标注 evidence_storage: false（非证据存储）")
+    buckets = topo.get("object_storage", {}).get("buckets", {})
+    for bucket_key in ["uploads", "exports", "media"]:
+        if not buckets.get(bucket_key):
+            fail(f"[区域拓扑] {rel} 缺少对象存储桶 {bucket_key}")
+    queues = topo.get("temporal", {}).get("task_queues", [])
+    for q in TASK_QUEUES:
+        if q not in queues:
+            fail(f"[区域拓扑] {rel} temporal.task_queues 缺少 {q}")
+    refs = topo.get("secrets", {}).get("refs", {})
+    if not isinstance(refs, dict) or not refs:
+        fail(f"[区域拓扑] {rel} 缺少 secrets.refs")
+    allow = topo.get("provider_allowlist", {})
+    for cat in PROVIDER_CATEGORIES:
+        ids = allow.get(cat, [])
+        if not ids:
+            fail(f"[区域拓扑] {rel} provider_allowlist.{cat} 为空")
+        for pid in ids:
+            if not isinstance(pid, str) or f"_{region}_" not in pid:
+                fail(f"[区域拓扑] {rel} 供应商 {pid!r} 未含区域 {region} 标识")
+    routing = topo.get("routing", {})
+    if routing.get("gateway_region") != region:
+        fail(f"[区域拓扑] {rel} routing.gateway_region 应为 {region}")
+    if routing.get("reject_mismatch") is not True:
+        fail(f"[区域拓扑] {rel} routing.reject_mismatch 必须为 true")
+    if routing.get("alert_event") != "region_mismatch":
+        fail(f"[区域拓扑] {rel} routing.alert_event 必须为 region_mismatch")
+    resource_env = {"production": "prod"}.get(env, env)
+    resource_prefix = f"mgd-{region}-{resource_env}-"
+    for keys in RESOURCE_NAME_PATHS:
+        node: object = topo
+        for key in keys:
+            node = node.get(key, {}) if isinstance(node, dict) else {}
+        name = node if isinstance(node, str) else None
+        if not name or not name.startswith(resource_prefix):
+            fail(f"[区域拓扑] {rel} 资源 {'/'.join(keys)} 命名不符合 {resource_prefix} 前缀")
+    for other in REGION_CODES:
+        if other == region:
+            continue
+        pattern = re.compile(rf"(?<![a-z0-9]){re.escape(other)}(?![a-z0-9])")
+        for value in _iter_string_values(topo):
+            if pattern.search(value):
+                fail(f"[区域拓扑] {rel} 发现跨区引用 {other}: {value!r}")
+
+
+def check_regions() -> None:
+    import yaml
+    base = ROOT / "infra/regions"
+    if not base.exists():
+        fail("[区域拓扑] 缺少 infra/regions")
+        return
+    parsed = {}
+    for region in REGION_CODES:
+        for env in ENVIRONMENTS:
+            p = base / region / "envs" / f"{env}.yaml"
+            if not p.exists():
+                fail(f"[区域拓扑] 缺少 {p.relative_to(ROOT)}")
+                continue
+            try:
+                data = yaml.safe_load(read(p))
+            except Exception as e:  # noqa: BLE001
+                fail(f"[区域拓扑] 解析失败 {p.relative_to(ROOT)}: {e}")
+                continue
+            parsed[(region, env)] = data
+            _validate_region_topology(data, region, env, p)
+    if parsed:
+        key_sets = {tuple(sorted(d.get("topology", {}).keys())) for d in parsed.values()}
+        if len(key_sets) != 1:
+            fail("[区域拓扑] 9 个环境拓扑组件键不一致（dev/staging/prod 拓扑必须同构）")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -332,6 +462,7 @@ SUITES = [
     ("coverage", "需求覆盖", check_coverage),
     ("consistency", "跨文件一致性", check_consistency),
     ("semantics", "配置语义", check_semantics),
+    ("regions", "区域拓扑", check_regions),
     ("secrets", "密钥扫描", check_secrets),
 ]
 

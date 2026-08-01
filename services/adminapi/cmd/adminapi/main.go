@@ -1,27 +1,27 @@
-// Command adminapi 是面个蛋控制面「运营治理后台 BFF」服务的最小入口（TASK-001 工程骨架）。
-// 追踪：IMPLEMENTATION_PLAN.md TASK-001；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4 节；EPIC-09（TASK-080 ~ TASK-085）。
+// Command adminapi 是面个蛋控制面「运营治理后台 BFF」服务的最小入口（TASK-001 工程骨架；
+// 区域自检在 TASK-002 升级为 DATA_REGION/INFRA_REGION 一致性校验）。
+// 追踪：IMPLEMENTATION_PLAN.md TASK-001、TASK-002；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；EPIC-09（TASK-080 ~ TASK-085）。
 package main
 
 import (
 	"fmt"
 	"os"
+
+	"miangedan/services/region"
 )
 
-// validDataRegions 为 ADR-0005 批准的三个数据区代码（OD-09）。
-var validDataRegions = map[string]bool{"cn": true, "eu": true, "intl": true}
-
-// requireDataRegion 提供 fail-closed 区域自检的最小形态：DATA_REGION 缺失或不在
-// 批准集合内即返回错误，进程必须拒绝启动。与所连基础设施区域的一致性校验在
-// TASK-002 落地（EPIC-01-INFRA-DESIGN.md 第 5.2 节）。
-func requireDataRegion(region string) error {
-	if !validDataRegions[region] {
-		return fmt.Errorf("DATA_REGION %q 非法：必须为 cn | eu | intl（fail-closed，ADR-0005）", region)
-	}
-	return nil
+// checkStartup 提供 fail-closed 区域自检：DATA_REGION 必须与所连基础设施区域
+// INFRA_REGION 一致，且 SERVICE_ENV 合法（TASK-002，ADR-0005）。
+func checkStartup() error {
+	return region.CheckStartup(
+		os.Getenv("DATA_REGION"),
+		os.Getenv("INFRA_REGION"),
+		os.Getenv("SERVICE_ENV"),
+	)
 }
 
 func main() {
-	if err := requireDataRegion(os.Getenv("DATA_REGION")); err != nil {
+	if err := checkStartup(); err != nil {
 		fmt.Fprintln(os.Stderr, "启动被拒绝:", err)
 		os.Exit(1)
 	}

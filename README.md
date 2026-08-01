@@ -44,8 +44,8 @@
 ## 本地开发入口
 
 - 一键本地检查（与 CI 阶段 1~4、6 同源）：`bash tools/ci/run_local_checks.sh`；Python 工具链先经 `pip install -r tools/requirements-dev.txt` 安装（说明见 `tools/ci/README.md`）。
-- 文档与契约校验（CI 同源）：`python tools/validate_docs.py` —— 必交文件、YAML/JSON 解析、OpenAPI 校验、JSON Schema 元校验、Mermaid 代码块、占位符、需求覆盖（US/FR/NFR）、跨文件一致性、配置语义与密钥扫描；`--suites` 支持按套件运行。
-- Go 服务骨架运行示例（fail-closed 区域自检）：`cd services/identity && DATA_REGION=cn SERVICE_ENV=dev go run ./cmd/identity`；`DATA_REGION` 缺失或不在 `cn/eu/intl` 内必须拒绝启动（ADR-0005、OD-09）。
+- 文档与契约校验（CI 同源）：`python tools/validate_docs.py` —— 必交文件、YAML/JSON 解析、OpenAPI 校验、JSON Schema 元校验、Mermaid 代码块、占位符、需求覆盖（US/FR/NFR）、跨文件一致性、配置语义、三数据区拓扑（`regions`）与密钥扫描；`--suites` 支持按套件运行。
+- Go 服务骨架运行示例（fail-closed 区域自检）：`cd services/identity && DATA_REGION=cn INFRA_REGION=cn SERVICE_ENV=dev go run ./cmd/identity`；`DATA_REGION` 与所连基础设施区域 `INFRA_REGION` 不一致、缺失或不在 `cn/eu/intl` 内必须拒绝启动（ADR-0005、OD-09，TASK-002）。
 - Python AI 服务单测示例：`cd ai/services/scoring && pytest`（src 布局，可 `pip install -e .` 本地安装）。
 - AI 评测材料位于 `ai/evals/`，供后续评分与提示词回归使用。
 - 前端 `apps/web`、`apps/admin` 目前为目录占位，首个前端任务落地后补充真实启动命令；在此之前不要编造命令。
@@ -58,8 +58,9 @@
 - [x] 项目执行计划批准（2026-08-01，OD-06，按阶段退出条件推进、不设主观日期）
 - [x] 各规范文档正式评审（2026-08-01，十角色检查单全部通过，由需求发起人/产品决策人代表签署；规范状态已从 draft_for_review 提升为 approved）——记录见 `docs/testing/SPEC-REVIEW-CHECKLIST.md` 第 6 节
 - [x] TASK-001 单仓工程骨架与 CI 门禁（2026-08-01，`task/TASK-001-monorepo-skeleton-ci` 分支；本地检查全绿，见 `tools/ci/README.md`）
+- [x] TASK-002 三数据区环境拓扑与区域路由（2026-08-01，`task/TASK-002-three-region-topology-routing` 分支；9 份 `infra/regions/*/envs/*.yaml`、`regions` 校验套件、`services/region` 共享包）
 - [ ] 未决事项 OD-01 ~ OD-05 关闭（OD-06 ~ OD-10 已于 2026-08-01 确认/批准，见 IMPLEMENTATION_PLAN.md 第 7 节）
-- [ ] EPIC-01 基础设施与数据区落地（TASK-001 已完成；下一任务 TASK-002 三数据区拓扑，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
+- [ ] EPIC-01 基础设施与数据区落地（TASK-001、TASK-002 已完成；下一任务 TASK-003 数据平台，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
 - [ ] Phase 0 供应商评测（OD-01，方案见 `docs/testing/PHASE0-PROVIDER-EVALUATION.md`）
 
 ## 贡献

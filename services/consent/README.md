@@ -8,5 +8,7 @@
 
 ## 当前状态
 
-TASK-001 工程骨架：仅含最小入口 `cmd/consent` 与 fail-closed 区域自检（正常/异常单测已配），无业务实现。
+TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/consent`；启动时校验
+`DATA_REGION` 与 `INFRA_REGION` 一致且 `SERVICE_ENV` 合法（共享包 `services/region`，
+正常/异常单测已配），无业务实现。
 业务实现按拥有任务推进；开工前必读 AGENTS.md 及该任务对应的契约文档（领域、API、数据与安全）。
