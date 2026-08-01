@@ -15,6 +15,17 @@
 
 ### Added
 
+- TASK-018 用户材料库、设备锁与语言独立配置（`task/TASK-018-user-library-device-language` 分支）：
+  - `services/project` 新增材料库（简历库/岗位库引用 + company/job_title 筛选元数据，
+    `/v1/library/resumes`、`/v1/library/jobs`，幂等保存/删除）、项目列表公司/岗位筛选（FR-029）、
+    界面语言与面试语言独立偏好（`/v1/me/preferences`，FR-028）、正式面试单活动设备锁
+    （`device:claim/transfer/release`；第二台设备被拒 `device_active`，确认安全转移后原设备
+    会话失效，FR-030/US-05 场景 3）。
+  - 迁移 `0018_user_library_preferences.sql`（user_resume_library / user_job_library +
+    users.interview_language_preference）；openapi 新增 `/v1/library/*`、`/v1/me/preferences`、
+    `/v1/projects/{id}/device:*` 契约与 device_active 错误码；DOMAIN-MODEL §6.18、DATA-MODEL、
+    ACCEPTANCE-MATRIX（FR-028 映射补 TASK-018）同步；服务/HTTP 测试齐备。
+    （TASK-018、FR-028、FR-029、FR-030）
 - TASK-017 项目状态机 Temporal 工作流（`task/TASK-017-project-state-machine-workflow` 分支）：
   - 新增 `workflows/` 独立 Go 模块（go.temporal.io/sdk v1.47.0）：`statemachine` 确定性引擎与
     `INTERVIEW-STATE-MACHINE.md` 5.2 迁移表逐条一致（15 状态 × 22 事件，含

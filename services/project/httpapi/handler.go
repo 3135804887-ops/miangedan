@@ -28,6 +28,14 @@ type Application interface {
 	GetPlan(context.Context, project.Actor, string) (project.PlanVersion, error)
 	EditPlan(context.Context, project.Actor, string, int, []project.RoundConfig, string) (project.PlanVersion, error)
 	ConfirmPlan(context.Context, project.Actor, string, int, []string, string, string) (project.Project, error)
+	SaveLibraryEntry(context.Context, project.Actor, project.LibraryKind, string, int, string, string, string) (project.LibraryEntry, error)
+	ListLibrary(context.Context, project.Actor, project.LibraryKind) ([]project.LibraryEntry, error)
+	DeleteLibraryEntry(context.Context, project.Actor, project.LibraryKind, string, string) error
+	GetPreferences(context.Context, project.Actor) (project.Preferences, error)
+	SetPreferences(context.Context, project.Actor, string, string, string) (project.Preferences, error)
+	ClaimDevice(context.Context, project.Actor, string, string, string) (project.Project, error)
+	TransferDevice(context.Context, project.Actor, string, string, string, string) (project.Project, error)
+	ReleaseDevice(context.Context, project.Actor, string, string, string) (project.Project, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现（业务令牌）。
@@ -52,6 +60,17 @@ func New(app Application, authenticator Authenticator, dataRegion string) (http.
 	mux.HandleFunc("GET /v1/projects/{projectId}/plan", h.getPlan)
 	mux.HandleFunc("PATCH /v1/projects/{projectId}/plan", h.editPlan)
 	mux.HandleFunc("POST /v1/projects/{projectId}/plan:confirm", h.confirmPlan)
+	mux.HandleFunc("GET /v1/library/resumes", h.listResumes)
+	mux.HandleFunc("POST /v1/library/resumes", h.saveResume)
+	mux.HandleFunc("DELETE /v1/library/resumes/{resumeId}", h.deleteResume)
+	mux.HandleFunc("GET /v1/library/jobs", h.listJobs)
+	mux.HandleFunc("POST /v1/library/jobs", h.saveJob)
+	mux.HandleFunc("DELETE /v1/library/jobs/{jobId}", h.deleteJob)
+	mux.HandleFunc("GET /v1/me/preferences", h.getPreferences)
+	mux.HandleFunc("PUT /v1/me/preferences", h.setPreferences)
+	mux.HandleFunc("POST /v1/projects/{projectId}/device:claim", h.claimDevice)
+	mux.HandleFunc("POST /v1/projects/{projectId}/device:transfer", h.transferDevice)
+	mux.HandleFunc("POST /v1/projects/{projectId}/device:release", h.releaseDevice)
 	return mux, nil
 }
 
@@ -112,6 +131,8 @@ func mapError(err error) (int, string, string) {
 		return http.StatusConflict, "state_conflict", err.Error()
 	case errors.Is(err, project.ErrPlanIncomplete):
 		return http.StatusUnprocessableEntity, "plan_incomplete", err.Error()
+	case errors.Is(err, project.ErrDeviceActive):
+		return http.StatusConflict, "device_active", err.Error()
 	case errors.Is(err, project.ErrNotFound):
 		return http.StatusNotFound, "not_found", err.Error()
 	case errors.Is(err, errRegionMismatch):
@@ -562,4 +583,231 @@ func (h *handler) confirmPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toProjectJSON(proj))
+}
+
+// ---- 材料库（FR-029） ----
+
+type libraryEntryJSON struct {
+	MaterialID string    `json:"material_id"`
+	Version    int       `json:"version"`
+	Company    *string   `json:"company"`
+	JobTitle   *string   `json:"job_title"`
+	SavedAt    time.Time `json:"saved_at"`
+}
+
+func toLibraryJSON(e project.LibraryEntry) libraryEntryJSON {
+	out := libraryEntryJSON{MaterialID: e.MaterialID, Version: e.Version, SavedAt: e.CreatedAt}
+	if e.Company != "" {
+		out.Company = &e.Company
+	}
+	if e.JobTitle != "" {
+		out.JobTitle = &e.JobTitle
+	}
+	return out
+}
+
+func (h *handler) saveLibrary(w http.ResponseWriter, r *http.Request, kind project.LibraryKind) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		MaterialID string  `json:"material_id"`
+		Version    int     `json:"version"`
+		Company    *string `json:"company"`
+		JobTitle   *string `json:"job_title"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	company, jobTitle := "", ""
+	if req.Company != nil {
+		company = *req.Company
+	}
+	if req.JobTitle != nil {
+		jobTitle = *req.JobTitle
+	}
+	entry, err := h.app.SaveLibraryEntry(r.Context(), actor, kind, req.MaterialID, req.Version, company, jobTitle, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusCreated, toLibraryJSON(entry))
+}
+
+func (h *handler) listLibrary(w http.ResponseWriter, r *http.Request, kind project.LibraryKind) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	items, err := h.app.ListLibrary(r.Context(), actor, kind)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	out := make([]libraryEntryJSON, 0, len(items))
+	for _, e := range items {
+		out = append(out, toLibraryJSON(e))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data_region": h.dataRegion, "items": out, "next_cursor": nil})
+}
+
+func (h *handler) deleteLibrary(w http.ResponseWriter, r *http.Request, kind project.LibraryKind, id string) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	if err := h.app.DeleteLibraryEntry(r.Context(), actor, kind, id, r.Header.Get("Idempotency-Key")); err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *handler) listResumes(w http.ResponseWriter, r *http.Request) {
+	h.listLibrary(w, r, project.KindResume)
+}
+func (h *handler) saveResume(w http.ResponseWriter, r *http.Request) {
+	h.saveLibrary(w, r, project.KindResume)
+}
+func (h *handler) deleteResume(w http.ResponseWriter, r *http.Request) {
+	h.deleteLibrary(w, r, project.KindResume, r.PathValue("resumeId"))
+}
+func (h *handler) listJobs(w http.ResponseWriter, r *http.Request) {
+	h.listLibrary(w, r, project.KindJob)
+}
+func (h *handler) saveJob(w http.ResponseWriter, r *http.Request) {
+	h.saveLibrary(w, r, project.KindJob)
+}
+func (h *handler) deleteJob(w http.ResponseWriter, r *http.Request) {
+	h.deleteLibrary(w, r, project.KindJob, r.PathValue("jobId"))
+}
+
+// ---- 语言偏好（FR-028） ----
+
+type preferencesJSON struct {
+	UILanguage        string `json:"ui_language"`
+	InterviewLanguage string `json:"interview_language"`
+}
+
+func (h *handler) getPreferences(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	p, err := h.app.GetPreferences(r.Context(), actor)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, preferencesJSON{UILanguage: p.UILanguage, InterviewLanguage: p.InterviewLanguage})
+}
+
+func (h *handler) setPreferences(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req preferencesJSON
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	p, err := h.app.SetPreferences(r.Context(), actor, req.UILanguage, req.InterviewLanguage, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, preferencesJSON{UILanguage: p.UILanguage, InterviewLanguage: p.InterviewLanguage})
+}
+
+// ---- 单活动设备（FR-030） ----
+
+func (h *handler) claimDevice(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		DeviceID string `json:"device_id"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	proj, err := h.app.ClaimDevice(r.Context(), actor, r.PathValue("projectId"), req.DeviceID, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"project_id": proj.ProjectID, "active_device_id": proj.ActiveDeviceID, "claimed": true})
+}
+
+func (h *handler) transferDevice(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		CurrentDeviceID string `json:"current_device_id"`
+		NewDeviceID     string `json:"new_device_id"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	proj, err := h.app.TransferDevice(r.Context(), actor, r.PathValue("projectId"), req.CurrentDeviceID, req.NewDeviceID, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"project_id": proj.ProjectID, "active_device_id": proj.ActiveDeviceID,
+		"previous_device_invalidated": true,
+	})
+}
+
+func (h *handler) releaseDevice(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		DeviceID string `json:"device_id"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	proj, err := h.app.ReleaseDevice(r.Context(), actor, r.PathValue("projectId"), req.DeviceID, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"project_id": proj.ProjectID, "active_device_id": proj.ActiveDeviceID, "released": true})
 }

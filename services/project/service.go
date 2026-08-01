@@ -52,12 +52,14 @@ func NewService(store Store, idem IdempotencyStore, flow *FlowConfig) (*Service,
 	return &Service{store: store, idem: idem, flow: flow, now: time.Now}, nil
 }
 
-// idempotent 按幂等键执行写操作：重复键返回首次结果（NFR-006）。
-func idempotent[T any](s *Service, key string, run func() (T, error)) (T, error) {
+// idempotent 按幂等键执行写操作：仅显式幂等键启用缓存，重复键返回首次结果（NFR-006）；
+// 无幂等键的请求不缓存（避免同路径后续请求被首次结果污染）。
+func idempotent[T any](s *Service, prefix, idemKey string, run func() (T, error)) (T, error) {
 	var zero T
-	if key != "" {
+	fullKey := prefix + idemKey
+	if idemKey != "" {
 		var cached T
-		found, err := s.idem.Recall(key, &cached)
+		found, err := s.idem.Recall(fullKey, &cached)
 		if err != nil {
 			return zero, err
 		}
@@ -69,8 +71,8 @@ func idempotent[T any](s *Service, key string, run func() (T, error)) (T, error)
 	if err != nil {
 		return zero, err
 	}
-	if key != "" {
-		if err := s.idem.Remember(key, result); err != nil {
+	if idemKey != "" {
+		if err := s.idem.Remember(fullKey, result); err != nil {
 			return zero, err
 		}
 	}
@@ -102,7 +104,7 @@ func (s *Service) CreateProject(_ context.Context, actor Actor, in CreateInput, 
 	if len(in.Name) > 120 {
 		return Project{}, fmt.Errorf("%w: 项目名最长 120 字符", ErrInvalidInput)
 	}
-	return idempotent(s, "create|"+actor.UserID+"|"+actor.DataRegion+"|"+idemKey, func() (Project, error) {
+	return idempotent(s, "create|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
 		now := s.now()
 		proj := Project{
 			ProjectID:             newID(),
@@ -155,12 +157,52 @@ func (s *Service) GetProject(_ context.Context, actor Actor, projectID string) (
 	return s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
 }
 
-// ListProjects 按筛选列出项目。
+// ListProjects 按筛选列出项目；company/job_title 通过材料库元数据解析（TASK-018，FR-029）。
 func (s *Service) ListProjects(_ context.Context, actor Actor, f ListFilter) ([]Project, error) {
 	if err := actor.validate(); err != nil {
 		return nil, err
 	}
-	return s.store.ListProjects(actor.UserID, actor.DataRegion, f)
+	items, err := s.store.ListProjects(actor.UserID, actor.DataRegion, f)
+	if err != nil {
+		return nil, err
+	}
+	if f.Company == "" && f.JobTitle == "" {
+		return items, nil
+	}
+	filtered := make([]Project, 0, len(items))
+	for _, p := range items {
+		if matchesMaterialFilter(s, actor, p, f) {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered, nil
+}
+
+func matchesMaterialFilter(s *Service, actor Actor, p Project, f ListFilter) bool {
+	refs := []struct {
+		kind LibraryKind
+		ref  *MaterialRef
+	}{
+		{KindResume, p.ResumeRef},
+		{KindJob, p.JobRef},
+	}
+	for _, item := range refs {
+		if item.ref == nil {
+			continue
+		}
+		entry, err := s.store.GetLibraryEntry(actor.UserID, actor.DataRegion, item.kind, item.ref.ID)
+		if err != nil {
+			continue
+		}
+		if f.Company != "" && entry.Company != f.Company {
+			continue
+		}
+		if f.JobTitle != "" && entry.JobTitle != f.JobTitle {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 // RenameProject 重命名项目（名称不在冻结范围内）。
@@ -171,7 +213,7 @@ func (s *Service) RenameProject(_ context.Context, actor Actor, projectID, name,
 	if len(name) < 1 || len(name) > 120 {
 		return Project{}, fmt.Errorf("%w: 项目名长度必须为 1-120", ErrInvalidInput)
 	}
-	return idempotent(s, "rename|"+actor.UserID+"|"+actor.DataRegion+"|"+idemKey, func() (Project, error) {
+	return idempotent(s, "rename|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
 		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
 		if err != nil {
 			return Project{}, err
@@ -189,7 +231,7 @@ func (s *Service) DeleteProject(_ context.Context, actor Actor, projectID, idemK
 	if err := actor.validate(); err != nil {
 		return DeletionTask{}, err
 	}
-	return idempotent(s, "delete|"+actor.UserID+"|"+actor.DataRegion+"|"+idemKey, func() (DeletionTask, error) {
+	return idempotent(s, "delete|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (DeletionTask, error) {
 		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
 		if err != nil {
 			return DeletionTask{}, err
@@ -218,7 +260,7 @@ func (s *Service) DuplicateProject(_ context.Context, actor Actor, projectID, in
 	if interviewLanguage != "" && !contains(AllLanguages, interviewLanguage) {
 		return Project{}, fmt.Errorf("%w: 面试语言必须为 zh-CN | en-US", ErrInvalidInput)
 	}
-	return idempotent(s, "duplicate|"+actor.UserID+"|"+actor.DataRegion+"|"+idemKey, func() (Project, error) {
+	return idempotent(s, "duplicate|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
 		base, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
 		if err != nil {
 			return Project{}, err
@@ -271,7 +313,7 @@ func (s *Service) EditPlan(_ context.Context, actor Actor, projectID string, bas
 	if err := s.validateRounds(rounds); err != nil {
 		return PlanVersion{}, err
 	}
-	return idempotent(s, "editplan|"+actor.UserID+"|"+actor.DataRegion+"|"+idemKey, func() (PlanVersion, error) {
+	return idempotent(s, "editplan|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (PlanVersion, error) {
 		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
 		if err != nil {
 			return PlanVersion{}, err
@@ -309,7 +351,7 @@ func (s *Service) ConfirmPlan(_ context.Context, actor Actor, projectID string, 
 			return Project{}, fmt.Errorf("%w: 未知便利设置 %q", ErrInvalidInput, a)
 		}
 	}
-	return idempotent(s, "confirm|"+actor.UserID+"|"+actor.DataRegion+"|"+idemKey, func() (Project, error) {
+	return idempotent(s, "confirm|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
 		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
 		if err != nil {
 			return Project{}, err
@@ -361,6 +403,175 @@ func (s *Service) SetRoundReadiness(dataRegion, projectID string, planVersion, s
 		}
 	}
 	return s.store.SavePlan(plan)
+}
+
+// SaveLibraryEntry 保存材料库条目（幂等：同一材料 ID+版本覆盖）。
+func (s *Service) SaveLibraryEntry(_ context.Context, actor Actor, kind LibraryKind, materialID string, version int, company, jobTitle, idemKey string) (LibraryEntry, error) {
+	if err := actor.validate(); err != nil {
+		return LibraryEntry{}, err
+	}
+	if kind != KindResume && kind != KindJob {
+		return LibraryEntry{}, fmt.Errorf("%w: 材料库类型必须为 resume | job", ErrInvalidInput)
+	}
+	if strings.TrimSpace(materialID) == "" || version < 1 {
+		return LibraryEntry{}, fmt.Errorf("%w: 材料 ID 与 version≥1 必填", ErrInvalidInput)
+	}
+	if len(company) > 120 || len(jobTitle) > 120 {
+		return LibraryEntry{}, fmt.Errorf("%w: 公司/岗位名最长 120 字符", ErrInvalidInput)
+	}
+	return idempotent(s, "library|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (LibraryEntry, error) {
+		entry := LibraryEntry{
+			UserID:     actor.UserID,
+			DataRegion: actor.DataRegion,
+			Kind:       kind,
+			MaterialID: materialID,
+			Version:    version,
+			Company:    company,
+			JobTitle:   jobTitle,
+			CreatedAt:  s.now(),
+		}
+		if err := s.store.SaveLibraryEntry(entry); err != nil {
+			return LibraryEntry{}, err
+		}
+		return entry, nil
+	})
+}
+
+// ListLibrary 列出用户材料库（FR-029）。
+func (s *Service) ListLibrary(_ context.Context, actor Actor, kind LibraryKind) ([]LibraryEntry, error) {
+	if err := actor.validate(); err != nil {
+		return nil, err
+	}
+	if kind != KindResume && kind != KindJob {
+		return nil, fmt.Errorf("%w: 材料库类型必须为 resume | job", ErrInvalidInput)
+	}
+	return s.store.ListLibrary(actor.UserID, actor.DataRegion, kind)
+}
+
+// DeleteLibraryEntry 从材料库移除条目（不存在视为成功，幂等）。
+func (s *Service) DeleteLibraryEntry(_ context.Context, actor Actor, kind LibraryKind, materialID, idemKey string) error {
+	if err := actor.validate(); err != nil {
+		return err
+	}
+	if kind != KindResume && kind != KindJob {
+		return fmt.Errorf("%w: 材料库类型必须为 resume | job", ErrInvalidInput)
+	}
+	_, err := idempotent(s, "librarydel|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (struct{}, error) {
+		if err := s.store.DeleteLibraryEntry(actor.UserID, actor.DataRegion, kind, materialID); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, nil
+	})
+	return err
+}
+
+// GetPreferences 读取界面语言与面试语言独立配置（FR-028）。
+func (s *Service) GetPreferences(_ context.Context, actor Actor) (Preferences, error) {
+	if err := actor.validate(); err != nil {
+		return Preferences{}, err
+	}
+	return s.store.GetPreferences(actor.UserID, actor.DataRegion)
+}
+
+// SetPreferences 更新界面语言与面试语言偏好（面试语言仍须按项目由用户确认，FR-028）。
+func (s *Service) SetPreferences(_ context.Context, actor Actor, uiLanguage, interviewLanguage, idemKey string) (Preferences, error) {
+	if err := actor.validate(); err != nil {
+		return Preferences{}, err
+	}
+	if !contains(AllLanguages, uiLanguage) || !contains(AllLanguages, interviewLanguage) {
+		return Preferences{}, fmt.Errorf("%w: 语言必须为 zh-CN | en-US", ErrInvalidInput)
+	}
+	return idempotent(s, "prefs|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Preferences, error) {
+		p := Preferences{
+			UserID:            actor.UserID,
+			DataRegion:        actor.DataRegion,
+			UILanguage:        uiLanguage,
+			InterviewLanguage: interviewLanguage,
+		}
+		if err := s.store.SavePreferences(p); err != nil {
+			return Preferences{}, err
+		}
+		return p, nil
+	})
+}
+
+// formalActive 为正式面试活动状态集合（单活动设备锁生效区间，FR-030）。
+func formalActive(status Status) bool {
+	switch status {
+	case StatusReady, StatusInSession, StatusScoring, StatusRoundPassed,
+		StatusRoundFailed, StatusPracticing, StatusEvaluationIncomplete:
+		return true
+	default:
+		return false
+	}
+}
+
+// ClaimDevice 申请活动设备；正式面试已被另一设备占用时返回 ErrDeviceActive（FR-030）。
+func (s *Service) ClaimDevice(_ context.Context, actor Actor, projectID, deviceID, idemKey string) (Project, error) {
+	if err := actor.validate(); err != nil {
+		return Project{}, err
+	}
+	if strings.TrimSpace(deviceID) == "" {
+		return Project{}, fmt.Errorf("%w: device_id 必填", ErrInvalidInput)
+	}
+	return idempotent(s, "claim|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
+		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
+		if err != nil {
+			return Project{}, err
+		}
+		if formalActive(proj.Status) && proj.ActiveDeviceID != "" && proj.ActiveDeviceID != deviceID {
+			return Project{}, fmt.Errorf("%w: 正式面试已在设备 %s 上活动", ErrDeviceActive, proj.ActiveDeviceID)
+		}
+		proj.ActiveDeviceID = deviceID
+		if err := s.store.UpdateProject(proj); err != nil {
+			return Project{}, err
+		}
+		return proj, nil
+	})
+}
+
+// TransferDevice 安全转移活动设备：仅当前活动设备可发起，转移后原设备会话失效（US-05 场景 3）。
+func (s *Service) TransferDevice(_ context.Context, actor Actor, projectID, currentDeviceID, newDeviceID, idemKey string) (Project, error) {
+	if err := actor.validate(); err != nil {
+		return Project{}, err
+	}
+	if strings.TrimSpace(currentDeviceID) == "" || strings.TrimSpace(newDeviceID) == "" {
+		return Project{}, fmt.Errorf("%w: current_device_id 与 new_device_id 必填", ErrInvalidInput)
+	}
+	return idempotent(s, "transfer|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
+		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
+		if err != nil {
+			return Project{}, err
+		}
+		if proj.ActiveDeviceID != currentDeviceID {
+			return Project{}, fmt.Errorf("%w: 仅当前活动设备可发起转移", ErrDeviceActive)
+		}
+		proj.ActiveDeviceID = newDeviceID
+		if err := s.store.UpdateProject(proj); err != nil {
+			return Project{}, err
+		}
+		return proj, nil
+	})
+}
+
+// ReleaseDevice 释放活动设备（结束会话/退出时调用）。
+func (s *Service) ReleaseDevice(_ context.Context, actor Actor, projectID, deviceID, idemKey string) (Project, error) {
+	if err := actor.validate(); err != nil {
+		return Project{}, err
+	}
+	return idempotent(s, "release|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (Project, error) {
+		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
+		if err != nil {
+			return Project{}, err
+		}
+		if proj.ActiveDeviceID == deviceID {
+			proj.ActiveDeviceID = ""
+			if err := s.store.UpdateProject(proj); err != nil {
+				return Project{}, err
+			}
+		}
+		return proj, nil
+	})
 }
 
 func planLocked(proj Project) bool {

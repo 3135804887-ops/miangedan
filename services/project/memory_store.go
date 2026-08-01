@@ -12,6 +12,8 @@ type MemoryStore struct {
 	mu       sync.RWMutex
 	projects map[string]Project
 	plans    map[string]PlanVersion
+	library  map[string]LibraryEntry
+	prefs    map[string]Preferences
 	idem     map[string][]byte
 }
 
@@ -20,6 +22,8 @@ func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
 		projects: make(map[string]Project),
 		plans:    make(map[string]PlanVersion),
+		library:  make(map[string]LibraryEntry),
+		prefs:    make(map[string]Preferences),
 		idem:     make(map[string][]byte),
 	}
 }
@@ -30,6 +34,14 @@ func projectKey(userID, dataRegion, projectID string) string {
 
 func planKey(dataRegion, projectID string, version int) string {
 	return dataRegion + "|" + projectID + "|" + strconv.Itoa(version)
+}
+
+func libraryKey(userID, dataRegion string, kind LibraryKind, materialID string) string {
+	return userID + "|" + dataRegion + "|" + string(kind) + "|" + materialID
+}
+
+func prefsKey(userID, dataRegion string) string {
+	return userID + "|" + dataRegion
 }
 
 // CreateProject 保存新项目（重复写入视为幂等成功）。
@@ -129,6 +141,65 @@ func (m *MemoryStore) LatestPlan(dataRegion, projectID string) (PlanVersion, err
 		return PlanVersion{}, ErrNotFound
 	}
 	return latest, nil
+}
+
+// SaveLibraryEntry 保存/覆盖材料库条目。
+func (m *MemoryStore) SaveLibraryEntry(e LibraryEntry) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.library[libraryKey(e.UserID, e.DataRegion, e.Kind, e.MaterialID)] = e
+	return nil
+}
+
+// ListLibrary 按类型返回用户材料库（保存时间倒序）。
+func (m *MemoryStore) ListLibrary(userID, dataRegion string, kind LibraryKind) ([]LibraryEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var out []LibraryEntry
+	for _, e := range m.library {
+		if e.UserID == userID && e.DataRegion == dataRegion && e.Kind == kind {
+			out = append(out, e)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+	return out, nil
+}
+
+// DeleteLibraryEntry 删除材料库条目（不存在视为成功，幂等）。
+func (m *MemoryStore) DeleteLibraryEntry(userID, dataRegion string, kind LibraryKind, materialID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.library, libraryKey(userID, dataRegion, kind, materialID))
+	return nil
+}
+
+// GetLibraryEntry 读取单个材料库条目。
+func (m *MemoryStore) GetLibraryEntry(userID, dataRegion string, kind LibraryKind, materialID string) (LibraryEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	e, ok := m.library[libraryKey(userID, dataRegion, kind, materialID)]
+	if !ok {
+		return LibraryEntry{}, ErrNotFound
+	}
+	return e, nil
+}
+
+// GetPreferences 读取用户语言偏好（缺省 zh-CN）。
+func (m *MemoryStore) GetPreferences(userID, dataRegion string) (Preferences, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if p, ok := m.prefs[prefsKey(userID, dataRegion)]; ok {
+		return p, nil
+	}
+	return Preferences{UserID: userID, DataRegion: dataRegion, UILanguage: "zh-CN", InterviewLanguage: "zh-CN"}, nil
+}
+
+// SavePreferences 保存用户语言偏好。
+func (m *MemoryStore) SavePreferences(p Preferences) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.prefs[prefsKey(p.UserID, p.DataRegion)] = p
+	return nil
 }
 
 // Remember 记录幂等键结果（JSON 序列化）。

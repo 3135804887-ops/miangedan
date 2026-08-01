@@ -263,3 +263,84 @@ func TestListProjectsFilter(t *testing.T) {
 		t.Fatalf("筛选 READY 应为 0 项: %v %v", len(items), err)
 	}
 }
+
+// 正常路径：材料库保存/列表/删除与幂等；company/job_title 筛选生效（FR-029）。
+func TestLibraryAndMaterialFilter(t *testing.T) {
+	svc := newTestService(t)
+	proj := createTestProject(t, svc, ModeFull)
+	if _, err := svc.SaveLibraryEntry(context.Background(), testActor, KindResume, proj.ResumeRef.ID, 1, "合成科技", "后端工程师", "lib-1"); err != nil {
+		t.Fatal(err)
+	}
+	items, err := svc.ListLibrary(context.Background(), testActor, KindResume)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("简历库应 1 项: %v %v", len(items), err)
+	}
+	// 幂等：同键保存返回同一条目。
+	entry, err := svc.SaveLibraryEntry(context.Background(), testActor, KindResume, proj.ResumeRef.ID, 1, "合成科技", "后端工程师", "lib-1")
+	if err != nil || entry.MaterialID != proj.ResumeRef.ID {
+		t.Fatalf("幂等保存异常: %v", err)
+	}
+	// 项目筛选按公司生效。
+	matched, err := svc.ListProjects(context.Background(), testActor, ListFilter{Company: "合成科技"})
+	if err != nil || len(matched) != 1 {
+		t.Fatalf("公司筛选应命中 1 项: %v %v", len(matched), err)
+	}
+	matched, err = svc.ListProjects(context.Background(), testActor, ListFilter{Company: "不存在公司"})
+	if err != nil || len(matched) != 0 {
+		t.Fatalf("公司筛选应命中 0 项: %v %v", len(matched), err)
+	}
+	if err := svc.DeleteLibraryEntry(context.Background(), testActor, KindResume, proj.ResumeRef.ID, "lib-del"); err != nil {
+		t.Fatal(err)
+	}
+	items, err = svc.ListLibrary(context.Background(), testActor, KindResume)
+	if err != nil || len(items) != 0 {
+		t.Fatalf("删除后应为 0 项: %v %v", len(items), err)
+	}
+}
+
+// 正常路径：语言偏好独立配置（FR-028）。
+func TestPreferences(t *testing.T) {
+	svc := newTestService(t)
+	got, err := svc.GetPreferences(context.Background(), testActor)
+	if err != nil || got.UILanguage != "zh-CN" {
+		t.Fatalf("缺省偏好应为 zh-CN: %+v %v", got, err)
+	}
+	got, err = svc.SetPreferences(context.Background(), testActor, "en-US", "zh-CN", "prefs-1")
+	if err != nil || got.UILanguage != "en-US" || got.InterviewLanguage != "zh-CN" {
+		t.Fatalf("中英界面+中文面试应生效: %+v %v", got, err)
+	}
+	if _, err := svc.SetPreferences(context.Background(), testActor, "fr-FR", "zh-CN", "prefs-2"); err == nil {
+		t.Fatal("非法语言必须拒绝")
+	}
+}
+
+// 正常/异常路径：单活动设备锁（FR-030）——正式面试中第二设备被拒，转移与释放可用。
+func TestDeviceLock(t *testing.T) {
+	svc := newTestService(t)
+	proj := createTestProject(t, svc, ModeFull)
+	// 正式面试锁定区间：READY+。
+	active := proj
+	active.Status = StatusInSession
+	active.ActiveDeviceID = "device-a"
+	if err := svc.store.UpdateProject(active); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ClaimDevice(context.Background(), testActor, proj.ProjectID, "device-b", "claim-b"); !errors.Is(err, ErrDeviceActive) {
+		t.Fatalf("正式面试中第二设备必须被拒，实际 %v", err)
+	}
+	claimed, err := svc.ClaimDevice(context.Background(), testActor, proj.ProjectID, "device-a", "claim-a")
+	if err != nil || claimed.ActiveDeviceID != "device-a" {
+		t.Fatalf("当前活动设备重新认领应成功: %v", err)
+	}
+	transferred, err := svc.TransferDevice(context.Background(), testActor, proj.ProjectID, "device-a", "device-c", "transfer-1")
+	if err != nil || transferred.ActiveDeviceID != "device-c" {
+		t.Fatalf("安全转移应成功: %v", err)
+	}
+	if _, err := svc.TransferDevice(context.Background(), testActor, proj.ProjectID, "device-a", "device-d", "transfer-2"); !errors.Is(err, ErrDeviceActive) {
+		t.Fatalf("旧设备发起转移必须被拒，实际 %v", err)
+	}
+	released, err := svc.ReleaseDevice(context.Background(), testActor, proj.ProjectID, "device-c", "release-1")
+	if err != nil || released.ActiveDeviceID != "" {
+		t.Fatalf("释放应清空活动设备: %v", err)
+	}
+}

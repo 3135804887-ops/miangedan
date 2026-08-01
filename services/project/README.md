@@ -19,5 +19,10 @@
   材料派生筛选（company/job_title）随 TASK-018 落地；计费版本冻结（quote_id）随 TASK-060/061。
 - 当前存储为内存实现（`memory_store.go`），生产持久化随数据平台接入；迁移
   `services/migrate/migrations/0016_interview_projects.sql` 已落地表结构与追加式约束。
+- TASK-018 已实现（FR-028 ~ FR-030）：用户材料库（简历库/岗位库引用与 company/job_title 筛选元数据）、
+  界面语言与面试语言独立偏好（`/v1/me/preferences`）、正式面试单活动设备锁（claim/transfer/release，
+  第二台设备被拒 `device_active`，确认安全转移后原设备失效）；项目列表支持公司/岗位筛选；
+  迁移 `0018_user_library_preferences.sql`；openapi 新增 `/v1/library/*`、`/v1/me/preferences`、
+  `/v1/projects/{id}/device:*` 契约。
 
 业务实现按拥有任务推进；开工前必读 AGENTS.md 及该任务对应的契约文档（领域、API、数据与安全）。

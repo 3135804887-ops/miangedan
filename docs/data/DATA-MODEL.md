@@ -37,7 +37,7 @@
 
 | 表 | 用途 | 关键字段 | 主要索引 |
 |---|---|---|---|
-| `users` | 用户主体 | user_id PK、data_region、ui_language、age_status、status、条款/隐私/数据处理说明版本、registration_evidence_json、created_at | users(data_region, status) |
+| `users` | 用户主体 | user_id PK、data_region、ui_language、interview_language_preference、age_status、status、条款/隐私/数据处理说明版本、registration_evidence_json、created_at | users(data_region, status) |
 | `identities` | 登录身份（不保存邮箱/第三方 subject 明文） | identity_id PK、user_id FK、provider、provider_subject_hash、verified_at、data_region | identities(data_region, provider, provider_subject_hash) UNIQUE；identities(user_id) |
 | `identity_verifications` | 邮箱/OAuth 短期验证与单次证明状态 | verification_id PK、provider、provider_subject_hash、code_hash、proof_hash、status、到期/消费时间、request_key、data_region | identity_verifications(data_region, provider, request_key) UNIQUE；主体限流与到期索引 |
 | `identity_sessions` | 业务会话与刷新令牌轮换 | session_id PK、user_id FK、refresh_token_hash、status、access/refresh_expires_at、rotated_to_session_id、data_region | identity_sessions(refresh_token_hash) UNIQUE；identity_sessions(user_id, status) |
@@ -59,6 +59,8 @@
 | `job_profiles` | 岗位主记录与原始输入引用 | job_id PK、user_id、data_region、language、source_kind、source_resume_id/version 或 uploads 区域桶 raw_text_ref（二选一）、create_idempotency_key、input_fingerprint、status、current_version、created_at/updated_at/deleted_at | job_profiles(data_region,user_id,create_idempotency_key) UNIQUE；job_profiles(user_id,updated_at) |
 | `job_parse_attempts` | JD/岗位推导初次解析与步骤级重试 | task_id PK、job_id FK、idempotency_key、input_fingerprint、status、provider/prompt_version、input_retained、retryable、failure_code、started_at/completed_at | job_parse_attempts(job_id,idempotency_key) UNIQUE |
 | `job_versions` | 岗位版本（追加式冻结） | (job_id,job_version) PK、base_version、idempotency_key、operation_fingerprint、profile_json（符合 job-profile schema）、excluded_from_scoring（仅类别）、confirmed_by_user、created_at | job_versions(job_id,idempotency_key) UNIQUE；应用角色仅 SELECT/INSERT |
+| `user_resume_library` | 简历库（TASK-018） | (user_id, data_region, resume_id, resume_version) PK、company、job_title、saved_at | user_resume_library(user_id, data_region) |
+| `user_job_library` | 岗位库（TASK-018） | (user_id, data_region, job_id, job_version) PK、company、job_title、saved_at | user_job_library(user_id, data_region) |
 | `material_readiness_assessments` | 四种材料模式及用户可见影响快照（追加式） | assessment_id PK、user_id、data_region、resume_id/version、job_id/version、mode、consent_required、impact_snapshot_json、input_fingerprint、idempotency_key、created_at | material_readiness_assessments(data_region,user_id,idempotency_key) UNIQUE |
 | `material_degradation_consents` | 非 full 模式明确同意（追加式功能确认，不替代六类隐私授权） | consent_grant_id PK、assessment_id FK UNIQUE、user_id、data_region、mode、accepted=true、impact_snapshot_json、operation_fingerprint、idempotency_key、granted_at | material_degradation_consents(data_region,user_id,idempotency_key) UNIQUE；应用角色仅 SELECT/INSERT |
 | `process_sources` | 企业流程来源 | source_id PK、url（通用模板为空）、source_type（CHECK 白名单）、retrieved_at、credibility（CHECK）、expires_at、region（CHECK）、job_family、company/role/level（检索维度）、is_unofficial_experience、status（active/under_review/taken_down）、idempotency_key UNIQUE、data_region（CHECK 且与 region 相等） | process_sources(region, job_family, status)；process_sources(expires_at)（失效任务）；process_sources(data_region, url) UNIQUE WHERE url IS NOT NULL |

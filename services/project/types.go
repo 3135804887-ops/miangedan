@@ -68,6 +68,7 @@ var (
 	ErrStateConflict  = errors.New("project state conflict")
 	ErrPlanIncomplete = errors.New("plan incomplete")
 	ErrInvalidInput   = errors.New("invalid input")
+	ErrDeviceActive   = errors.New("device already active on another device")
 )
 
 // MaterialRef 为冻结材料版本引用（简历/岗位）。
@@ -152,4 +153,33 @@ type PlanVersion struct {
 type DeletionTask struct {
 	TaskID string
 	Status string
+}
+
+// LibraryKind 为用户材料库条目类型（FR-029：简历库/岗位库）。
+type LibraryKind string
+
+// 材料库类型。
+const (
+	KindResume LibraryKind = "resume"
+	KindJob    LibraryKind = "job"
+)
+
+// LibraryEntry 为用户材料库条目（材料正文由解析服务持有，本服务保存引用与筛选元数据）。
+type LibraryEntry struct {
+	UserID     string
+	DataRegion string
+	Kind       LibraryKind
+	MaterialID string
+	Version    int
+	Company    string
+	JobTitle   string
+	CreatedAt  time.Time
+}
+
+// Preferences 为界面语言与面试语言独立配置（FR-028；面试语言仍须按项目由用户确认）。
+type Preferences struct {
+	UserID            string
+	DataRegion        string
+	UILanguage        string
+	InterviewLanguage string
 }
