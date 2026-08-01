@@ -177,6 +177,16 @@
 > `0016_interview_projects.sql`（interview_projects + plan_versions 追加式约束）；
 > 正常/异常/幂等/冻结与 HTTP 层测试齐备。
 
+> **任务状态（2026-08-01 更新）**：TASK-017 已实现：`workflows/` 独立 Go 模块
+> （go.temporal.io/sdk v1.47.0，登记 go.work 与 CI 六阶段循环 + golangci 独立作业）。
+> `statemachine` 为确定性项目状态机引擎，与 `INTERVIEW-STATE-MACHINE.md` 5.2 迁移表逐条一致
+> （15 状态 × 22 事件 + `project.ended_by_user` 终态分支，重放安全）；
+> `workflow.ProjectWorkflow` 消费 `project.command` 信号、暴露 `project.state` 查询，每次迁移
+> 追加式写审计与状态快照活动（契约桩），全部必需轮次通过自动触发 `project.all_rounds_passed`；
+> `cmd/worker` 以 `interview` 队列与 `mgd-{region}-{env}-temporal` 命名空间运行（ADR-0001）。
+> 测试：状态机迁移表逐行 + 非法/终态；工作流 testsuite 全旅程、失败分支、非法迁移与重试，
+> 断言每次迁移写审计。CI 循环扩展为 `services/*/ workflows/`，golangci 新增 workflows 作业。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

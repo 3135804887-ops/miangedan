@@ -44,7 +44,7 @@ jobs:
         run: test -z "$(gofmt -l services/)"
       - name: go vet（逐模块；go.work 根目录不支持 ./... 通配）
         run: |
-          for m in services/*/; do
+          for m in services/*/ workflows/; do
             (cd "$m" && go vet ./...) || exit 1
           done
       - uses: actions/setup-python@v5
@@ -83,9 +83,22 @@ jobs:
           working-directory: services/${{ matrix.module }}
           args: --config ../../.golangci.yml
 
+  stage2-golangci-workflows:
+    name: "阶段2 golangci-lint（workflows 模块）"
+    needs: stage1-spec-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: golangci-lint（workflows 模块；配置位于仓库根）
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          working-directory: workflows
+          args: --config ../.golangci.yml
+
   stage3-unit-tests:
     name: "阶段3 单元测试"
-    needs: [stage2-lint, stage2-golangci]
+    needs: [stage2-lint, stage2-golangci, stage2-golangci-workflows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +107,7 @@ jobs:
           go-version: "1.26"
       - name: go test（逐模块）
         run: |
-          for m in services/*/; do
+          for m in services/*/ workflows/; do
             (cd "$m" && go test ./...) || exit 1
           done
       - uses: actions/setup-python@v5
@@ -153,7 +166,7 @@ jobs:
       - name: govulncheck（Go 依赖漏洞，逐模块）
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          for m in services/*/; do
+          for m in services/*/ workflows/; do
             (cd "$m" && govulncheck ./...) || exit 1
           done
       - name: pip-audit（Python 工具链依赖漏洞）
@@ -179,7 +192,7 @@ jobs:
       - name: go build（逐模块；产物写入临时目录，不污染工作区）
         run: |
           tmpbin="$(mktemp -d)"
-          for m in services/*/; do
+          for m in services/*/ workflows/; do
             if (cd "$m" && go list -f '{{.Name}}' ./... 2>/dev/null | grep -q '^main$'); then
               (cd "$m" && go build -o "$tmpbin/" ./...) || exit 1
             else

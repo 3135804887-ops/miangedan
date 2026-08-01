@@ -15,6 +15,17 @@
 
 ### Added
 
+- TASK-017 项目状态机 Temporal 工作流（`task/TASK-017-project-state-machine-workflow` 分支）：
+  - 新增 `workflows/` 独立 Go 模块（go.temporal.io/sdk v1.47.0）：`statemachine` 确定性引擎与
+    `INTERVIEW-STATE-MACHINE.md` 5.2 迁移表逐条一致（15 状态 × 22 事件，含
+    `project.ended_by_user` 终态分支；无随机数/系统时钟，Temporal 重放安全）。
+  - `workflow.ProjectWorkflow` 消费 `project.command` 信号、暴露 `project.state` 查询；每次迁移
+    同路径写追加式审计与状态快照活动（契约桩）；全部必需轮次通过自动触发
+    `project.all_rounds_passed` → COMPLETED；非法迁移仅告警保持状态（ADR-0001、NFR-006）。
+  - `cmd/worker` 以 `interview` 队列与 `mgd-{region}-{env}-temporal` 命名空间运行（TASK-004 契约）。
+  - CI：六阶段循环扩展为 `services/*/ workflows/`，golangci 新增 workflows 独立作业；
+    状态机/工作流测试齐备（迁移表逐行、非法/终态、全旅程、失败分支、重试、审计断言）。
+    （TASK-017、ADR-0001、NFR-005/006）
 - TASK-016 面试项目/计划版本/轮次配置与冻结规则（`task/TASK-016-project-plan-freeze` 分支）：
   - `services/project` 实现 InterviewProject / PlanVersion / RoundConfig 应用服务（FR-009 ~ FR-011）：
     创建/查询/列表/重命名/删除/复制项目、计划编辑与确认冻结；开始后编辑冻结项返回
