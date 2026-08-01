@@ -3,6 +3,7 @@ package source
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"sort"
 	"time"
 )
@@ -12,11 +13,8 @@ import (
 func NewSourceID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		// crypto/rand 失败属系统级异常；兜底使用时间种子，保证进程内唯一（测试环境）。
-		ts := time.Now().UnixNano()
-		for i := 0; i < 8; i++ {
-			b[i] = byte(ts >> (8 * i))
-		}
+		// crypto/rand 失败属系统级异常；兜底使用进程内唯一时间戳字符串（测试环境）。
+		return fmt.Sprintf("fallback-%d", time.Now().UnixNano())
 	}
 	b[6] = (b[6] & 0x0f) | 0x40 // version 4
 	b[8] = (b[8] & 0x3f) | 0x80 // variant 10

@@ -17,7 +17,7 @@ type fakeAdapter struct {
 	calls   int
 }
 
-func (f *fakeAdapter) SearchProcess(_ context.Context, q source.SearchQuery) ([]source.ProcessSource, error) {
+func (f *fakeAdapter) SearchProcess(_ context.Context, _ source.SearchQuery) ([]source.ProcessSource, error) {
 	f.calls++
 	if f.err != nil {
 		return nil, f.err

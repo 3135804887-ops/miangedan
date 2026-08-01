@@ -17,7 +17,10 @@ import (
 	"miangedan/services/region"
 )
 
+// ai/schemas/interview-plan.schema.json）对齐，避免领域词汇漂移（OD-10）。
 // SourceType 为公开流程来源类型（OD-10：稳定英文命名，与 interview-plan.schema 对齐）。
+//
+//nolint:revive // 类型名与包名前缀一致属刻意命名：与 API 契约字段 source_type（openapi.yaml、
 type SourceType string
 
 // 已批准来源类型枚举（PRD US-02 规则 2、FR-008；interview-plan.schema process_source_refs）。
@@ -40,6 +43,8 @@ const (
 )
 
 // SourceStatus 为来源生命周期状态（active → under_review → taken_down；支持版权投诉与下架）。
+//
+//nolint:revive // 同上：与 API 契约字段 source_status 对齐（openapi.yaml SourceStatus）。
 type SourceStatus string
 
 // 已批准来源状态枚举。

@@ -142,7 +142,7 @@ func TestIsReliable(t *testing.T) {
 		src  ProcessSource
 		want bool
 	}{
-		{"官方招聘页 high 可信", mk(func(s *ProcessSource) {}), true},
+		{"官方招聘页 high 可信", mk(func(*ProcessSource) {}), true},
 		{"官方招聘内容 medium 可信", mk(func(s *ProcessSource) {
 			s.SourceType = OfficialRecruitingContent
 			s.Credibility = CredibilityMedium
@@ -190,9 +190,7 @@ func TestGenericTemplateMarksAIDerived(t *testing.T) {
 	if tpl.IsReliable(now) {
 		t.Fatal("通用模板不得被视为可靠来源")
 	}
-	if !tpl.IsUnofficialExperience && tpl.SourceType == GenericTemplate {
-		// 推导标记由 SearchResult.AIDerived 承载；此处验证类型本身不冒充官方。
-	}
+	// 推导标记由 SearchResult.AIDerived 承载；此处已验证类型本身为通用模板且不携带链接。
 }
 
 func TestSortByPriority(t *testing.T) {
