@@ -285,20 +285,32 @@ paths:
         '202': { description: 导出任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
         default: { $ref: '#/components/responses/Error' }
 
-  # ============================== consents ==============================
-  /v1/me/consents:
+  # ============================== consent ==============================
+  /v1/consent/grants:
     get:
       tags: [consents]
-      operationId: listConsents
-      summary: 列出当前全部授权状态（六类独立授权）
+      operationId: listConsentGrants
+      summary: 列出六类相互独立的当前授权状态（未授权类别显式返回 not_granted）
       responses:
-        '200': { description: 授权列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/ConsentGrant' } } } } } } }
+        '200':
+          description: 当前授权中心状态；模型训练无有效记录时为 not_granted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data_region, items]
+                properties:
+                  data_region: { $ref: '#/components/schemas/Region' }
+                  items:
+                    type: array
+                    minItems: 6
+                    items: { $ref: '#/components/schemas/ConsentState' }
         default: { $ref: '#/components/responses/Error' }
-  /v1/me/consents/{consentType}:
+  /v1/consent/grants/{consentType}:
     put:
       tags: [consents]
-      operationId: upsertConsent
-      summary: 授予或撤回某类授权（撤回立即生效并写审计；模型训练默认关闭，拒绝不影响核心服务）
+      operationId: grantConsent
+      summary: 明确授予一类授权（新版本追加；六类互不联动）
       parameters:
         - name: consentType
           in: path
@@ -309,16 +321,63 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [status, consent_text_version]
-              properties:
-                status: { enum: [granted, withdrawn] }
-                consent_text_version: { type: string, description: 同意文案版本（授权证据） }
-                scope: { type: object, description: 可选范围（如机构分享限定 assignment_id 与数据类别）, additionalProperties: true }
-                expires_at: { type: ['string', 'null'], format: date-time }
+            schema: { $ref: '#/components/schemas/ConsentGrantRequest' }
       responses:
-        '200': { description: 授权已更新（新版本追加）, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
+        '201': { description: 授权版本与追加式审计已在同一事务写入, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/consent/grants/{consentType}/withdrawals:
+    post:
+      tags: [consents]
+      operationId: withdrawConsent
+      summary: 撤回精确范围的授权（返回前即使在线访问失效，并在同一事务写追加式审计）
+      parameters:
+        - name: consentType
+          in: path
+          required: true
+          schema: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsentWithdrawalRequest' }
+      responses:
+        '201': { description: 已追加 withdrawn 版本和审计；原历史版本未修改, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/consent/grants/{consentType}/history:
+    get:
+      tags: [consents]
+      operationId: listConsentHistory
+      summary: 查询某类授权的全部追加式证据版本
+      parameters:
+        - name: consentType
+          in: path
+          required: true
+          schema: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+      responses:
+        '200':
+          description: 按 scope_hash、version 排序的授权证据历史
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data_region, items]
+                properties:
+                  data_region: { $ref: '#/components/schemas/Region' }
+                  items: { type: array, items: { $ref: '#/components/schemas/ConsentGrant' } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/consent/access-decisions:
+    post:
+      tags: [consents]
+      operationId: decideConsentAccess
+      summary: 按当前最新版本同步判定在线访问；状态不确定一律拒绝
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsentAccessRequest' }
+      responses:
+        '200': { description: 同步访问判定；撤回完成后同范围必为 allowed=false, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentAccessDecision' } } } }
         default: { $ref: '#/components/responses/Error' }
 
   # ============================== uploads ==============================
@@ -1837,15 +1896,111 @@ components:
           items: { $ref: '#/components/schemas/IdentityBinding' }
     ConsentGrant:
       type: object
-      required: [grant_id, consent_type, status, granted_at]
+      required: [grant_id, consent_type, scope, scope_hash, status, granted_at, evidence, version, recorded_at, data_region]
       properties:
         grant_id: { type: string, format: uuid }
         consent_type: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
-        scope: { type: ['object', 'null'], additionalProperties: true }
+        scope: { $ref: '#/components/schemas/ConsentScope' }
+        scope_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
         status: { enum: [granted, withdrawn, expired] }
         granted_at: { type: string, format: date-time }
         expires_at: { type: ['string', 'null'], format: date-time }
         withdrawn_at: { type: ['string', 'null'], format: date-time }
+        supersedes_grant_id: { type: ['string', 'null'], format: uuid }
+        evidence: { $ref: '#/components/schemas/ConsentEvidence' }
+        version: { type: integer, minimum: 1 }
+        recorded_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    ConsentScope:
+      type: object
+      additionalProperties: false
+      properties:
+        assignment_id: { type: ['string', 'null'], format: uuid, description: 仅 org_sharing 使用 }
+        data_categories:
+          type: array
+          uniqueItems: true
+          items: { enum: [total_score, radar, round_results, full_report, transcript, media] }
+        media_categories:
+          type: array
+          uniqueItems: true
+          items: { enum: [audio, video] }
+        channels:
+          type: array
+          uniqueItems: true
+          items: { enum: [email, in_app, push] }
+    ConsentUIContext:
+      type: object
+      additionalProperties: false
+      required: [surface, flow, ui_language]
+      properties:
+        surface: { enum: [web, ios, android] }
+        flow: { enum: [registration, consent_center, interview_room, assignment_share] }
+        ui_language: { $ref: '#/components/schemas/Language' }
+    ConsentEvidenceInput:
+      type: object
+      additionalProperties: false
+      required: [copy_version, privacy_policy_version, presented_at, ui_context]
+      properties:
+        copy_version: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$' }
+        privacy_policy_version: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$' }
+        presented_at: { type: string, format: date-time }
+        ui_context: { $ref: '#/components/schemas/ConsentUIContext' }
+    ConsentEvidence:
+      type: object
+      additionalProperties: false
+      required: [copy_version, privacy_policy_version, presented_at, ui_context, action, recorded_at, evidence_hash]
+      properties:
+        copy_version: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$' }
+        privacy_policy_version: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$' }
+        presented_at: { type: string, format: date-time }
+        ui_context: { $ref: '#/components/schemas/ConsentUIContext' }
+        action: { enum: [grant, withdraw] }
+        recorded_at: { type: string, format: date-time }
+        evidence_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+    ConsentGrantRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, evidence]
+      properties:
+        scope: { $ref: '#/components/schemas/ConsentScope' }
+        expires_at: { type: ['string', 'null'], format: date-time }
+        evidence: { $ref: '#/components/schemas/ConsentEvidenceInput' }
+    ConsentWithdrawalRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, evidence]
+      properties:
+        scope: { $ref: '#/components/schemas/ConsentScope' }
+        evidence: { $ref: '#/components/schemas/ConsentEvidenceInput' }
+    ConsentState:
+      type: object
+      required: [consent_type, scope, scope_hash, effective_status, version, data_region]
+      properties:
+        consent_type: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+        scope: { $ref: '#/components/schemas/ConsentScope' }
+        scope_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        effective_status: { enum: [not_granted, granted, withdrawn, expired] }
+        version: { type: integer, minimum: 0 }
+        grant: { anyOf: [{ $ref: '#/components/schemas/ConsentGrant' }, { type: 'null' }] }
+        data_region: { $ref: '#/components/schemas/Region' }
+    ConsentAccessRequest:
+      type: object
+      additionalProperties: false
+      required: [consent_type, scope]
+      properties:
+        consent_type: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+        scope: { $ref: '#/components/schemas/ConsentScope' }
+    ConsentAccessDecision:
+      type: object
+      required: [allowed, consent_type, scope_hash, effective_status, decided_at, data_region]
+      properties:
+        allowed: { type: boolean }
+        consent_type: { enum: [core_service, raw_av_recording, org_sharing, product_analytics, model_training, marketing] }
+        scope_hash: { type: string, pattern: '^[a-f0-9]{64}$' }
+        effective_status: { enum: [not_granted, granted, withdrawn, expired] }
+        grant_id: { type: ['string', 'null'], format: uuid }
+        expires_at: { type: ['string', 'null'], format: date-time }
+        decided_at: { type: string, format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
     UploadRejectionReason:
       enum: [unsupported_type, oversized, type_spoofed, corrupted, encrypted, virus_detected, macros_detected, archive_bomb_detected, sandbox_policy_violation]

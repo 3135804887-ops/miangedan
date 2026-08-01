@@ -88,9 +88,9 @@ erDiagram
 | 要点 | 内容 |
 |---|---|
 | 职责 | 相互独立的授权记录：核心服务必要处理 / 保存原始音视频 / 机构共享 / 非必要产品分析 / 模型训练或研究 / 营销通知；机构结果分享按任务单独授权 |
-| 关键字段 | `grant_id`、`user_id`、`consent_type`、`scope`（如 assignment_id、数据类别）、`status`（`granted`/`withdrawn`/`expired`）、`granted_at`、`expires_at`、`withdrawn_at`、`evidence`（同意文案版本、UI 上下文） |
-| 版本规则 | 同一 (user, consent_type, scope) 的变更为新版本追加；撤回立即生效 |
-| 规则 | 模型训练默认关闭，拒绝不影响核心服务；机构共享选择范围、有效期且可撤回；撤回后在线访问立即失效 |
+| 关键字段 | `grant_id`、`user_id`、`consent_type`、封闭 `scope`（assignment_id / 数据类别 / 媒体类别 / 通知渠道）、`scope_hash`、`status`（`granted`/`withdrawn`/`expired`）、`granted_at`、`expires_at`、`withdrawn_at`、`evidence`（文案/隐私政策版本、展示时间、UI surface/flow/language、动作、服务端记录时间、证据哈希）、`version`、`supersedes_grant_id`、`request_key/hash`、`audit_id`、`data_region` |
+| 版本规则 | 同一 `(user, consent_type, scope_hash)` 的变更只插入新版本，历史行无 UPDATE/DELETE；同一写请求按 `(data_region, user, operation, request_key)` 幂等；授予/撤回版本与对应 AccessAudit 在同一事务提交 |
+| 规则 | 模型训练默认关闭，缺失记录按未授权处理；拒绝模型训练或其他非必要授权不影响核心服务；机构共享选择任务、范围、有效期且可撤回；原始音视频授权仅成人可用且最长 30 天；撤回返回后同范围在线访问立即失效，授权状态不确定时 fail-closed |
 
 ### 6.4 ResumeUpload / UploadScanAttempt（隔离上传与扫描尝试）
 
@@ -232,7 +232,7 @@ erDiagram
 
 - 版本冲突（并发编辑同一材料）：乐观锁失败返回冲突错误，用户可选择基于最新版本重新编辑。
 - 删除编排失败：删除任务保持 `failed` 并可重试，向用户展示真实进度（US-05 场景 5）。
-- 授权撤回风暴（机构成员批量退出）：撤回即时生效；审计写入允许异步批量但不得丢失。
+- 授权撤回风暴（机构成员批量退出）：批量编排可异步拆分，但每一项撤回版本与审计必须同事务持久化后才可报告成功；成功返回后在线访问立即失效，任何失败项保持原状态并可按同一幂等键重试。
 
 ## 10. 验证方式
 

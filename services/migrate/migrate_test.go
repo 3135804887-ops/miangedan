@@ -164,6 +164,55 @@ func TestIdentityMigrationEnforcesBindingAndSecretConstraints(t *testing.T) {
 	}
 }
 
+// TASK-011 / FR-040：授权版本必须追加、区域内幂等且每个版本绑定追加式审计。
+func TestConsentMigrationEnforcesAppendOnlyEvidenceAndAudit(t *testing.T) {
+	migrations, err := LoadMigrations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var consentSQL string
+	for _, migration := range migrations {
+		if migration.Version == "0011" {
+			consentSQL = migration.SQL
+			break
+		}
+	}
+	if consentSQL == "" {
+		t.Fatal("缺少 TASK-011 授权迁移 0011")
+	}
+	for _, required := range []string{
+		"CREATE TABLE consent_grants",
+		"core_service', 'raw_av_recording', 'org_sharing'",
+		"product_analytics', 'model_training', 'marketing'",
+		"consent_grants_scope_version_unique",
+		"UNIQUE (data_region, user_id, request_operation, request_key)",
+		"consent_grants_audit_fk",
+		"REFERENCES access_audits (audit_id, data_region)",
+		"consent_grants_raw_av_max_30_days",
+		"consent_grants_scope_closed_shape",
+		"consent_grants_scope_values_closed",
+		"consent_grants_scope_type_shape",
+		"consent_grants_evidence_closed_shape",
+		"access_audits_id_region_unique",
+		"REVOKE UPDATE, DELETE ON consent_grants FROM PUBLIC",
+		"GRANT SELECT, INSERT ON consent_grants TO mgd_app_runtime",
+	} {
+		if !strings.Contains(consentSQL, required) {
+			t.Errorf("TASK-011 迁移缺少约束 %q", required)
+		}
+	}
+	for _, line := range strings.Split(consentSQL, "\n") {
+		if strings.Contains(line, "TO mgd_app_runtime") && (strings.Contains(line, "UPDATE") || strings.Contains(line, "DELETE")) {
+			t.Errorf("授权业务角色不得修改/删除历史版本: %s", line)
+		}
+	}
+	for _, forbidden := range []string{"email text", "phone", "consent_text text", "media_content", "resume_content"} {
+		if strings.Contains(consentSQL, forbidden) {
+			t.Errorf("授权迁移出现正文或敏感字段列 %q", forbidden)
+		}
+	}
+}
+
 // TASK-012 契约：上传状态表必须强制区域 uploads 桶、10 MiB 上限与两级幂等键。
 func TestResumeUploadMigrationEnforcesIsolationAndIdempotency(t *testing.T) {
 	migrations, err := LoadMigrations()

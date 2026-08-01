@@ -1,6 +1,6 @@
-// Command consent 是面个蛋控制面「授权中心」服务的最小入口（TASK-001 工程骨架；
-// 区域自检在 TASK-002 升级为 DATA_REGION/INFRA_REGION 一致性校验）。
-// 追踪：IMPLEMENTATION_PLAN.md TASK-001、TASK-002；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；TASK-011。
+// Command consent 是面个蛋控制面授权中心入口；TASK-011 业务与 HTTP 适配器位于
+// services/consent 和 services/consent/httpapi。
+// 追踪：TASK-001、TASK-002、TASK-011、FR-040、ADR-0005。
 package main
 
 import (
@@ -25,6 +25,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, "启动被拒绝:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("consent 服务骨架已启动（data_region=%s, service_env=%s）\n",
+	fmt.Printf("consent 服务已通过区域自检（data_region=%s, service_env=%s, api_prefix=/v1/consent）\n",
 		os.Getenv("DATA_REGION"), os.Getenv("SERVICE_ENV"))
 }

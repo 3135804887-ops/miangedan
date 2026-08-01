@@ -43,9 +43,9 @@
 | `identity_sessions` | 业务会话与刷新令牌轮换 | session_id PK、user_id FK、refresh_token_hash、status、access/refresh_expires_at、rotated_to_session_id、data_region | identity_sessions(refresh_token_hash) UNIQUE；identity_sessions(user_id, status) |
 | `identity_conflicts` | 身份冲突恢复案件（绝不自动合并） | recovery_case_id PK、requesting/conflicting_user_id FK、provider、provider_subject_hash、status、data_region、created_at | identity_conflicts(requesting_user_id, created_at) |
 | `identity_idempotency` | 身份写操作幂等结果引用 | idempotency_id PK、operation、idempotency_key、request_hash、result_ref、status、data_region | identity_idempotency(data_region, operation, idempotency_key) UNIQUE |
-| `consent_grants` | 授权记录（版本化追加） | grant_id PK、user_id FK、consent_type、scope_json、status、granted_at、expires_at、withdrawn_at、evidence_json、version | consent_grants(user_id, consent_type, scope_hash, version)；consent_grants(status, expires_at)（到期任务） |
+| `consent_grants` | 授权记录（版本化追加） | grant_id PK、user_id FK、consent_type、封闭 scope_json/scope_hash、status、granted/expires/withdrawn_at、证据 JSON/hash、version/supersedes_grant_id、request operation/key/hash、audit_id FK、data_region、recorded_at | consent_grants(user_id, consent_type, scope_hash, version) UNIQUE；consent_grants(data_region,user_id,request_operation,request_key) UNIQUE；consent_grants(status, expires_at) |
 
-约束：`identities` 同一 `(data_region, provider, provider_subject_hash)` 唯一（防误合并）；验证/会话/幂等表禁止保存邮箱、验证码、OAuth 授权码、证明和令牌明文；`identity_conflicts` 对业务角色无删除能力；`consent_grants` 追加式（撤回插入新版本行）。
+约束：`identities` 同一 `(data_region, provider, provider_subject_hash)` 唯一（防误合并）；验证/会话/幂等表禁止保存邮箱、验证码、OAuth 授权码、证明和令牌明文；`identity_conflicts` 对业务角色无删除能力；`consent_grants` 追加式（撤回插入新版本行），每个版本以 `(audit_id, data_region)` 绑定同事务写入的追加式 `access_audits`；scope/evidence 的键、枚举、版本格式与大小均为数据库闭集，不保存正文或敏感字段值。
 
 ### 5.2 材料族
 
@@ -142,6 +142,7 @@
 4. `payment_events`、`usage_ledger.idempotency_key`、`score_versions.idempotency_key` 唯一约束是幂等的最后防线（NFR-006）。
 5. `resume_uploads` 的 CHECK 强制对象桶等于 `{data_region}-uploads`；`upload_scan_attempts` 唯一键保证首次扫描与重试无重复副作用（TASK-012）。
 6. `resume_versions` 根敏感键 CHECK 为服务层递归 SEC-040 门槛的数据库二次防线；已确认版本的 `low_confidence_paths` 必须为空，应用角色无 UPDATE/DELETE。解析读取器同时核对 upload/user/data_region，禁止跨区原件读取（TASK-013）。
+7. `consent_grants` 只追加版本且业务角色无 UPDATE/DELETE；原始音视频最长 30 天、机构分享必须到期；撤回版本与 `access_audits` 同事务提交，在线判定只读取最新版本（TASK-011）。
 
 ## 10. 异常处理
 
@@ -150,6 +151,7 @@
 | 并发编辑同一材料版本 | 乐观锁（current_version 条件更新）冲突返回 `conflict` |
 | 分区维护失败 | 分区创建任务告警；写入自动落到默认分区并告警，不丢数据 |
 | 追加式表误写尝试 | 数据库拒绝 + 安全告警（疑似绕过服务层） |
+| 授权审计写入失败 | 整个授予/撤回事务回滚，在线权限保持原状态；同一幂等键可安全重试且不得重复版本或审计 |
 | 删除编排部分失败 | deletion_tasks 记录逐层状态，可重试，用户可见真实进度 |
 
 ## 11. 验证方式
@@ -157,6 +159,7 @@
 1. 迁移脚本通过 CI：约束存在性检查（REVOKE、UNIQUE、CHECK、分区）。基线迁移位于
    `services/migrate/migrations/`（`schema_migrations` + SHA-256 校验和，TASK-003）；
    `0010_identity_accounts.sql` 落地 TASK-010 用户、身份验证、会话、防误合并与幂等约束；
+   `0011_consent_grants.sql` 落地 TASK-011 六类授权、追加式版本、同事务审计与区域内幂等约束；
    `0012_resume_uploads.sql` 落地 TASK-012 上传与扫描幂等状态表；
    `0013_resume_parsing.sql` 落地 TASK-013 解析尝试、追加式版本、幂等与敏感根键二次门槛。
 2. 服务层测试：尝试 UPDATE/DELETE 追加式表被拒；幂等键重复写入返回冲突或去重成功。
