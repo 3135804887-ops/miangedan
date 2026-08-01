@@ -15,13 +15,13 @@
 | 工作规则 | [AGENTS.md](AGENTS.md) | AI 开发代理规则、禁令、DoD |
 | 实施计划 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | EPIC-01~10、任务分解、需求追踪、未决事项 |
 | 变更记录 | [CHANGELOG.md](CHANGELOG.md) | 版本历史与变更格式 |
-| 架构 | [docs/architecture/](docs/architecture/) | 系统架构、部署、ADR |
+| 架构 | [docs/architecture/](docs/architecture/) | 系统架构、部署、EPIC-01 详细设计、ADR |
 | 领域设计 | [docs/domain/](docs/domain/) | 领域模型、面试状态机、计费状态机 |
 | API 与事件 | [docs/api/](docs/api/) | OpenAPI 3.1、实时事件契约 |
 | AI 与评分 | [docs/ai/](docs/ai/) | 编排、评分规范、跨轮交接、提示词政策、供应商适配 |
 | 数据与安全 | [docs/data/](docs/data/)、[docs/security/](docs/security/) | 数据模型、保留矩阵、分类、威胁模型、隐私地图、安全需求 |
 | 设计与无障碍 | [docs/design/](docs/design/) | 页面规范、设计系统、WCAG 2.2 AA |
-| 测试与发布 | [docs/testing/](docs/testing/) | 验收矩阵、测试策略、发布检查单 |
+| 测试与发布 | [docs/testing/](docs/testing/) | 验收矩阵、测试策略、发布检查单、Phase 0 供应商评测、规范评审检查单 |
 | 配置契约 | [config/](config/) | 评分量表、面试流程、安全政策、功能开关 |
 | AI 资产 | [ai/](ai/) | 提示词契约、JSON Schema、评测数据集与预期结果 |
 | 合成测试材料 | [fixtures/synthetic/](fixtures/synthetic/) | 虚构简历、JD、逐字稿、来源样例、故障事件 |
@@ -53,9 +53,11 @@
 
 - [x] PRD V1.0 需求基线确认（2026-08-01）
 - [x] 研发规范、契约与合成测试材料（v0.1.0）
-- [ ] 各规范文档正式评审（工程、AI/评分、安全/隐私、法务、设计、无障碍）
+- [x] git 基线提交（2026-08-01，main 分支）
+- [ ] 各规范文档正式评审（工程、AI/评分、安全/隐私、法务、设计、无障碍）——使用 `docs/testing/SPEC-REVIEW-CHECKLIST.md`
 - [ ] 未决事项 OD-01 ~ OD-06 关闭（OD-07 ~ OD-10 已于 2026-08-01 确认，见 IMPLEMENTATION_PLAN.md 第 7 节）
-- [ ] EPIC-01 基础设施与数据区落地（建议首个实施的 Epic）
+- [ ] EPIC-01 基础设施与数据区落地（建议首个实施的 Epic，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
+- [ ] Phase 0 供应商评测（OD-01，方案见 `docs/testing/PHASE0-PROVIDER-EVALUATION.md`）
 
 ## 贡献
 
