@@ -144,9 +144,22 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: 依赖变更审查（仅 PR）
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
+      # 依赖漏洞门禁说明：GitHub 原生 dependency-review-action 在私有仓库需 GitHub Advanced Security
+      # 许可（公开仓库免费），当前私有免费库不可用。以 govulncheck（Go 官方漏洞库）+ pip-audit
+      # （PyPI 官方漏洞库）实现同等依赖漏洞门禁；仓库转公开或购买 GHAS 后可换回原生 action。
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: govulncheck（Go 依赖漏洞，逐模块）
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          for m in services/*/; do
+            (cd "$m" && govulncheck ./...) || exit 1
+          done
+      - name: pip-audit（Python 工具链依赖漏洞）
+        run: |
+          pip install pip-audit
+          pip-audit -r tools/requirements-dev.txt
       - name: 生成 SBOM 并上传工件
         uses: anchore/sbom-action@v0
         with:

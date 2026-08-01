@@ -13,7 +13,7 @@
 
 ## 说明
 
-- 阶段 5 的 gitleaks、依赖审查、SBOM 依赖 CI 平台动作；本地等价物为仓内密钥模式扫描（`--suites secrets`）。
+- 阶段 5 的 gitleaks、govulncheck、pip-audit、SBOM 在 CI 平台执行；本地等价物为仓内密钥模式扫描（`--suites secrets`）。依赖漏洞门禁使用 govulncheck + pip-audit（GitHub 原生 dependency-review-action 在私有仓库需 GHAS 许可，转公开或购 GHAS 后可换回）。
 - SAST 基线 = golangci-lint（gosec）+ ruff S 规则集；平台级 SAST（如 CodeQL）如需引入，按变更流程评估后扩展阶段 5。
 - 主分支追加阶段（集成测试 / 评测集回归 / dev 部署）分别挂接 TASK-004、TASK-036、TASK-002。
 - Python 工具链统一经 `tools/requirements-dev.txt` 安装。
