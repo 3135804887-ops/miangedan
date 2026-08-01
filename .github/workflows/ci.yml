@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  # gitleaks-action 扫描 PR 提交列表需要 pull-requests 读取权（否则报 Resource not accessible by integration）
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
