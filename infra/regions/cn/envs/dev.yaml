@@ -1,0 +1,54 @@
+# 数据区 cn · 环境 dev 拓扑实例（TASK-002）
+# 追踪：IMPLEMENTATION_PLAN.md TASK-002；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；
+#       docs/architecture/DEPLOYMENT.md 第 5、9 节；ADR-0005；OD-09
+region: cn
+environment: dev
+topology:
+  network:
+    vpc_name: mgd-cn-dev-vpc
+    availability_zones: [az-1, az-2, az-3]
+    cross_region_peering: []
+  database:
+    postgres:
+      cluster_name: mgd-cn-dev-postgres
+      replicas: 1
+      cross_az_replicas: true
+    redis:
+      cluster_name: mgd-cn-dev-redis
+      replicas: 1
+      evidence_storage: false
+  object_storage:
+    buckets:
+      uploads: mgd-cn-dev-uploads
+      exports: mgd-cn-dev-exports
+      media: mgd-cn-dev-media
+  event_stream:
+    name: mgd-cn-dev-events
+  sfu:
+    node_group: mgd-cn-dev-sfu
+  temporal:
+    namespace: mgd-cn-dev-temporal
+    task_queues: [ingestion, plan, interview, scoring, report, billing, deletion]
+  secrets:
+    refs:
+      identity_signing_key: IDENTITY_SIGNING_KEY_REF
+      field_encryption_key: DB_FIELD_ENCRYPTION_KEY_REF
+      database_url: DATABASE_URL
+      object_storage_keys: OBJECT_STORAGE_ACCESS_KEY
+      temporal_api_key: TEMPORAL_API_KEY
+      provider_api_keys: LLM_PRIMARY_API_KEY
+      payment_webhook_signing_secret_ref: PAYMENT_WEBHOOK_SIGNING_SECRET
+      otp_pepper: EMAIL_OTP_PEPPER_REF
+  provider_allowlist:
+    llm: [llm_cn_primary, llm_cn_backup]
+    asr: [asr_cn_primary, asr_cn_backup]
+    tts: [tts_cn_primary, tts_cn_backup]
+    avatar: [avatar_cn_primary, avatar_cn_backup]
+    email: [email_cn_primary]
+    payment: [psp_cn_primary]
+  notification:
+    email_from: mgd-cn-dev@miangedan.example
+  routing:
+    gateway_region: cn
+    reject_mismatch: true
+    alert_event: region_mismatch

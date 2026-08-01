@@ -1,0 +1,54 @@
+# 数据区 intl · 环境 dev 拓扑实例（TASK-002）
+# 追踪：IMPLEMENTATION_PLAN.md TASK-002；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；
+#       docs/architecture/DEPLOYMENT.md 第 5、9 节；ADR-0005；OD-09
+region: intl
+environment: dev
+topology:
+  network:
+    vpc_name: mgd-intl-dev-vpc
+    availability_zones: [az-1, az-2, az-3]
+    cross_region_peering: []
+  database:
+    postgres:
+      cluster_name: mgd-intl-dev-postgres
+      replicas: 1
+      cross_az_replicas: true
+    redis:
+      cluster_name: mgd-intl-dev-redis
+      replicas: 1
+      evidence_storage: false
+  object_storage:
+    buckets:
+      uploads: mgd-intl-dev-uploads
+      exports: mgd-intl-dev-exports
+      media: mgd-intl-dev-media
+  event_stream:
+    name: mgd-intl-dev-events
+  sfu:
+    node_group: mgd-intl-dev-sfu
+  temporal:
+    namespace: mgd-intl-dev-temporal
+    task_queues: [ingestion, plan, interview, scoring, report, billing, deletion]
+  secrets:
+    refs:
+      identity_signing_key: IDENTITY_SIGNING_KEY_REF
+      field_encryption_key: DB_FIELD_ENCRYPTION_KEY_REF
+      database_url: DATABASE_URL
+      object_storage_keys: OBJECT_STORAGE_ACCESS_KEY
+      temporal_api_key: TEMPORAL_API_KEY
+      provider_api_keys: LLM_PRIMARY_API_KEY
+      payment_webhook_signing_secret_ref: PAYMENT_WEBHOOK_SIGNING_SECRET
+      otp_pepper: EMAIL_OTP_PEPPER_REF
+  provider_allowlist:
+    llm: [llm_intl_primary, llm_intl_backup]
+    asr: [asr_intl_primary, asr_intl_backup]
+    tts: [tts_intl_primary, tts_intl_backup]
+    avatar: [avatar_intl_primary, avatar_intl_backup]
+    email: [email_intl_primary]
+    payment: [psp_intl_primary]
+  notification:
+    email_from: mgd-intl-dev@miangedan.example
+  routing:
+    gateway_region: intl
+    reject_mismatch: true
+    alert_event: region_mismatch

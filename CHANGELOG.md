@@ -15,6 +15,19 @@
 
 ### Added
 
+- TASK-002 三数据区环境拓扑与区域路由（`task/TASK-002-three-region-topology-routing` 分支）：
+  - `infra/regions/{cn,eu,intl}/envs/{dev,staging,production}.yaml`：9 个环境拓扑实例，覆盖网络（3 AZ）、
+    PostgreSQL / Redis（非证据存储）、对象存储三桶、区域事件流、SFU、Temporal 命名空间与任务队列、
+    密钥引用、区域化供应商白名单、邮件通道与区域路由配置；资源命名统一 `mgd-{region}-{env}-`，
+    区域间无跨区引用。（TASK-002、NFR-004、ADR-0005、OD-09）
+  - `tools/validate_docs.py` 新增 `regions` 套件（第 12 套件）：强制区域/环境代码、3 AZ、副本门槛、
+    Redis 非证据、Temporal 队列、资源命名前缀与零跨区引用；CI 阶段 1 与本地检查接入。（TASK-002、NFR-004）
+  - 新增 `services/region` 共享 Go 包：数据区枚举、fail-closed 启动自检
+    （`DATA_REGION == INFRA_REGION`、`SERVICE_ENV` 合法）与区域路由决策（跨区拒绝并返回
+    `region_mismatch`）；七个 Go 控制面服务与四个 Python AI 服务接入，全部含正常/异常/幂等单测。
+    （TASK-002、SEC-051、ADR-0005）
+  - `.env.example` 新增 `[REGION-SCOPED] INFRA_REGION`；README 与各服务 README 同步运行与自检说明。
+    （TASK-002）
 - TASK-001 单仓工程骨架（`task/TASK-001-monorepo-skeleton-ci` 分支）：
   - 目录结构按 `docs/architecture/EPIC-01-INFRA-DESIGN.md` 第 4.1 节落地：`apps/web`、`apps/admin`（占位）；`services/` 七个 Go 控制面服务模块（identity、consent、ingestion、project、billing、org、adminapi，经根 `go.work` 统一工作区）；`ai/services/` 四个 Python AI 服务包（parsing、orchestrator、scoring、report，src 布局 + pyproject）；`contracts/`、`workflows/`、`infra/modules/`、`infra/regions/{cn,eu,intl}/`（占位）。
   - 每个服务含 fail-closed `DATA_REGION` 启动自检最小形态（ADR-0005、OD-09）与正常 + 异常路径单测；与所连基础设施区域的一致性校验挂接 TASK-002。
