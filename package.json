@@ -1,0 +1,42 @@
+{
+  "name": "miangedan-frontend-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "面个蛋前端工作区：apps/web（求职者端）、apps/admin（运营后台）与共享包",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "tokens:build": "pnpm --filter @mgd/design-tokens run build",
+    "tokens:check": "pnpm --filter @mgd/design-tokens run check",
+    "api:generate": "openapi-typescript docs/api/openapi.yaml -o contracts/ts/openapi.d.ts && node tools/stamp-contract-source.mjs",
+    "api:check": "node tools/check-contract-artifact.mjs",
+    "i18n:check": "node packages/i18n/scripts/check-keys.mjs",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "build": "pnpm --filter @mgd/web run build",
+    "scan:bundle": "node tools/scan-bundle-secrets.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@mgd/eslint-plugin-mgd": "workspace:*",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@typescript-eslint/rule-tester": "8.65.0",
+    "@vitejs/plugin-react": "6.0.5",
+    "axe-core": "4.12.1",
+    "eslint": "10.8.0",
+    "globals": "17.8.0",
+    "jsdom": "30.0.1",
+    "msw": "2.15.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "7.0.2",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
+  }
+}

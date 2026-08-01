@@ -1,0 +1,10 @@
+{
+  "_source": "docs/design/DESIGN-SYSTEM.md 第 7 节与 SCREEN-SPEC 第 5 节平台差异",
+  "breakpoint": {
+    "tablet": { "value": "768px", "usage": "tablet 下界：768–1023px 完整流程、触控优化" },
+    "desktop": { "value": "1024px", "usage": "desktop 下界：≥1024px 完整功能" }
+  },
+  "layout": {
+    "contentMaxWidth": { "value": "1200px", "usage": "常规页面内容最大宽度；房间页全宽不受此限" }
+  }
+}

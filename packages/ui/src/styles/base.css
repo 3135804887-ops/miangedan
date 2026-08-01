@@ -1,0 +1,144 @@
+/**
+ * UI_Kit 基础样式（需求 G4 第 2、3、9、10 条）。
+ * 所有值来自设计令牌 CSS 变量，禁止硬编码色值与字号。
+ */
+
+/* focus-visible：≥2px 焦点环，任何组件不得设置 outline: none（ESLint 拦截） */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--mgd-focus-ring-width) solid var(--mgd-color-focus);
+  outline-offset: var(--mgd-focus-ring-offset);
+}
+
+/* 指针目标尺寸：主要控制 ≥44px，普通目标 ≥24px（WCAG 2.2 AA 2.5.8） */
+.mgd-target-primary {
+  min-inline-size: var(--mgd-target-size-primary);
+  min-block-size: var(--mgd-target-size-primary);
+}
+
+.mgd-target-min {
+  min-inline-size: var(--mgd-target-size-min);
+  min-block-size: var(--mgd-target-size-min);
+}
+
+/* disabled 态：降透明度 + 不接受指针事件；原因文案由组件单独渲染 */
+.mgd-button[aria-disabled='true'] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* 跳到主内容链接：默认视觉隐藏，获得焦点后可见 */
+.mgd-skip-link {
+  position: absolute;
+  inset-inline-start: var(--mgd-space-2);
+  inset-block-start: calc(-1 * var(--mgd-space-12));
+  z-index: 100;
+  padding: var(--mgd-space-2) var(--mgd-space-3);
+  background-color: var(--mgd-color-surface);
+  color: var(--mgd-color-primary);
+  transition: inset-block-start 120ms ease-out;
+}
+
+.mgd-skip-link:focus-visible {
+  inset-block-start: var(--mgd-space-2);
+}
+
+/* 常规页面内容最大宽度 1200px；房间页使用 .mgd-shell--full 全宽 */
+.mgd-shell {
+  max-inline-size: var(--mgd-layout-content-max-width);
+  margin-inline: auto;
+  padding-inline: var(--mgd-space-4);
+}
+
+.mgd-shell--full {
+  max-inline-size: none;
+  padding-inline: 0;
+}
+
+/* 三态徽标：颜色之外必须有图标与文字，此处只补边框以适配强制颜色模式 */
+.mgd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mgd-space-2);
+  padding: var(--mgd-space-1) var(--mgd-space-2);
+  border: 1px solid currentcolor;
+  border-radius: var(--mgd-space-1);
+  font-size: var(--mgd-font-caption-size);
+  line-height: var(--mgd-font-caption-line-height);
+}
+
+.mgd-badge--pass {
+  color: var(--mgd-color-success-text);
+}
+
+.mgd-badge--fail {
+  color: var(--mgd-color-danger);
+}
+
+.mgd-badge--incomplete {
+  color: var(--mgd-color-info);
+}
+
+.mgd-badge--neutral {
+  color: var(--mgd-color-neutral-600);
+}
+
+/* 错误面板五要素 */
+.mgd-error-panel__facets > div {
+  margin-block-start: var(--mgd-space-2);
+}
+
+.mgd-error-panel__facets dt {
+  font-size: var(--mgd-font-caption-size);
+  color: var(--mgd-color-neutral-600);
+}
+
+/* 骨架屏 */
+.mgd-skeleton__bars {
+  display: block;
+  margin-block-start: var(--mgd-space-2);
+}
+
+.mgd-skeleton__bar {
+  display: block;
+  block-size: var(--mgd-space-4);
+  margin-block-start: var(--mgd-space-2);
+  background-color: var(--mgd-color-neutral-100);
+  animation: mgd-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mgd-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* 尊重减少动效偏好：关闭非必要装饰动效（数字人视频不属装饰动效） */
+@media (prefers-reduced-motion: reduce) {
+  .mgd-skeleton__bar,
+  .mgd-skip-link {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* 强制颜色模式：语义边界改用边框与图标兜底，不依赖背景色 */
+@media (forced-colors: active) {
+  .mgd-badge,
+  .mgd-error-panel {
+    border: 1px solid CanvasText;
+  }
+
+  .mgd-button[aria-disabled='true'] {
+    opacity: 1;
+    border-style: dashed;
+  }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-color: Highlight;
+  }
+}

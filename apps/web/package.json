@@ -1,0 +1,28 @@
+{
+  "name": "@mgd/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "面个蛋求职者端 Web / PWA（SCR-01 ~ SCR-16）",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mgd/api-types": "workspace:*",
+    "@mgd/design-tokens": "workspace:*",
+    "@mgd/domain-states": "workspace:*",
+    "@mgd/i18n": "workspace:*",
+    "@mgd/ui": "workspace:*",
+    "next": "16.2.12",
+    "next-intl": "4.13.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}

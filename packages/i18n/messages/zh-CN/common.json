@@ -1,0 +1,80 @@
+{
+  "brand": {
+    "name": "面个蛋 MianGeDan",
+    "tagline": "多轮模拟面试训练"
+  },
+  "nav": {
+    "skipToContent": "跳到主内容",
+    "primaryLabel": "主导航",
+    "landing": "首页",
+    "dashboard": "工作台",
+    "library": "资产与历史",
+    "billing": "购买与额度",
+    "settings": "账户与隐私",
+    "footerLabel": "页脚",
+    "languageLabel": "界面语言"
+  },
+  "redline": {
+    "passCongrats": "恭喜你通过本轮面试，已进入下一轮",
+    "evaluationIncompleteNotFailure": "这不是失败。本轮被标记为评估未完成，你可以重试。",
+    "practiceNoScoreChange": "练习不改变正式分数与解锁状态",
+    "exportTrainingDisclaimer": "模拟训练结果，不代表真实企业录用结论"
+  },
+  "state": {
+    "emptyHeading": "暂无内容",
+    "loadingLabel": "正在加载",
+    "errorHeading": "操作未完成",
+    "forbiddenHeading": "当前无法访问",
+    "recoveringHeading": "可从上次位置继续",
+    "retry": "重试",
+    "expectationP95": "通常在 {seconds} 秒内完成（P95）",
+    "expectationPct95": "95% 的情况在 {seconds} 秒内完成"
+  },
+  "error": {
+    "sectionImpact": "影响",
+    "sectionDataRetained": "数据是否保留",
+    "sectionRetryAction": "可重试动作",
+    "sectionBilling": "是否计费",
+    "sectionScoring": "是否影响评分",
+    "traceLabel": "请求标识",
+    "globalHeading": "页面出现错误",
+    "notFoundHeading": "找不到这个页面",
+    "notFoundBody": "链接可能已失效，或该内容已被删除。",
+    "backToDashboard": "返回工作台",
+    "backToLanding": "返回首页"
+  },
+  "acquire": {
+    "signIn": "登录后可继续",
+    "grantConsent": "需要你的明确授权",
+    "purchase": "需要可用额度",
+    "contactOrgOwner": "请联系机构管理员"
+  },
+  "disabled": {
+    "pendingBackend": "该操作的服务端能力尚未开放"
+  },
+  "pages": {
+    "scr01Landing": "落地页",
+    "scr01Demo": "样例演示",
+    "scr02Auth": "登录与注册",
+    "scr03Dashboard": "工作台",
+    "scr04ProjectNew": "创建面试项目",
+    "scr05Review": "解析校对",
+    "scr06Plan": "面试计划",
+    "scr07Precheck": "会前检查",
+    "scr08Room": "实时面试房间",
+    "scr10Result": "轮次结果",
+    "scr11Report": "完整报告",
+    "scr12Practice": "练习",
+    "scr13Library": "资产与历史",
+    "scr14Settings": "账户与隐私",
+    "scr15Billing": "购买与额度",
+    "scr16OrgAssignments": "机构任务列表",
+    "scr16OrgAssignmentDetail": "任务配置",
+    "scr16OrgCompletion": "完成情况",
+    "scr16OrgMembers": "成员与邀请",
+    "scr16OrgAggregates": "聚合趋势",
+    "scr16OrgPermissions": "权限与审计",
+    "scr16OrgShares": "授权结果视图",
+    "shellNotice": "本页为批次 0 建立的路由壳，页面内容在后续批次落地。"
+  }
+}
