@@ -166,6 +166,17 @@
 > ACCEPTANCE-MATRIX FR-007/FR-008、CHANGELOG；合成来源样例扩展
 > （`fixtures/synthetic/process-sources/`，synthetic: true）；含正常/异常/幂等/重试/注入按数据处理的单测。
 
+> **任务状态（2026-08-01 更新）**：TASK-016 已实现：`services/project` 提供 InterviewProject /
+> PlanVersion / RoundConfig 应用服务（创建/查询/列表/重命名/删除/复制、计划编辑与确认冻结）；
+> 冻结规则（FR-011）：确认后量表/维度权重/轮次权重/轮次列表/问题覆盖方案冻结，项目进入 READY，
+> 开始后编辑返回 `state_conflict`；不完整计划（缺覆盖方案或量表）确认返回 `plan_incomplete`（422）。
+> 轮次边界（1-5 轮、10-60 分钟）与类型注册按 `config/interview-flows/v1/default.yaml` 实时校验
+> （FR-009/FR-010）。`services/project/httpapi` 按 `docs/api/openapi.yaml` 的 `/v1/projects`、
+> `/v1/projects/{projectId}/plan` 契约暴露（`plan:generate` 由 TASK-033 落地，当前 501 占位；
+> company/job_title 筛选随 TASK-018；计费版本冻结随 TASK-060/061）。迁移为
+> `0016_interview_projects.sql`（interview_projects + plan_versions 追加式约束）；
+> 正常/异常/幂等/冻结与 HTTP 层测试齐备。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。
