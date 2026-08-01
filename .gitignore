@@ -23,12 +23,16 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.exe
+*.test
+*.out
 
 # ---- 运行时与临时文件 ----
 *.log
 tmp/
 temp/
 .cache/
+.workbuddy/
 
 # ---- 操作系统与编辑器 ----
 .DS_Store

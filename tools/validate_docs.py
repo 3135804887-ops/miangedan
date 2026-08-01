@@ -3,8 +3,10 @@
 """
 面个蛋（MianGeDan）文档与契约校验脚本（开发工具，非产品源代码）。
 追踪：IMPLEMENTATION_PLAN.md 第 10 节；AGENTS.md 第 7 节 DoD。
-用法：python tools/validate_docs.py
+用法：python tools/validate_docs.py [--suites key1,key2]
+  默认运行全部套件；CI 各阶段按套件键选用（见 .github/workflows/ci.yml）。
 """
+import argparse
 import json
 import re
 import sys
@@ -319,21 +321,37 @@ def check_secrets() -> None:
                 fail(f"[疑似密钥] {p.relative_to(ROOT)}:{line} {label}")
 
 
+SUITES = [
+    ("required", "必须文件", check_required_files),
+    ("yaml", "YAML 解析", check_yaml),
+    ("json", "JSON/JSONL 解析", check_json),
+    ("schema", "JSON Schema 元校验", check_json_schemas),
+    ("openapi", "OpenAPI 校验", check_openapi),
+    ("fences", "代码块闭合", check_fences),
+    ("placeholders", "占位符", check_placeholders),
+    ("coverage", "需求覆盖", check_coverage),
+    ("consistency", "跨文件一致性", check_consistency),
+    ("semantics", "配置语义", check_semantics),
+    ("secrets", "密钥扫描", check_secrets),
+]
+
+
 def main() -> int:
-    checks = [
-        ("必须文件", check_required_files),
-        ("YAML 解析", check_yaml),
-        ("JSON/JSONL 解析", check_json),
-        ("JSON Schema 元校验", check_json_schemas),
-        ("OpenAPI 校验", check_openapi),
-        ("代码块闭合", check_fences),
-        ("占位符", check_placeholders),
-        ("需求覆盖", check_coverage),
-        ("跨文件一致性", check_consistency),
-        ("配置语义", check_semantics),
-        ("密钥扫描", check_secrets),
-    ]
-    for name, fn in checks:
+    parser = argparse.ArgumentParser(description="面个蛋文档与契约校验（CI 门禁）")
+    parser.add_argument(
+        "--suites",
+        default="all",
+        help="逗号分隔的套件键，默认 all 全部：" + ",".join(k for k, _, _ in SUITES),
+    )
+    args = parser.parse_args()
+    keys = [k.strip() for k in args.suites.split(",") if k.strip()]
+    known = {k for k, _, _ in SUITES}
+    if args.suites != "all":
+        for k in keys:
+            if k not in known:
+                fail(f"[参数错误] 未知校验套件：{k}")
+    selected = SUITES if args.suites == "all" else [s for s in SUITES if s[0] in keys]
+    for _key, name, fn in selected:
         try:
             fn()
             print(f"[运行] {name} 完成")

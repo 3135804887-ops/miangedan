@@ -1,0 +1,7 @@
+# 面个蛋开发/CI 工具链依赖（与 .github/workflows/ci.yml 同源安装）
+pyyaml>=6.0,<7
+jsonschema>=4.21,<5
+openapi-spec-validator>=0.7,<1
+pytest>=8,<10
+ruff>=0.6,<1
+mypy>=1.10,<3
