@@ -122,6 +122,48 @@ func TestBaselineMigrationEnforcesLedgerConstraints(t *testing.T) {
 	}
 }
 
+// TASK-010 / US-05 / FR-027：身份迁移强制区域隔离、主体唯一、防误合并与零明文凭证。
+func TestIdentityMigrationEnforcesBindingAndSecretConstraints(t *testing.T) {
+	migrations, err := LoadMigrations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var identitySQL string
+	for _, migration := range migrations {
+		if migration.Version == "0010" {
+			identitySQL = migration.SQL
+			break
+		}
+	}
+	if identitySQL == "" {
+		t.Fatal("缺少 TASK-010 身份迁移 0010")
+	}
+	for _, table := range []string{
+		"users", "identities", "identity_verifications", "identity_sessions",
+		"identity_conflicts", "identity_idempotency",
+	} {
+		if !strings.Contains(identitySQL, "CREATE TABLE "+table) {
+			t.Errorf("身份迁移缺少表 %s", table)
+		}
+	}
+	for _, required := range []string{
+		"identities_provider_subject_region_unique",
+		"UNIQUE (data_region, provider, provider_subject_hash)",
+		"UNIQUE (data_region, provider, request_key)",
+		"identity_conflicts",
+		"UNIQUE (data_region, operation, idempotency_key)",
+	} {
+		if !strings.Contains(identitySQL, required) {
+			t.Errorf("身份迁移缺少约束 %q", required)
+		}
+	}
+	for _, forbidden := range []string{"source_proof_token text", "target_proof_token text", "authorization_code", "access_token text", "refresh_token text", "email text"} {
+		if strings.Contains(identitySQL, forbidden) {
+			t.Errorf("身份迁移出现明文凭证/邮箱列 %q", forbidden)
+		}
+	}
+}
+
 // TASK-012 契约：上传状态表必须强制区域 uploads 桶、10 MiB 上限与两级幂等键。
 func TestResumeUploadMigrationEnforcesIsolationAndIdempotency(t *testing.T) {
 	migrations, err := LoadMigrations()

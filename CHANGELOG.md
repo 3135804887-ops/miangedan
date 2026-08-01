@@ -27,6 +27,17 @@
   - 新增 `0014_job_parsing.sql`：区域 uploads 原文引用或已确认简历引用二选一、解析尝试、
     追加式岗位版本、材料影响快照及显式降级同意的幂等/不可变约束；同步领域、数据、隐私、
     安全、Provider/Prompt、验收矩阵与实施计划。
+- TASK-010 用户、Identity 与多方式登录（`task/TASK-010-identity-login` 分支）：
+  - 新增 `/v1/identity/*` OpenAPI 3.1 契约与 Go HTTP 适配层：邮箱验证码、Google/Apple/微信
+    验证、首次注册、会话/刷新轮换、账户偏好和身份绑定；写操作强制幂等键，部署与令牌双重
+    校验 `data_region`，错误响应不回显验证码、OAuth 授权码或令牌。（TASK-010、US-05、FR-027）
+  - `services/identity` 新增供应商中立验证适配器、区域 `services/notify` 邮件投递、主体/验证码/
+    证明摘要、业务 JWT、单次刷新令牌、串行事务存储与并发幂等执行；US-05 场景 4 要求当前侧与
+    目标侧双重验证，身份冲突只追加恢复案件且绝不移动身份或合并账户。（TASK-010、SEC-002、SEC-012）
+  - 新增 `0010_identity_accounts.sql`：用户、身份、验证、会话、冲突恢复与幂等表，区域/提供商/
+    主体摘要唯一约束；邮箱、验证码、OAuth 授权码、证明和业务/刷新令牌均不落明文。同步领域、
+    数据、安全、隐私、验收矩阵、实施计划与身份服务文档，并覆盖正常、异常、重试、并发幂等、
+    跨区和零泄露测试。（TASK-010、US-05、FR-027、SEC-040）
 - TASK-013 简历结构化解析与敏感字段硬隔离（`task/TASK-013-resume-parsing` 分支）：
   - 新增 `/v1/parsing/resumes*` OpenAPI 3.1 契约：accepted 原件解析/状态/步骤级重试、
     追加式版本查询、逐字段 add/replace/remove/confirm 与低置信度清零后最终确认。
