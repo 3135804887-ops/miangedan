@@ -38,6 +38,45 @@
       "region": "cn",
       "job_family": "data_engineering",
       "summary": "无可靠来源时使用的通用岗位/级别模板（标记 AI 推导）：筛选与简历深挖 → 岗位专业能力 → 综合终面。"
+    },
+    {
+      "source_id": "src-fict-0004",
+      "source_type": "official_recruiting_content",
+      "url": "https://careers.novalake.example.com/recruiting/interview-process",
+      "retrieved_at": "2026-07-08T10:00:00Z",
+      "credibility": "medium",
+      "is_unofficial_experience": false,
+      "expires_at": "2027-01-08T00:00:00Z",
+      "region": "intl",
+      "job_family": "data_engineering",
+      "company": "Novalake Analytics（虚构）",
+      "role": "data_engineer",
+      "level": "senior",
+      "summary": "虚构公司 Novalake 官方招聘内容（medium 可信）：技术轮包含白板设计题，终面为业务场景轮。"
+    },
+    {
+      "source_id": "src-fict-0005",
+      "source_type": "official_careers_page",
+      "url": "https://careers.example.com/posts/expired-official-process",
+      "retrieved_at": "2026-05-01T08:00:00Z",
+      "credibility": "high",
+      "is_unofficial_experience": false,
+      "expires_at": "2026-07-01T00:00:00Z",
+      "region": "eu",
+      "job_family": "software_engineering",
+      "summary": "已失效的官方来源合成样例：过期来源不得作为可靠来源，检索结果自动回退通用模板。"
+    },
+    {
+      "source_id": "src-fict-0006",
+      "source_type": "credible_public_material",
+      "url": "https://career-guide.example.com/reports/eu-software-hiring-process",
+      "retrieved_at": "2026-07-09T09:00:00Z",
+      "credibility": "medium",
+      "is_unofficial_experience": false,
+      "expires_at": "2027-01-09T00:00:00Z",
+      "region": "eu",
+      "job_family": "software_engineering",
+      "summary": "可信公开材料（medium 可信，非候选人经验）：欧盟软件工程岗位常见 3–4 轮流程综述，仅作训练参考。"
     }
   ]
 }
