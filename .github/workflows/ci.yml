@@ -73,9 +73,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: golangci-lint（逐模块；根配置经 --config 显式指定）
-        uses: golangci/golangci-lint-action@v6
+        # action v6 的 latest 仅解析 v1.x（go1.24 构建，低于仓内 go 1.26 目标版本必失败）；
+        # v2 需 action v7+，此处固定 action 主版本与 lint 版本（与本地验证一致）
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.12.2
           working-directory: services/${{ matrix.module }}
           args: --config ../../.golangci.yml
 
