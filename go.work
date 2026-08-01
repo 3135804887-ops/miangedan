@@ -6,6 +6,7 @@ use (
 	./services/consent
 	./services/identity
 	./services/ingestion
+	./services/migrate
 	./services/org
 	./services/project
 	./services/region

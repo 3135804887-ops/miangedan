@@ -1,0 +1,12 @@
+# 数据库模块契约（TASK-003）
+# 追踪：docs/data/DATA-MODEL.md；docs/architecture/adr/ADR-0004-append-only-evidence-ledger.md
+kind: database
+components:
+  postgres:
+    cross_az_replicas: true
+    min_replicas: { dev: 1, staging: 2, production: 3 }
+    migration_tool: services/migrate
+  redis:
+    evidence_storage: false
+    allowed_uses: [session_state, rate_limit, distributed_lock, online_status, otp_hash]
+    forbidden_use: [evidence_store, score_store, ledger_store, authorization_store]

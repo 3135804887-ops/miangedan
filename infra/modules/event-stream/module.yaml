@@ -1,0 +1,6 @@
+# 区域事件流模块契约（TASK-003）
+# 追踪：docs/data/DATA-MODEL.md 第 8 节；docs/api/realtime-events.md
+kind: event-stream
+topics: [parse.jobs, scoring.requests, report.jobs, notification.outbox, deletion.tasks, compensation.jobs]
+payload_rule: 不含简历正文、完整回答、原始媒体
+partition_keys: [session_id, project_id]

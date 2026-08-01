@@ -94,8 +94,8 @@
 | NFR-002 | 房间可用性 ≥99.95% | TC-NFR-002-N01 实时房间月度 SLO 达标 | TC-NFR-002-A01 SFU 节点故障时会话自动迁移或按故障流程恢复 | performance、integration | EPIC-03、EPIC-10 / TASK-020、092 |
 | NFR-003 | 有效完成率 ≥99.5% | TC-NFR-003-N01 排除主动退出与本地断网后统计达标 | TC-NFR-003-A01 注入系统故障时被判失败的比例为 0 | performance、integration | EPIC-10 / TASK-091 |
 | NFR-004 | ≥3 可用区 | TC-NFR-004-N01 每数据区部署拓扑跨 3 AZ 验证 | TC-NFR-004-A01 单 AZ 故障 60 秒内自动接管 | integration、contract、manual_review | EPIC-01 / TASK-002 |
-| NFR-005 | 证据持久化 | TC-NFR-005-N01 下一主问题开始前上一有效回答已持久化 | TC-NFR-005-A01 持久化失败时阻塞推进并告警，不丢证据 | integration | EPIC-03 / TASK-026 |
-| NFR-006 | 幂等副作用 0 | TC-NFR-006-N01 回答/评分/支付/额度/退款重复提交只生效一次 | TC-NFR-006-A01 并发双击/自动重试/乱序回调均无重复副作用 | integration | EPIC-07 / TASK-061、062 |
+| NFR-005 | 证据持久化 | TC-NFR-005-N01 下一主问题开始前上一有效回答已持久化 | TC-NFR-005-A01 持久化失败时阻塞推进并告警，不丢证据 | integration、contract | EPIC-01、EPIC-03 / TASK-003、026 |
+| NFR-006 | 幂等副作用 0 | TC-NFR-006-N01 回答/评分/支付/额度/退款重复提交只生效一次 | TC-NFR-006-A01 并发双击/自动重试/乱序回调均无重复副作用 | integration、contract | EPIC-01、EPIC-07 / TASK-003、061、062 |
 | NFR-007 | 建连 ≤8s/≤15s | TC-NFR-007-N01 数字人音视频建立 95% ≤8s、99% ≤15s | TC-NFR-007-A01 超时进入故障流程且不计时不计费 | performance、integration | EPIC-03 / TASK-020 |
 | NFR-008 | 回应延迟 | TC-NFR-008-N01 发言结束至数字人回应 P50 ≤1.5s/P95 ≤3s/P99 ≤5s | TC-NFR-008-A01 超 P99 样本触发降级与告警策略 | performance | EPIC-03 / TASK-022 |
 | NFR-009 | 打断停止 ≤500ms | TC-NFR-009-N01 打断至停止发声 P95 ≤500ms | TC-NFR-009-A01 连续打断 20 次无状态错乱 | performance | EPIC-03 / TASK-022 |

@@ -15,6 +15,23 @@
 
 ### Added
 
+- TASK-003 数据平台基线部署与迁移工具（`task/TASK-003-data-platform-migrations` 分支）：
+  - 新增 `services/migrate` 迁移工具：`schema_migrations` + SHA-256 校验和，重复执行幂等；
+    已应用迁移校验和变化即失败（fail-closed）；CLI 支持 `up` / `status`，并复用
+    `DATA_REGION == INFRA_REGION` 启动自检。（TASK-003、NFR-005、NFR-006）
+  - 基线迁移 `services/migrate/migrations/0001_ledger_baseline.sql`：四张追加式账本表
+    （`evidence_items`、`score_versions`、`usage_ledger`、`access_audits`），含
+    `data_region` CHECK、幂等键 UNIQUE、内容散列与数据库层 `REVOKE UPDATE, DELETE`
+    （业务角色仅 SELECT/INSERT，删除编排专用角色保留受控 UPDATE/DELETE）。（TASK-003、ADR-0004）
+  - 新增 `infra/modules/{database,object-storage,event-stream}/` 模块契约与 README；
+    区域拓扑补充事件流六主题与媒体桶 30 天生命周期（`RETENTION-MATRIX`）。
+    （TASK-003、NFR-005、RETENTION-MATRIX）
+  - `tools/validate_docs.py` 新增 `data-platform` 套件（第 13 套件）：模块清单、
+    迁移文件名、账本表/REVOKE/幂等键存在性、业务角色权限、迁移执行器与幂等测试，
+    接入 CI 阶段 1 与本地检查；`regions` 套件新增事件流主题与媒体生命周期校验。
+    （TASK-003、ADR-0004、NFR-005、NFR-006）
+  - README、IMPLEMENTATION_PLAN、ACCEPTANCE-MATRIX（NFR-005/NFR-006 契约层级）、
+    DATA-MODEL（迁移工具锚点）同步。（TASK-003）
 - TASK-002 三数据区环境拓扑与区域路由（`task/TASK-002-three-region-topology-routing` 分支）：
   - `infra/regions/{cn,eu,intl}/envs/{dev,staging,production}.yaml`：9 个环境拓扑实例，覆盖网络（3 AZ）、
     PostgreSQL / Redis（非证据存储）、对象存储三桶、区域事件流、SFU、Temporal 命名空间与任务队列、

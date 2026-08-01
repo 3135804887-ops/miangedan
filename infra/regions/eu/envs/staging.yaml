@@ -22,8 +22,10 @@ topology:
       uploads: mgd-eu-staging-uploads
       exports: mgd-eu-staging-exports
       media: mgd-eu-staging-media
+    media_lifecycle_days: 30
   event_stream:
     name: mgd-eu-staging-events
+    topics: [parse.jobs, scoring.requests, report.jobs, notification.outbox, deletion.tasks, compensation.jobs]
   sfu:
     node_group: mgd-eu-staging-sfu
   temporal:
