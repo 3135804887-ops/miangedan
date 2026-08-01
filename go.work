@@ -1,0 +1,11 @@
+go 1.26
+
+use (
+	./services/adminapi
+	./services/billing
+	./services/consent
+	./services/identity
+	./services/ingestion
+	./services/org
+	./services/project
+)

@@ -1,0 +1,180 @@
+# 面个蛋 PR 门禁流水线（TASK-001）
+# 阶段划分追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.3 节
+# 门禁纪律：不得以降低覆盖率、删除用例或跳阶段方式让流水线变绿（AGENTS.md 第 2 节）
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage1-spec-validation:
+    name: "阶段1 规范校验"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装校验依赖
+        run: pip install -r tools/requirements-dev.txt
+      - name: 文档治理与需求追踪校验（0 失败门槛）
+        run: python tools/validate_docs.py --suites required,fences,placeholders,coverage,consistency,semantics
+
+  stage2-lint:
+    name: "阶段2 静态检查"
+    needs: stage1-spec-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: gofmt 检查（输出必须为空）
+        run: test -z "$(gofmt -l services/)"
+      - name: go vet（逐模块；go.work 根目录不支持 ./... 通配）
+        run: |
+          for m in services/*/; do
+            (cd "$m" && go vet ./...) || exit 1
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装 Python 工具链
+        run: pip install -r tools/requirements-dev.txt
+      - name: ruff lint + format（全部 AI 服务）
+        run: |
+          for d in ai/services/*/; do
+            (cd "$d" && ruff check . && ruff format --check .) || exit 1
+          done
+      - name: mypy strict（全部 AI 服务）
+        run: |
+          for d in ai/services/*/; do
+            (cd "$d" && mypy src tests) || exit 1
+          done
+      # TypeScript eslint/tsc 随 EPIC-02 首个前端任务接入（apps/ 落地 package.json 后）
+
+  stage2-golangci:
+    name: "阶段2 golangci-lint（含 gosec SAST 基线）"
+    needs: stage1-spec-validation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [adminapi, billing, consent, identity, ingestion, org, project]
+    steps:
+      - uses: actions/checkout@v4
+      - name: golangci-lint（逐模块；根配置经 --config 显式指定）
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: services/${{ matrix.module }}
+          args: --config ../../.golangci.yml
+
+  stage3-unit-tests:
+    name: "阶段3 单元测试"
+    needs: [stage2-lint, stage2-golangci]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: go test（逐模块）
+        run: |
+          for m in services/*/; do
+            (cd "$m" && go test ./...) || exit 1
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装 Python 工具链
+        run: pip install -r tools/requirements-dev.txt
+      - name: pytest（全部 AI 服务）
+        run: |
+          for d in ai/services/*/; do
+            (cd "$d" && pytest) || exit 1
+          done
+      # 评分边界案例 SC-EC-01~24 回归由 TASK-040 / TASK-045 接入本阶段
+
+  stage4-contract-tests:
+    name: "阶段4 契约校验"
+    needs: stage3-unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装校验依赖
+        run: pip install -r tools/requirements-dev.txt
+      - name: YAML/JSON/OpenAPI/JSON Schema 契约校验（0 失败门槛）
+        run: python tools/validate_docs.py --suites yaml,json,schema,openapi
+      # 契约生成物 diff 校验挂接 TASK-016；Schema 样例校验挂接 TASK-031；
+      # 事件目录一致性检查挂接 EPIC-03 首个实时任务 TASK-020
+
+  stage5-security:
+    name: "阶段5 安全扫描"
+    needs: stage4-contract-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装校验依赖
+        run: pip install -r tools/requirements-dev.txt
+      - name: 仓内密钥模式扫描
+        run: python tools/validate_docs.py --suites secrets
+      - name: gitleaks 全历史扫描
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 依赖变更审查（仅 PR）
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+      - name: 生成 SBOM 并上传工件
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: sbom-${{ github.sha }}
+      # SAST 基线 = 阶段2 golangci-lint(gosec) + ruff S 规则集；
+      # 平台级 SAST（如 CodeQL）如需引入，按变更流程评估后扩展本阶段
+
+  stage6-build:
+    name: "阶段6 构建"
+    needs: stage5-security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: go build（逐模块；产物写入临时目录，不污染工作区）
+        run: |
+          tmpbin="$(mktemp -d)"
+          for m in services/*/; do
+            (cd "$m" && go build -o "$tmpbin/" ./...) || exit 1
+          done
+          rm -rf "$tmpbin"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python 包可安装性检查（全部 AI 服务）
+        run: |
+          for d in ai/services/*/; do
+            pip install "$d" || exit 1
+          done
+      # 前端构建（apps/web、apps/admin）随 EPIC-02 / EPIC-09 首个前端任务接入本阶段
+
+  # 主分支追加（EPIC-01-INFRA-DESIGN 第 4.3 节）：
+  # 集成测试挂接 TASK-004；评测集回归挂接 TASK-036；dev 环境部署挂接 TASK-002。

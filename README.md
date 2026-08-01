@@ -5,7 +5,7 @@
 
 面个蛋是一款由用户简历和目标岗位 JD 驱动、使用实时虚拟数字人完成多轮模拟面试、逐轮审核、证据化评分、复盘训练与正式重试的求职能力训练平台。
 
-本仓库当前处于**研发规范阶段**：包含完整的产品需求、架构决策、领域模型、API/事件契约、AI 与评分规范、数据安全规范、测试与发布规范、配置契约和合成测试材料。**尚未包含正式产品源代码。**
+本仓库包含完整的产品需求、架构决策、领域模型、API/事件契约、AI 与评分规范、数据安全规范、测试与发布规范、配置契约和合成测试材料；EPIC-01 首批工程产物（TASK-001 单仓骨架与 CI 门禁）已落地，各服务业务实现随 Epic 任务推进。
 
 ## 文档导航
 
@@ -41,13 +41,14 @@
 
 最终商业供应商不锁定，须经 Phase 0 评测（见 `IMPLEMENTATION_PLAN.md` 未决事项 OD-01）。
 
-## 本地开发预期入口
+## 本地开发入口
 
-当前仓库为规范与契约阶段，**尚无应用启动命令**。本地工具链的预期用途：
-
-- 文档与契约校验（CI 同源）：`python tools/validate_docs.py` —— 必交文件、YAML/JSON 解析、OpenAPI 校验、JSON Schema 元校验、Mermaid 代码块、占位符、需求覆盖（US/FR/NFR）、跨文件一致性、配置语义与密钥扫描。
+- 一键本地检查（与 CI 阶段 1~4、6 同源）：`bash tools/ci/run_local_checks.sh`；Python 工具链先经 `pip install -r tools/requirements-dev.txt` 安装（说明见 `tools/ci/README.md`）。
+- 文档与契约校验（CI 同源）：`python tools/validate_docs.py` —— 必交文件、YAML/JSON 解析、OpenAPI 校验、JSON Schema 元校验、Mermaid 代码块、占位符、需求覆盖（US/FR/NFR）、跨文件一致性、配置语义与密钥扫描；`--suites` 支持按套件运行。
+- Go 服务骨架运行示例（fail-closed 区域自检）：`cd services/identity && DATA_REGION=cn SERVICE_ENV=dev go run ./cmd/identity`；`DATA_REGION` 缺失或不在 `cn/eu/intl` 内必须拒绝启动（ADR-0005、OD-09）。
+- Python AI 服务单测示例：`cd ai/services/scoring && pytest`（src 布局，可 `pip install -e .` 本地安装）。
 - AI 评测材料位于 `ai/evals/`，供后续评分与提示词回归使用。
-- 当首个服务骨架（EPIC-01 / TASK-001）落地后，本小节将补充真实启动命令；在此之前不要编造命令。
+- 前端 `apps/web`、`apps/admin` 目前为目录占位，首个前端任务落地后补充真实启动命令；在此之前不要编造命令。
 
 ## 当前状态与后续步骤
 
@@ -56,8 +57,9 @@
 - [x] git 基线提交（2026-08-01，main 分支）
 - [x] 项目执行计划批准（2026-08-01，OD-06，按阶段退出条件推进、不设主观日期）
 - [x] 各规范文档正式评审（2026-08-01，十角色检查单全部通过，由需求发起人/产品决策人代表签署；规范状态已从 draft_for_review 提升为 approved）——记录见 `docs/testing/SPEC-REVIEW-CHECKLIST.md` 第 6 节
+- [x] TASK-001 单仓工程骨架与 CI 门禁（2026-08-01，`task/TASK-001-monorepo-skeleton-ci` 分支；本地检查全绿，见 `tools/ci/README.md`）
 - [ ] 未决事项 OD-01 ~ OD-05 关闭（OD-06 ~ OD-10 已于 2026-08-01 确认/批准，见 IMPLEMENTATION_PLAN.md 第 7 节）
-- [ ] EPIC-01 基础设施与数据区落地（建议首个实施的 Epic，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
+- [ ] EPIC-01 基础设施与数据区落地（TASK-001 已完成；下一任务 TASK-002 三数据区拓扑，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
 - [ ] Phase 0 供应商评测（OD-01，方案见 `docs/testing/PHASE0-PROVIDER-EVALUATION.md`）
 
 ## 贡献
