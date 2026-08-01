@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-016 面试项目/计划版本/轮次配置与冻结规则（`task/TASK-016-project-plan-freeze` 分支）：
+  - `services/project` 实现 InterviewProject / PlanVersion / RoundConfig 应用服务（FR-009 ~ FR-011）：
+    创建/查询/列表/重命名/删除/复制项目、计划编辑与确认冻结；开始后编辑冻结项返回
+    `state_conflict`（FR-011），不完整计划确认返回 `plan_incomplete`（422）；
+    轮次边界（1-5 轮、10-60 分钟）与类型注册按 `config/interview-flows/v1/default.yaml` 校验（FR-009）。
+  - `services/project/httpapi` 按 `docs/api/openapi.yaml` 的 `/v1/projects` 与
+    `/v1/projects/{projectId}/plan` 契约暴露（`plan:generate` 由 TASK-033 落地，当前 501 占位）。
+  - 新增迁移 `0016_interview_projects.sql`（interview_projects + plan_versions，追加式约束）；
+    正常/异常/幂等单测与 HTTP 层测试齐备。（TASK-016、FR-009、FR-010、FR-011）
 - TASK-011 ConsentGrant 授权中心（`task/TASK-011-consent-grant` 分支）：
   - 新增仅使用 `/v1/consent/*` 的 OpenAPI 3.1 契约与 Go HTTP 适配层：六类当前状态、明确授予、
     独立撤回、追加式证据历史和同步在线访问判定；认证复用 TASK-010 业务令牌并双重核对数据区。
