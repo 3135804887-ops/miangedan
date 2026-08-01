@@ -98,7 +98,9 @@
 > （OpenTelemetry 观测与日志脱敏）已实现（`services/observability` 共享包、`infra/modules/observability`、
 > `observability` 校验套件、日志脱敏政策与中英双语状态页骨架）；TASK-006（密钥管理）已实现
 > （`services/secretref` 引用契约包、`infra/modules/secret-ref`、`key-mgmt` 校验套件与轮换演练、
-> `docs/operations/KEY-ROTATION-RUNBOOK.md`）；
+> `docs/operations/KEY-ROTATION-RUNBOOK.md`）；TASK-007（通知与身份通道）已实现
+> （`services/notify` 区域路由契约、`services/identity/provider` 提供商开放矩阵、
+> `infra/modules/notification`、`channels` 校验套件）；
 > EPIC-01 其余任务按依赖继续推进
 > （实施细节见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）。
 

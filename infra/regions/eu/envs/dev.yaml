@@ -59,6 +59,8 @@ topology:
     payment: [psp_eu_primary]
   notification:
     email_from: mgd-eu-dev@miangedan.example
+    channels: [email]
+  identity_providers: [email, google, apple]
   routing:
     gateway_region: eu
     reject_mismatch: true

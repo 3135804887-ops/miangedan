@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-007 区域化通知与身份通道（`task/TASK-007-notification-identity-channels` 分支）：
+  - 新增 `services/notify` 共享 Go 包：区域化邮件通道契约（`Config.Validate` fail-closed）、
+    `Router` 按 `data_region` 路由（单区通道故障不影响他区，未配置区拒绝发送）、消息强制幂等键、
+    模板变量禁止正文/令牌/媒体（PRIVACY-DATA-MAP）；含正常/异常/幂等/隔离单测。（TASK-007、FR-027）
+  - 新增 `services/identity/provider` 身份提供商区域注册表（FR-027 开放矩阵：email 全区域、
+    wechat 仅 cn、google/apple 仅 eu/intl），`ValidateProviders` fail-closed；含正常/异常/幂等单测。
+  - 新增 `infra/modules/notification/` 模块契约与三区×三环境 `notification.channels`、
+    `identity_providers` 配置，纳入 `regions` 套件校验；`tools/validate_docs.py` 新增
+    `channels` 套件（第 17 套件）并接入 CI 阶段 1、golangci 矩阵与本地检查。（TASK-007）
 - TASK-006 密钥管理系统接入与轮换契约（`task/TASK-006-secrets-key-mgmt` 分支）：
   - 新增 `services/secretref` 共享 Go 包（零外部依赖）：`*_REF` 引用命名契约（`ValidateRefName`）、
     区域 `secrets.refs` fail-closed 校验（值必须为合法环境变量名、不得内联真实密钥，SEC-012）、

@@ -1,0 +1,18 @@
+# 通知与身份通道模块契约（TASK-007）
+# 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 6 节；PRD FR-027；ADR-0005
+kind: notification
+channels:
+  email:
+    per_region: true
+identity_providers:
+  email:
+    regions: [cn, eu, intl]
+  google:
+    regions: [eu, intl]
+  apple:
+    regions: [eu, intl]
+  wechat:
+    regions: [cn]
+isolation:
+  per_region_channels: true
+  cross_region_send: false

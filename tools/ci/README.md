@@ -9,7 +9,7 @@
 
 - 一键执行阶段 1~4 + 6（含阶段 5 本地等价项）：`bash tools/ci/run_local_checks.sh`
 - 全量规范校验：`python tools/validate_docs.py`（默认全部 14 套件）
-- 分套件示例：`python tools/validate_docs.py --suites yaml,json,schema,openapi,regions,data-platform,temporal,observability,key-mgmt`（套件键见 `tools/validate_docs.py` 的 `SUITES`；`regions` 为三数据区拓扑校验，`data-platform` 为数据平台契约校验，`temporal` 为 Temporal 命名空间/任务队列契约校验，`observability` 为观测契约与日志脱敏校验，`key-mgmt` 为密钥引用与轮换演练校验）
+- 分套件示例：`python tools/validate_docs.py --suites yaml,json,schema,openapi,regions,data-platform,temporal,observability,key-mgmt,channels`（套件键见 `tools/validate_docs.py` 的 `SUITES`；`regions` 为三数据区拓扑校验，`data-platform` 为数据平台契约校验，`temporal` 为 Temporal 命名空间/任务队列契约校验，`observability` 为观测契约与日志脱敏校验，`key-mgmt` 为密钥引用与轮换演练校验，`channels` 为通知与身份通道契约校验）
 
 ## 说明
 

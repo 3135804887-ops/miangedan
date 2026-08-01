@@ -133,6 +133,13 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 > 轮换演练）并接入 CI 阶段 1；新增 `docs/operations/KEY-ROTATION-RUNBOOK.md`（五步轮换、分类过渡方式、
 > 演练不中断服务）。
 | TASK-007 通知与身份通道 | 区域化邮件服务接入；身份提供商（邮箱验证码先行，Google/Apple/微信随区域开放） | 单区通道故障不影响他区 |
+
+> TASK-007 实施（2026-08-01）：新增 `services/notify` 共享包（区域化邮件通道契约与 `Router` 区域路由，
+> 消息强制幂等键、变量禁止正文/令牌/媒体，跨区发送 fail-closed，单区故障不影响他区）；
+> `services/identity/provider` 身份提供商区域注册表（PRD FR-027 开放矩阵：email 全区域、wechat 仅 cn、
+> google/apple 仅 eu/intl，`ValidateProviders` fail-closed）；新增 `infra/modules/notification` 模块契约
+> 与三区×三环境 `notification.channels`、`identity_providers` 配置，纳入 `regions` 套件校验；
+> 新增 `channels` 校验套件并接入 CI 阶段 1。
 | TASK-008 备份与恢复 | 每日完整 + 持续增量 + PITR；恢复脚本一键化；季度恢复演练模板 | 演练 RTO/RPO 达标（证据 RPO=0） |
 
 ## 7. 实施顺序与依赖
