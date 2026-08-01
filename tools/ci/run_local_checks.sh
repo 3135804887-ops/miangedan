@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 echo "== 阶段1 规范校验 =="
-python tools/validate_docs.py --suites required,fences,placeholders,coverage,consistency,semantics,regions
+python tools/validate_docs.py --suites required,fences,placeholders,coverage,consistency,semantics,regions,data-platform
 
 echo "== 阶段2 静态检查 =="
 test -z "$(gofmt -l services/)"

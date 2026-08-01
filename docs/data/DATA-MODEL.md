@@ -140,6 +140,7 @@
 
 ## 11. 验证方式
 
-1. 迁移脚本通过 CI：约束存在性检查（REVOKE、UNIQUE、CHECK、分区）。
+1. 迁移脚本通过 CI：约束存在性检查（REVOKE、UNIQUE、CHECK、分区）。基线迁移位于
+   `services/migrate/migrations/`（`schema_migrations` + SHA-256 校验和，TASK-003）。
 2. 服务层测试：尝试 UPDATE/DELETE 追加式表被拒；幂等键重复写入返回冲突或去重成功。
 3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（30 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。

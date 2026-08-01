@@ -101,6 +101,12 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 | 任务 | 实施要点 | 验收锚点 |
 |---|---|---|
 | TASK-003 数据平台 | PostgreSQL（每区主+跨 AZ 副本）、Redis（仅会话/限流/锁，标注"非证据存储"）、S3 兼容桶（uploads/exports/media 三桶隔离）、区域事件流；迁移工具可重复执行；追加式表在数据库层 REVOKE UPDATE/DELETE（ADR-0004） | 迁移幂等；证据表写路径仅 INSERT |
+
+> TASK-003 实施（2026-08-01）：迁移工具 `services/migrate`（`schema_migrations` + SHA-256 校验和，
+> 重复执行幂等、历史迁移改动即失败）；基线迁移 `0001_ledger_baseline.sql` 落地四张追加式账本表
+> 与数据库层 `REVOKE UPDATE, DELETE`；新增 `data-platform` 校验套件及
+> `infra/modules/{database,object-storage,event-stream}` 模块契约；区域拓扑补充事件流六主题
+> 与媒体桶 30 天生命周期，纳入 `regions` 套件校验。
 | TASK-004 Temporal | 每区独立集群/命名空间；任务队列按域划分（ingestion/plan/interview/scoring/report/billing/deletion）；工作流跨 AZ 故障恢复演练 | 故障注入测试通过 |
 | TASK-005 观测 | OpenTelemetry 采集；日志管道内置正文/令牌过滤规则（SDK 级）；指标按数据区/语言/输入模式/供应商/岗位族/版本标签化；状态页骨架（中英双语） | 日志扫描用例（含合成敏感样本）通过 |
 | TASK-006 密钥 | 密钥管理系统接入；`*.example` 中 `*_REF` 变量模式落地；轮换流程与责任人按 SECURITY-REQUIREMENTS 4.7 | 轮换演练不中断服务 |

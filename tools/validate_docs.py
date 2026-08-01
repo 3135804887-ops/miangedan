@@ -303,6 +303,10 @@ def check_semantics() -> None:
 # ---------- 9c. 区域拓扑校验（TASK-002） ----------
 REGION_CODES = ["cn", "eu", "intl"]
 ENVIRONMENTS = ["dev", "staging", "production"]
+EVENT_TOPICS = [
+    "parse.jobs", "scoring.requests", "report.jobs",
+    "notification.outbox", "deletion.tasks", "compensation.jobs",
+]
 TOPOLOGY_REQUIRED_KEYS = [
     "network", "database", "object_storage", "event_stream", "sfu", "temporal",
     "secrets", "provider_allowlist", "notification", "routing",
@@ -364,10 +368,18 @@ def _validate_region_topology(data, region: str, env: str, p: Path) -> None:
     for bucket_key in ["uploads", "exports", "media"]:
         if not buckets.get(bucket_key):
             fail(f"[区域拓扑] {rel} 缺少对象存储桶 {bucket_key}")
+    object_storage = topo.get("object_storage", {})
+    if object_storage.get("media_lifecycle_days") != 30:
+        fail(f"[区域拓扑] {rel} object_storage.media_lifecycle_days 必须为 30（RETENTION-MATRIX）")
     queues = topo.get("temporal", {}).get("task_queues", [])
     for q in TASK_QUEUES:
         if q not in queues:
             fail(f"[区域拓扑] {rel} temporal.task_queues 缺少 {q}")
+    event_stream = topo.get("event_stream", {})
+    topics = event_stream.get("topics", [])
+    for topic in EVENT_TOPICS:
+        if topic not in topics:
+            fail(f"[区域拓扑] {rel} event_stream.topics 缺少 {topic}")
     refs = topo.get("secrets", {}).get("refs", {})
     if not isinstance(refs, dict) or not refs:
         fail(f"[区域拓扑] {rel} 缺少 secrets.refs")
@@ -430,6 +442,69 @@ def check_regions() -> None:
             fail("[区域拓扑] 9 个环境拓扑组件键不一致（dev/staging/prod 拓扑必须同构）")
 
 
+# ---------- 9d. 数据平台契约校验（TASK-003） ----------
+DATA_MODULE_MANIFESTS = [
+    ("database", "infra/modules/database/module.yaml"),
+    ("object-storage", "infra/modules/object-storage/module.yaml"),
+    ("event-stream", "infra/modules/event-stream/module.yaml"),
+]
+LEDGER_TABLES = ["evidence_items", "score_versions", "usage_ledger", "access_audits"]
+BUSINESS_ROLES = ["mgd_app_runtime", "mgd_ledger_writer"]
+
+
+def check_data_platform() -> None:
+    import yaml
+    for kind, rel in DATA_MODULE_MANIFESTS:
+        p = ROOT / rel
+        if not p.exists():
+            fail(f"[数据平台] 缺少模块清单 {rel}")
+            continue
+        try:
+            data = yaml.safe_load(read(p))
+        except Exception as e:  # noqa: BLE001
+            fail(f"[数据平台] 模块清单解析失败 {rel}: {e}")
+            continue
+        if data.get("kind") != kind:
+            fail(f"[数据平台] {rel} kind 应为 {kind}")
+    migration_dir = ROOT / "services/migrate/migrations"
+    if not migration_dir.exists():
+        fail("[数据平台] 缺少 services/migrate/migrations")
+        return
+    sql_files = sorted(migration_dir.glob("*.sql"))
+    if not sql_files:
+        fail("[数据平台] 迁移目录为空")
+        return
+    for p in sql_files:
+        if not re.fullmatch(r"\d{4}_[a-z0-9_-]+\.sql", p.name):
+            fail(f"[数据平台] 迁移文件名不符合 NNNN_name.sql: {p.name}")
+    baseline = read(sql_files[0])
+    for table in LEDGER_TABLES:
+        if f"CREATE TABLE {table}" not in baseline:
+            fail(f"[数据平台] 基线迁移缺少表 {table}")
+    if "REVOKE UPDATE, DELETE" not in baseline:
+        fail("[数据平台] 基线迁移缺少 REVOKE UPDATE, DELETE")
+    if "idempotency_key" not in baseline:
+        fail("[数据平台] 基线迁移缺少幂等键")
+    if "data_region" not in baseline:
+        fail("[数据平台] 基线迁移缺少 data_region")
+    for role in BUSINESS_ROLES:
+        for keyword in ["UPDATE", "DELETE"]:
+            pattern = re.compile(
+                rf"GRANT[^\n]*\b{keyword}\b[^\n]*TO\s+{re.escape(role)}\b", re.I
+            )
+            if pattern.search(baseline):
+                fail(f"[数据平台] 业务角色 {role} 不得获得 {keyword} 权限")
+    runner = ROOT / "services/migrate/migrate.go"
+    pgstore = ROOT / "services/migrate/pgstore.go"
+    if runner.exists() and pgstore.exists():
+        runner_text = read(runner) + read(pgstore)
+        if "schema_migrations" not in runner_text or "Checksum" not in runner_text:
+            fail("[数据平台] 迁移执行器缺少 schema_migrations/Checksum 幂等机制")
+    test_file = ROOT / "services/migrate/migrate_test.go"
+    if test_file.exists() and "TestApplyIdempotent" not in read(test_file):
+        fail("[数据平台] 迁移测试缺少幂等用例 TestApplyIdempotent")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -463,6 +538,7 @@ SUITES = [
     ("consistency", "跨文件一致性", check_consistency),
     ("semantics", "配置语义", check_semantics),
     ("regions", "区域拓扑", check_regions),
+    ("data-platform", "数据平台", check_data_platform),
     ("secrets", "密钥扫描", check_secrets),
 ]
 

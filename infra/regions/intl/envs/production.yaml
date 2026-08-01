@@ -22,8 +22,10 @@ topology:
       uploads: mgd-intl-prod-uploads
       exports: mgd-intl-prod-exports
       media: mgd-intl-prod-media
+    media_lifecycle_days: 30
   event_stream:
     name: mgd-intl-prod-events
+    topics: [parse.jobs, scoring.requests, report.jobs, notification.outbox, deletion.tasks, compensation.jobs]
   sfu:
     node_group: mgd-intl-prod-sfu
   temporal:

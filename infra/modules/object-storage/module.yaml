@@ -1,0 +1,14 @@
+# 对象存储模块契约（TASK-003）
+# 追踪：docs/data/DATA-MODEL.md 第 6 节；docs/data/RETENTION-MATRIX.md 第 4 节
+kind: object-storage
+buckets:
+  uploads:
+    classification: restricted
+    access: signed_url_only
+  exports:
+    classification: restricted
+    access: signed_url_only
+  media:
+    classification: restricted
+    default_empty: true
+    lifecycle_days: 30
