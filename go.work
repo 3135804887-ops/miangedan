@@ -16,4 +16,5 @@ use (
 	./services/secretref
 	./services/source
 	./services/temporal
+	./workflows
 )
