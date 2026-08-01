@@ -1,0 +1,3 @@
+{"case_id":"jd-zh-exclusion","synthetic":true,"fixture":"fixtures/synthetic/jobs/jd-zh-01.md","language":"zh-CN","expected_excluded":["salary_benefits","recruiter_contact"],"expected_leakage_count":0,"expect_inference_marked":true}
+{"case_id":"jd-en-exclusion","synthetic":true,"fixture":"fixtures/synthetic/jobs/jd-en-01.md","language":"en-US","expected_excluded":["salary_benefits","recruiter_contact"],"expected_leakage_count":0,"expect_inference_marked":true}
+{"case_id":"jd-zh-injection","synthetic":true,"fixture":"fixtures/synthetic/jobs/jd-injection-zh.md","language":"zh-CN","expected_excluded":["salary_benefits","recruiter_contact"],"expected_leakage_count":0,"expect_injection_detected":true,"expect_inference_marked":true}

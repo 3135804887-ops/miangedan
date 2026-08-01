@@ -119,8 +119,20 @@ erDiagram
 
 | 要点 | 内容 |
 |---|---|
-| 职责 | JD 原文 + 结构化要求（`ai/schemas/job-profile.schema.json`） |
-| 规则 | 薪资福利与招聘联系人不进入面试评分上下文；AI 推导面试重点必须标记；缺失材料降级模式需用户明确同意（ConsentGrant 记录） |
+| 职责 | 所属区受限 JD 原文/已确认安全简历引用 + 结构化要求（`ai/schemas/job-profile.schema.json`） |
+| 关键字段 | `job_id`、`user_id`、`data_region`、`source_kind`（`jd_text`/`resume_inference`）、原文引用或 `source_resume_id/version` 二选一；版本含 `base_version`、`parse_meta`、`excluded_from_scoring`（仅类别）、`ai_derived_fields`、`confirmed_by_user` |
+| 解析规则 | JD 是 L4 不可信数据；薪资福利、公司福利、招聘联系人在适配器调用前整段剔除，输出后递归清洗，写版本及下游组装前零命中 fail-closed；Schema/暂时错误自动重试 ≤2 次，仍失败保留原始输入且可只重试解析步骤（FR-004、NFR-015） |
+| AI 推导 | 面试重点始终含 `inference_id`、`ai_inferred=true`、`editable=true`；仅简历模式只读 TASK-013 已确认安全画像，岗位核心字段全部登记 `ai_derived_fields` 且要求项标记 AI 推导。人工编辑产生新版本并设置 `edited_by_user`，不可移除来源标记 |
+| 不可变/使用门槛 | 创建、解析、人工逐字段校对与确认均幂等；`JobVersion` 只追加不修改；仅 `confirmed_by_user=true` 的冻结版本可进入计划、面试上下文或评分上游 |
+
+### 6.6.1 MaterialReadiness / DegradedModeConsent（材料影响与降级同意）
+
+| 要点 | 内容 |
+|---|---|
+| 模式 | `full`：完整能力；`jd_only`：通用岗位、不虚构经历、不做简历深挖/经历匹配评分；`resume_only`：AI 推导岗位且人工确认、不展示岗位匹配百分比；`neither`：通用面试且只评估表达/逻辑/沟通/应变 |
+| 弹窗快照 | `assessment_id` 冻结材料版本、模式、用户可见说明、全部功能影响与允许评分维度；只接受已确认的材料版本引用 |
+| 明确同意 | 除 `full` 外必须追加 `DegradedModeConsent(accepted=true)`；同意与 `assessment_id`、用户、数据区、模式及影响快照严格绑定，不匹配时 fail-closed |
+| 与隐私授权关系 | 功能降级同意不新增或替代同意中心的六类独立隐私授权；记录追加式、幂等、不可更新，项目创建只引用其 ID |
 
 ### 6.7 ProcessSource（企业流程来源）
 
