@@ -4,11 +4,30 @@
 |---|---|
 | 技术基线 | Go（控制面服务，每服务一个模块，经根 `go.work` 统一工作区） |
 | 拥有任务 | TASK-010 |
-| 追踪 | IMPLEMENTATION_PLAN.md；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.1 节 |
+| 追踪 | TASK-010；US-05；FR-027；SEC-002/012/040；`docs/api/openapi.yaml` |
 
-## 当前状态
+## TASK-010 能力
 
-TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/identity`；启动时校验
-`DATA_REGION` 与 `INFRA_REGION` 一致且 `SERVICE_ENV` 合法（共享包 `services/region`，
-正常/异常单测已配），无业务实现。
-业务实现按拥有任务推进；开工前必读 AGENTS.md 及该任务对应的契约文档（领域、API、数据与安全）。
+- 邮箱验证码登录：风险/频率/尝试次数/有效期门槛，复用 `services/notify` 所属区域邮件通道；
+  重试沿用通知幂等键，身份库不保存邮箱或验证码明文。
+- Google、Apple、微信登录：经 `provider.Adapter` 供应商中立接口和 TASK-007 区域开放矩阵；
+  第三方故障返回邮箱替代提示，业务代码不绑定供应商 SDK。
+- 首次注册与会话：保存条款、隐私政策、数据处理说明版本证据；业务 JWT 与媒体令牌分离，
+  刷新令牌单次轮换；所有签名/摘要材料经 `*_REF` 和区域密钥解析器注入。
+- 多身份绑定：必须提交当前侧与目标侧两份独立、短期、单次证明；冲突时只创建恢复案件，
+  不移动身份、不合并账户。公开账户响应不含邮箱或第三方 subject。
+- `/v1/identity/*` HTTP 适配层：严格 JSON、请求体上限、Bearer 认证、部署区/令牌区双检、
+  写操作幂等、统一安全错误体和 `Cache-Control: no-store`。
+
+持久化契约位于 `services/migrate/migrations/0010_identity_accounts.sql`；生产 Store/密钥解析器/
+具体 OAuth 适配器由各数据区运行时注入，测试使用仅含 `synthetic` 数据的确定性内存实现。
+
+## 验证
+
+```bash
+go test ./...
+go vet ./...
+```
+
+用例覆盖邮箱及三类 OAuth 正常路径、验证码过期/锁定/限流/风险拒绝、提供商区域矩阵与故障
+回退、双侧绑定、冲突不合并、刷新轮换、HTTP 跨区拒绝以及并发幂等。

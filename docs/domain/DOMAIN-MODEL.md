@@ -68,19 +68,20 @@ erDiagram
 | 要点 | 内容 |
 |---|---|
 | 职责 | 账户主体；语言、年龄状态、数据区域的权威来源 |
-| 关键字段 | `user_id`、`data_region`、`ui_language`、`age_status`（`adult`/`minor_guardian_verified`/`minor_pending`/`under_16_demo_only`）、`status`（`active`/`deletion_pending`/`deleted_anonymized`）、`created_at` |
+| 关键字段 | `user_id`、`data_region`、`ui_language`、`age_status`（`adult`/`minor_guardian_verified`/`minor_pending`）、`status`（`active`/`deletion_pending`/`deleted_anonymized`）、`registration_evidence`（条款/隐私/数据处理说明版本与接受上下文）、`created_at` |
 | 不可变字段 | `user_id`、`data_region`（创建后不得静默迁移）、`created_at` |
-| 生命周期 | 注册（接受条款/隐私/数据处理说明）→ active → deletion_pending（重新验证后）→ deleted_anonymized（级联删除或不可逆匿名化；法定财务记录保留但解除内容关联） |
-| 规则 | 未满 16 岁仅样例演示（无登录上传）；16 岁至当地成年年龄需可验证监护人同意（上传简历、保存记录、付费） |
+| 生命周期 | 注册（接受条款/隐私/数据处理说明并保存版本证据）→ active → deletion_pending（重新验证后）→ deleted_anonymized（级联删除或不可逆匿名化；法定财务记录保留但解除内容关联） |
+| 规则 | 未满 16 岁在账户创建前即被导向样例演示（无 User/Identity、无登录上传）；16 岁至当地成年年龄需可验证监护人同意（上传简历、保存记录、付费） |
 
 ### 6.2 Identity（登录身份）
 
 | 要点 | 内容 |
 |---|---|
 | 职责 | 邮箱验证码、Google、Apple、微信等多身份；支持绑定多个身份 |
-| 关键字段 | `identity_id`、`user_id`、`provider`（`email_otp`/`google`/`apple`/`wechat`）、`provider_subject`、`verified_at` |
-| 不可变字段 | `identity_id`、`provider`、`provider_subject` |
-| 规则 | 绑定新身份必须分别验证；存在账户冲突时不执行合并，提供恢复与人工支持路径；手机号码不作为必填项 |
+| 关键字段 | `identity_id`、`user_id`、`provider`（`email_otp`/`google`/`apple`/`wechat`）、`provider_subject_hash`、`verified_at`、`data_region` |
+| 不可变字段 | `identity_id`、`provider`、`provider_subject_hash`、`data_region` |
+| 验证与会话 | `IdentityVerification` 只保存主体/验证码/证明摘要和到期、消费状态；`IdentitySession` 只保存刷新令牌摘要及轮换状态；邮箱、验证码、OAuth 授权码、证明、业务/刷新令牌均不保存明文 |
+| 规则 | 绑定新身份必须提交当前侧与目标侧两份独立、短期、单次使用的重新验证证明；目标身份已属于另一账户时仅追加 `IdentityConflict` 恢复案件，不移动身份、不合并账户，并提供恢复与人工支持路径；手机号码不作为必填项 |
 
 ### 6.3 ConsentGrant（授权）
 
