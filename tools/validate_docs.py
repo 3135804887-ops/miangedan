@@ -39,6 +39,7 @@ REQUIRED_FILES = [
     "docs/architecture/adr/ADR-0003-provider-adapter-layer.md",
     "docs/architecture/adr/ADR-0004-append-only-evidence-ledger.md",
     "docs/architecture/adr/ADR-0005-three-data-regions.md",
+    "docs/observability/LOGGING-POLICY.md", "docs/observability/STATUS-PAGE.md",
     "docs/domain/DOMAIN-MODEL.md", "docs/domain/INTERVIEW-STATE-MACHINE.md",
     "docs/domain/BILLING-STATE-MACHINE.md",
     "docs/api/openapi.yaml", "docs/api/realtime-events.md",
@@ -308,10 +309,13 @@ EVENT_TOPICS = [
     "notification.outbox", "deletion.tasks", "compensation.jobs",
 ]
 TOPOLOGY_REQUIRED_KEYS = [
-    "network", "database", "object_storage", "event_stream", "sfu", "temporal",
+    "network", "database", "object_storage", "event_stream", "sfu", "temporal", "observability",
     "secrets", "provider_allowlist", "notification", "routing",
 ]
 TASK_QUEUES = ["ingestion", "plan", "interview", "scoring", "report", "billing", "deletion"]
+OBSERVABILITY_LABELS = [
+    "data_region", "language", "input_mode", "provider", "job_family", "version",
+]
 PROVIDER_CATEGORIES = ["llm", "asr", "tts", "avatar", "email", "payment"]
 RESOURCE_NAME_PATHS = [
     ("network", "vpc_name"),
@@ -324,6 +328,8 @@ RESOURCE_NAME_PATHS = [
     ("sfu", "node_group"),
     ("temporal", "cluster_name"),
     ("temporal", "namespace"),
+    ("observability", "otel_collector"),
+    ("observability", "status_page"),
 ]
 
 
@@ -382,6 +388,12 @@ def _validate_region_topology(data, region: str, env: str, p: Path) -> None:
     retention = temporal_cfg.get("history_retention_days")
     if not isinstance(retention, int) or retention < 30:
         fail(f"[区域拓扑] {rel} temporal.history_retention_days 应 ≥ 30")
+    obs = topo.get("observability", {})
+    if obs.get("redaction") != "strict":
+        fail(f"[区域拓扑] {rel} observability.redaction 必须为 strict（SEC-032）")
+    endpoint = obs.get("otlp_endpoint")
+    if not isinstance(endpoint, str) or not endpoint.startswith("https://"):
+        fail(f"[区域拓扑] {rel} observability.otlp_endpoint 必须为 https:// 地址")
     event_stream = topo.get("event_stream", {})
     topics = event_stream.get("topics", [])
     for topic in EVENT_TOPICS:
@@ -551,6 +563,79 @@ def check_temporal() -> None:
         fail("[Temporal] 缺少配置校验测试 TestValidateConfig")
 
 
+# ---------- 9e. 观测契约校验（TASK-005） ----------
+def check_observability() -> None:
+    import yaml
+    module_rel = "infra/modules/observability/module.yaml"
+    p = ROOT / module_rel
+    if not p.exists():
+        fail(f"[观测] 缺少模块清单 {module_rel}")
+        return
+    try:
+        data = yaml.safe_load(read(p))
+    except Exception as e:  # noqa: BLE001
+        fail(f"[观测] 模块清单解析失败: {e}")
+        return
+    if data.get("kind") != "observability":
+        fail("[观测] 模块清单 kind 应为 observability")
+    redaction = data.get("redaction", {})
+    if redaction.get("default") != "strict" or redaction.get("sdk_level") is not True:
+        fail("[观测] 模块清单 redaction 必须 default=strict 且 sdk_level=true")
+    if redaction.get("production_strict") is not True:
+        fail("[观测] 模块清单 redaction.production_strict 必须为 true（SEC-032）")
+    labels = data.get("metric_labels", {}).get("allowlist", [])
+    for label in OBSERVABILITY_LABELS:
+        if label not in labels:
+            fail(f"[观测] 指标标签白名单缺少 {label}（PRD Observability and Operations）")
+    if data.get("metric_labels", {}).get("content_labels") is not False:
+        fail("[观测] 禁止正文作为指标标签（content_labels 必须为 false）")
+    status_page = data.get("status_page", {})
+    for key in ["per_region", "bilingual", "error_budget", "incident_timeline"]:
+        if status_page.get(key) is not True:
+            fail(f"[观测] 状态页契约 status_page.{key} 必须为 true（SEC-033）")
+    pkg = ROOT / "services/observability/observability.go"
+    if pkg.exists():
+        pkg_text = read(pkg)
+        for symbol in ["Validate", "NewLogger", "RedactString", "ValidateAttributes", "IsSensitiveKey", "Setup"]:
+            if symbol not in pkg_text:
+                fail(f"[观测] services/observability 缺少 {symbol}")
+    test_file = ROOT / "services/observability/observability_test.go"
+    if test_file.exists():
+        test_text = read(test_file)
+        for symbol in ["TestRedact", "TestValidateConfig", "TestValidateAttributes", "TestSetup"]:
+            if symbol not in test_text:
+                fail(f"[观测] services/observability 缺少测试 {symbol}")
+    samples = ROOT / "fixtures/synthetic/log-scan/sensitive-samples.json"
+    if not samples.exists():
+        fail("[观测] 缺少合成日志敏感样本 fixtures/synthetic/log-scan/sensitive-samples.json")
+    else:
+        try:
+            doc = json.loads(read(samples))
+        except Exception as e:  # noqa: BLE001
+            fail(f"[观测] 合成敏感样本解析失败: {e}")
+            doc = {}
+        if doc.get("synthetic") is not True:
+            fail("[观测] 合成敏感样本必须标记 synthetic: true")
+        if len(doc.get("samples", [])) < 3:
+            fail("[观测] 合成敏感样本至少 3 项（简历/回答/令牌类）")
+    policy = ROOT / "docs/observability/LOGGING-POLICY.md"
+    if not policy.exists():
+        fail("[观测] 缺少 docs/observability/LOGGING-POLICY.md")
+    else:
+        text = read(policy)
+        for keyword in ["简历正文", "完整回答", "令牌", "原始媒体", "strict"]:
+            if keyword not in text:
+                fail(f"[观测] LOGGING-POLICY.md 缺少规则关键词 {keyword}")
+    status_doc = ROOT / "docs/observability/STATUS-PAGE.md"
+    if not status_doc.exists():
+        fail("[观测] 缺少 docs/observability/STATUS-PAGE.md")
+    else:
+        text = read(status_doc)
+        for keyword in ["错误预算", "incident", "中英文"]:
+            if keyword not in text:
+                fail(f"[观测] STATUS-PAGE.md 缺少关键词 {keyword}")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -586,6 +671,7 @@ SUITES = [
     ("regions", "区域拓扑", check_regions),
     ("data-platform", "数据平台", check_data_platform),
     ("temporal", "Temporal 契约", check_temporal),
+    ("observability", "观测契约", check_observability),
     ("secrets", "密钥扫描", check_secrets),
 ]
 

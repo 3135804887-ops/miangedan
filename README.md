@@ -16,6 +16,7 @@
 | 实施计划 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | EPIC-01~10、任务分解、需求追踪、未决事项 |
 | 变更记录 | [CHANGELOG.md](CHANGELOG.md) | 版本历史与变更格式 |
 | 架构 | [docs/architecture/](docs/architecture/) | 系统架构、部署、EPIC-01 详细设计、ADR |
+| 观测与运营 | [docs/observability/](docs/observability/) | 日志与观测脱敏政策、公开状态页骨架（中英双语） |
 | 领域设计 | [docs/domain/](docs/domain/) | 领域模型、面试状态机、计费状态机 |
 | API 与事件 | [docs/api/](docs/api/) | OpenAPI 3.1、实时事件契约 |
 | AI 与评分 | [docs/ai/](docs/ai/) | 编排、评分规范、跨轮交接、提示词政策、供应商适配 |
@@ -24,7 +25,7 @@
 | 测试与发布 | [docs/testing/](docs/testing/) | 验收矩阵、测试策略、发布检查单、Phase 0 供应商评测、规范评审检查单 |
 | 配置契约 | [config/](config/) | 评分量表、面试流程、安全政策、功能开关 |
 | AI 资产 | [ai/](ai/) | 提示词契约、JSON Schema、评测数据集与预期结果 |
-| 合成测试材料 | [fixtures/synthetic/](fixtures/synthetic/) | 虚构简历、JD、逐字稿、来源样例、故障事件 |
+| 合成测试材料 | [fixtures/synthetic/](fixtures/synthetic/) | 虚构简历、JD、逐字稿、来源样例、故障事件、日志脱敏敏感样本 |
 
 ## 技术栈概览（PRD 基线）
 

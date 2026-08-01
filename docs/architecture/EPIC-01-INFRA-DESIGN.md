@@ -114,6 +114,15 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 > 跨 3 AZ、30 天历史保留与队列所有权；区域拓扑补充 `cluster_name`/`cross_az`/`history_retention_days`
 > 并纳入 `regions` 与新增 `temporal` 套件校验；workflows README 登记队列所有权表。
 | TASK-005 观测 | OpenTelemetry 采集；日志管道内置正文/令牌过滤规则（SDK 级）；指标按数据区/语言/输入模式/供应商/岗位族/版本标签化；状态页骨架（中英双语） | 日志扫描用例（含合成敏感样本）通过 |
+
+> TASK-005 实施（2026-08-01）：新增 `services/observability` 共享包（OTel v1.44.0）：结构化 JSON 日志
+> 默认 strict 脱敏（敏感键整值替换 + JWT/Bearer/`sk-`/超长令牌值模式替换，生产强制 strict，SEC-032）、
+> OTLP HTTP 指标/追踪 Provider 装配（资源含 `data_region`，观测故障不影响业务）、指标/追踪属性白名单
+> 校验（`ValidateAttributes` 强制 `data_region`，白名单外/敏感键/疑似敏感值拒绝）；新增
+> `infra/modules/observability` 模块契约（每区 OTLP 端点、strict 脱敏、状态页骨架）与
+> 三区×三环境 `topology.observability` 配置；`regions` 套件扩展观测校验，新增 `observability`
+> 校验套件（模块契约 + 合成敏感样本 `fixtures/synthetic/log-scan/` + 政策/状态页文档）并接入 CI 阶段 1；
+> 新增 `docs/observability/LOGGING-POLICY.md` 与 `docs/observability/STATUS-PAGE.md`（中英双语骨架）。
 | TASK-006 密钥 | 密钥管理系统接入；`*.example` 中 `*_REF` 变量模式落地；轮换流程与责任人按 SECURITY-REQUIREMENTS 4.7 | 轮换演练不中断服务 |
 | TASK-007 通知与身份通道 | 区域化邮件服务接入；身份提供商（邮箱验证码先行，Google/Apple/微信随区域开放） | 单区通道故障不影响他区 |
 | TASK-008 备份与恢复 | 每日完整 + 持续增量 + PITR；恢复脚本一键化；季度恢复演练模板 | 演练 RTO/RPO 达标（证据 RPO=0） |
