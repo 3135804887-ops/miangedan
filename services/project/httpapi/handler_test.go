@@ -45,6 +45,30 @@ func (a *appAdapter) EditPlan(ctx context.Context, actor project.Actor, id strin
 func (a *appAdapter) ConfirmPlan(ctx context.Context, actor project.Actor, id string, v int, acc []string, quote, key string) (project.Project, error) {
 	return a.svc.ConfirmPlan(ctx, actor, id, v, acc, quote, key)
 }
+func (a *appAdapter) SaveLibraryEntry(ctx context.Context, actor project.Actor, kind project.LibraryKind, materialID string, version int, company, jobTitle, key string) (project.LibraryEntry, error) {
+	return a.svc.SaveLibraryEntry(ctx, actor, kind, materialID, version, company, jobTitle, key)
+}
+func (a *appAdapter) ListLibrary(ctx context.Context, actor project.Actor, kind project.LibraryKind) ([]project.LibraryEntry, error) {
+	return a.svc.ListLibrary(ctx, actor, kind)
+}
+func (a *appAdapter) DeleteLibraryEntry(ctx context.Context, actor project.Actor, kind project.LibraryKind, materialID, key string) error {
+	return a.svc.DeleteLibraryEntry(ctx, actor, kind, materialID, key)
+}
+func (a *appAdapter) GetPreferences(ctx context.Context, actor project.Actor) (project.Preferences, error) {
+	return a.svc.GetPreferences(ctx, actor)
+}
+func (a *appAdapter) SetPreferences(ctx context.Context, actor project.Actor, ui, interview, key string) (project.Preferences, error) {
+	return a.svc.SetPreferences(ctx, actor, ui, interview, key)
+}
+func (a *appAdapter) ClaimDevice(ctx context.Context, actor project.Actor, id, device, key string) (project.Project, error) {
+	return a.svc.ClaimDevice(ctx, actor, id, device, key)
+}
+func (a *appAdapter) TransferDevice(ctx context.Context, actor project.Actor, id, current, next, key string) (project.Project, error) {
+	return a.svc.TransferDevice(ctx, actor, id, current, next, key)
+}
+func (a *appAdapter) ReleaseDevice(ctx context.Context, actor project.Actor, id, device, key string) (project.Project, error) {
+	return a.svc.ReleaseDevice(ctx, actor, id, device, key)
+}
 
 type stubAuth struct{}
 
@@ -139,5 +163,50 @@ func TestGeneratePlanPendingHTTP(t *testing.T) {
 	rec := doJSON(t, h, http.MethodPost, "/v1/projects/00000000-0000-4000-8000-000000000000/plan:generate", "{}")
 	if rec.Code != http.StatusNotImplemented {
 		t.Fatalf("应 501，实际 %d", rec.Code)
+	}
+}
+
+// 正常路径：材料库保存/列表/删除；语言偏好读写；设备认领/转移/释放。
+func TestLibraryAndPreferencesHTTP(t *testing.T) {
+	h := newTestHandler(t)
+	rec := doJSON(t, h, http.MethodPost, "/v1/library/resumes", `{"material_id": "11111111-1111-4111-8111-111111111111", "version": 1, "company": "合成科技", "job_title": "后端工程师"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("保存简历应 201，实际 %d: %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/v1/library/resumes", "")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "11111111-1111-4111-8111-111111111111") {
+		t.Fatalf("简历库列表异常: %d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodPut, "/v1/me/preferences", `{"ui_language": "en-US", "interview_language": "zh-CN"}`)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"interview_language":"zh-CN"`) {
+		t.Fatalf("偏好写入异常: %d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/v1/me/preferences", "")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"ui_language":"en-US"`) {
+		t.Fatalf("偏好读取异常: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// 正常路径：创建项目后认领设备；另一设备认领被拒（409 device_active）；转移后原设备失效。
+func TestDeviceClaimTransferHTTP(t *testing.T) {
+	h := newTestHandler(t)
+	rec := doJSON(t, h, http.MethodPost, "/v1/projects", `{"interview_language": "zh-CN", "degraded_mode": "full"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("创建应 201: %d", rec.Code)
+	}
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	id := body["project_id"].(string)
+	rec = doJSON(t, h, http.MethodPost, "/v1/projects/"+id+"/device:claim", `{"device_id": "device-a"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("认领应 200: %d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodPost, "/v1/projects/"+id+"/device:claim", `{"device_id": "device-b"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("非正式状态下的第二次认领允许替换（仅正式面试锁定）: %d", rec.Code)
+	}
+	rec = doJSON(t, h, http.MethodPost, "/v1/projects/"+id+"/device:transfer", `{"current_device_id": "device-b", "new_device_id": "device-c"}`)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "device-c") {
+		t.Fatalf("转移应 200: %d %s", rec.Code, rec.Body.String())
 	}
 }

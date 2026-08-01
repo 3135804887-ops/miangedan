@@ -187,6 +187,14 @@
 > 测试：状态机迁移表逐行 + 非法/终态；工作流 testsuite 全旅程、失败分支、非法迁移与重试，
 > 断言每次迁移写审计。CI 循环扩展为 `services/*/ workflows/`，golangci 新增 workflows 作业。
 
+> **任务状态（2026-08-01 更新）**：TASK-018 已实现：`services/project` 扩展用户材料库
+> （简历库/岗位库引用 + company/job_title 筛选元数据，`/v1/library/*`）、界面语言与面试语言独立偏好
+> （`/v1/me/preferences`，FR-028）、项目列表公司/岗位筛选（FR-029）、正式面试单活动设备锁
+> （claim/transfer/release；第二台设备被拒 `device_active`，确认安全转移后原设备会话失效，FR-030、
+> US-05 场景 3）。迁移为 `0018_user_library_preferences.sql`（材料库两表 + users
+> `interview_language_preference` 列）；openapi 契约、DOMAIN-MODEL §6.18、DATA-MODEL 材料族同步；
+> 服务/HTTP 层正常、异常、幂等、设备锁测试齐备。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

@@ -1162,6 +1162,187 @@ paths:
         '422': { description: 计划不完整（某轮缺问题覆盖方案或量表），仅重试缺失部分, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
 
+  # ============================== library (TASK-018) ==============================
+  /v1/library/resumes:
+    get:
+      tags: [library]
+      operationId: listResumeLibrary
+      summary: 简历库列表（公司/岗位筛选；跨设备同步）
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: company, in: query, schema: { type: string } }
+        - { name: job_title, in: query, schema: { type: string } }
+      responses:
+        '200': { description: 简历库分页, content: { application/json: { schema: { $ref: '#/components/schemas/LibraryResumePage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [library]
+      operationId: saveResumeToLibrary
+      summary: 保存简历到简历库（幂等）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resume_id, resume_version]
+              properties:
+                resume_id: { type: string, format: uuid }
+                resume_version: { type: integer, minimum: 1 }
+                company: { type: ['string', 'null'] }
+                job_title: { type: ['string', 'null'] }
+      responses:
+        '201': { description: 已保存, content: { application/json: { schema: { $ref: '#/components/schemas/LibraryResume' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/library/resumes/{resumeId}:
+    delete:
+      tags: [library]
+      operationId: deleteResumeFromLibrary
+      summary: 从简历库移除（材料本体删除归摄取服务）
+      parameters:
+        - { name: resumeId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: 已移除（不存在视为成功） }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/library/jobs:
+    get:
+      tags: [library]
+      operationId: listJobLibrary
+      summary: 岗位库列表
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: company, in: query, schema: { type: string } }
+        - { name: job_title, in: query, schema: { type: string } }
+      responses:
+        '200': { description: 岗位库分页, content: { application/json: { schema: { $ref: '#/components/schemas/LibraryJobPage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [library]
+      operationId: saveJobToLibrary
+      summary: 保存岗位到岗位库（幂等）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [job_id, job_version]
+              properties:
+                job_id: { type: string, format: uuid }
+                job_version: { type: integer, minimum: 1 }
+                company: { type: ['string', 'null'] }
+                job_title: { type: ['string', 'null'] }
+      responses:
+        '201': { description: 已保存, content: { application/json: { schema: { $ref: '#/components/schemas/LibraryJob' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/library/jobs/{jobId}:
+    delete:
+      tags: [library]
+      operationId: deleteJobFromLibrary
+      summary: 从岗位库移除
+      parameters:
+        - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: 已移除（不存在视为成功） }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== preferences (TASK-018) ==============================
+  /v1/me/preferences:
+    get:
+      tags: [account]
+      operationId: getPreferences
+      summary: 读取界面语言与面试语言独立配置（FR-028）
+      responses:
+        '200': { description: 偏好, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    put:
+      tags: [account]
+      operationId: updatePreferences
+      summary: 更新界面语言与面试语言偏好（面试语言仍须按项目由用户确认）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Preferences' }
+      responses:
+        '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== device (TASK-018) ==============================
+  /v1/projects/{projectId}/device:claim:
+    post:
+      tags: [projects]
+      operationId: claimActiveDevice
+      summary: 认领活动设备；正式面试已被另一设备占用时返回 409 device_active（FR-030）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id]
+              properties:
+                device_id: { type: string, minLength: 1 }
+      responses:
+        '200': { description: 已认领, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceClaimResult' } } } }
+        '409': { description: 正式面试已在其他设备活动（device_active）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/device:transfer:
+    post:
+      tags: [projects]
+      operationId: transferActiveDevice
+      summary: 安全转移活动设备（确认后原设备会话失效；仅当前活动设备可发起）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_device_id, new_device_id]
+              properties:
+                current_device_id: { type: string }
+                new_device_id: { type: string }
+      responses:
+        '200': { description: 已转移, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceTransferResult' } } } }
+        '409': { description: 仅当前活动设备可发起（device_active）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/projects/{projectId}/device:release:
+    post:
+      tags: [projects]
+      operationId: releaseActiveDevice
+      summary: 释放活动设备（结束会话/退出时调用）
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id]
+              properties:
+                device_id: { type: string }
+      responses:
+        '200': { description: 已释放, content: { application/json: { schema: { $ref: '#/components/schemas/DeviceReleaseResult' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
   # ============================== sessions ==============================
   /v1/projects/{projectId}/rounds/{sequence}/session:
     post:
@@ -1905,7 +2086,7 @@ components:
       enum: [PASS, FAIL, EVALUATION_INCOMPLETE]
       description: 评估未完成 ≠ 失败
     ErrorCode:
-      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, upload_rejected, scan_retryable, parse_retryable, sensitive_content_rejected, low_confidence_unresolved, idempotency_conflict, rate_limited, risk_verification_required, verification_invalid, verification_expired, identity_conflict, provider_unavailable, region_mismatch, insufficient_entitlement, state_conflict, internal]
+      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, upload_rejected, scan_retryable, parse_retryable, sensitive_content_rejected, low_confidence_unresolved, idempotency_conflict, rate_limited, risk_verification_required, verification_invalid, verification_expired, identity_conflict, provider_unavailable, region_mismatch, insufficient_entitlement, state_conflict, device_active, internal]
     Error:
       type: object
       required: [error]
@@ -2380,6 +2561,63 @@ components:
         data_region: { $ref: '#/components/schemas/Region' }
         items: { type: array, items: { $ref: '#/components/schemas/Project' } }
         next_cursor: { type: ['string', 'null'] }
+    LibraryResume:
+      type: object
+      required: [resume_id, resume_version, saved_at]
+      properties:
+        resume_id: { type: string, format: uuid }
+        resume_version: { type: integer, minimum: 1 }
+        company: { type: ['string', 'null'] }
+        job_title: { type: ['string', 'null'] }
+        saved_at: { type: string, format: date-time }
+    LibraryResumePage:
+      type: object
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        items: { type: array, items: { $ref: '#/components/schemas/LibraryResume' } }
+        next_cursor: { type: ['string', 'null'] }
+    LibraryJob:
+      type: object
+      required: [job_id, job_version, saved_at]
+      properties:
+        job_id: { type: string, format: uuid }
+        job_version: { type: integer, minimum: 1 }
+        company: { type: ['string', 'null'] }
+        job_title: { type: ['string', 'null'] }
+        saved_at: { type: string, format: date-time }
+    LibraryJobPage:
+      type: object
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        items: { type: array, items: { $ref: '#/components/schemas/LibraryJob' } }
+        next_cursor: { type: ['string', 'null'] }
+    Preferences:
+      type: object
+      required: [ui_language, interview_language]
+      properties:
+        ui_language: { $ref: '#/components/schemas/Language' }
+        interview_language: { $ref: '#/components/schemas/Language' }
+    DeviceClaimResult:
+      type: object
+      required: [project_id, active_device_id, claimed]
+      properties:
+        project_id: { type: string, format: uuid }
+        active_device_id: { type: ['string', 'null'] }
+        claimed: { type: boolean }
+    DeviceTransferResult:
+      type: object
+      required: [project_id, active_device_id, previous_device_invalidated]
+      properties:
+        project_id: { type: string, format: uuid }
+        active_device_id: { type: ['string', 'null'] }
+        previous_device_invalidated: { type: boolean }
+    DeviceReleaseResult:
+      type: object
+      required: [project_id, active_device_id, released]
+      properties:
+        project_id: { type: string, format: uuid }
+        active_device_id: { type: ['string', 'null'] }
+        released: { type: boolean }
     RoundConfigInput:
       type: object
       required: [sequence, round_type, duration_minutes, difficulty, critical_dimensions]
