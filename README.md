@@ -54,8 +54,9 @@
 - [x] PRD V1.0 需求基线确认（2026-08-01）
 - [x] 研发规范、契约与合成测试材料（v0.1.0）
 - [x] git 基线提交（2026-08-01，main 分支）
+- [x] 项目执行计划批准（2026-08-01，OD-06，按阶段退出条件推进、不设主观日期）
 - [ ] 各规范文档正式评审（工程、AI/评分、安全/隐私、法务、设计、无障碍）——使用 `docs/testing/SPEC-REVIEW-CHECKLIST.md`
-- [ ] 未决事项 OD-01 ~ OD-06 关闭（OD-07 ~ OD-10 已于 2026-08-01 确认，见 IMPLEMENTATION_PLAN.md 第 7 节）
+- [ ] 未决事项 OD-01 ~ OD-05 关闭（OD-06 ~ OD-10 已于 2026-08-01 确认/批准，见 IMPLEMENTATION_PLAN.md 第 7 节）
 - [ ] EPIC-01 基础设施与数据区落地（建议首个实施的 Epic，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
 - [ ] Phase 0 供应商评测（OD-01，方案见 `docs/testing/PHASE0-PROVIDER-EVALUATION.md`）
 
