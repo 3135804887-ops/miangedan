@@ -264,33 +264,33 @@ func cloneMemoryState(source memoryState) memoryState {
 }
 
 func cloneUser(source User) User {
-	copy := source
+	cloned := source
 	if source.DisplayName != nil {
 		value := *source.DisplayName
-		copy.DisplayName = &value
+		cloned.DisplayName = &value
 	}
-	return copy
+	return cloned
 }
 
 func cloneVerification(source Verification) Verification {
-	copy := source
-	copy.VerifiedAt = cloneTimePointer(source.VerifiedAt)
-	copy.ProofExpiresAt = cloneTimePointer(source.ProofExpiresAt)
-	copy.ConsumedAt = cloneTimePointer(source.ConsumedAt)
-	copy.NotificationSentAt = cloneTimePointer(source.NotificationSentAt)
-	return copy
+	cloned := source
+	cloned.VerifiedAt = cloneTimePointer(source.VerifiedAt)
+	cloned.ProofExpiresAt = cloneTimePointer(source.ProofExpiresAt)
+	cloned.ConsumedAt = cloneTimePointer(source.ConsumedAt)
+	cloned.NotificationSentAt = cloneTimePointer(source.NotificationSentAt)
+	return cloned
 }
 
 func cloneSessionRecord(source SessionRecord) SessionRecord {
-	copy := source
-	copy.RotatedAt = cloneTimePointer(source.RotatedAt)
-	return copy
+	cloned := source
+	cloned.RotatedAt = cloneTimePointer(source.RotatedAt)
+	return cloned
 }
 
 func cloneTimePointer(source *time.Time) *time.Time {
 	if source == nil {
 		return nil
 	}
-	copy := *source
-	return &copy
+	cloned := *source
+	return &cloned
 }

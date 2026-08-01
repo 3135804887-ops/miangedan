@@ -11,6 +11,7 @@ import (
 	"miangedan/services/secretref"
 )
 
+// Identity secret reference names are environment/KMS handles, never secret material.
 const (
 	OTPKeyRefName     = "EMAIL_OTP_PEPPER_REF"
 	SubjectKeyRefName = "IDENTITY_SUBJECT_KEY_REF"
@@ -40,6 +41,7 @@ func DefaultSecretReferences() SecretReferences {
 	}
 }
 
+// Validate rejects missing or non-*_REF secret handles.
 func (r SecretReferences) Validate() error {
 	for _, name := range []string{r.OTPKeyRef, r.SubjectKeyRef, r.ProofKeyRef, r.SigningKeyRef, r.RefreshKeyRef} {
 		if err := secretref.ValidateRefName(name); err != nil {

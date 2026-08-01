@@ -110,13 +110,13 @@ func TestBindingRequiresBearerAndDualProof(t *testing.T) {
 			}
 			return identity.Claims{UserID: "synthetic-user", SessionID: "session", DataRegion: "intl"}, nil
 		},
-		bindIdentity: func(_ context.Context, claims identity.Claims, input identity.BindIdentityInput, key string) (identity.IdentityBinding, error) {
+		bindIdentity: func(_ context.Context, claims identity.Claims, input identity.BindIdentityInput, key string) (identity.Binding, error) {
 			bindCalls++
 			if claims.UserID != "synthetic-user" || key != "idem-binding-0001" ||
 				input.SourceProofToken != "synthetic-source-proof" || input.TargetProofToken != "synthetic-target-proof" {
 				t.Fatalf("unexpected binding input: claims=%+v input=%+v key=%q", claims, input, key)
 			}
-			return identity.IdentityBinding{
+			return identity.Binding{
 				IdentityID: "00000000-0000-4000-8000-000000000020",
 				Provider:   identity.ProviderApple,
 				VerifiedAt: time.Date(2026, 8, 1, 4, 0, 0, 0, time.UTC),
@@ -191,7 +191,7 @@ type stubApplication struct {
 	authenticate          func(string) (identity.Claims, error)
 	getAccount            func(context.Context, identity.Claims) (identity.Account, error)
 	updateAccount         func(context.Context, identity.Claims, identity.UpdateAccountInput, string) (identity.Account, error)
-	bindIdentity          func(context.Context, identity.Claims, identity.BindIdentityInput, string) (identity.IdentityBinding, error)
+	bindIdentity          func(context.Context, identity.Claims, identity.BindIdentityInput, string) (identity.Binding, error)
 }
 
 func (s stubApplication) RequestEmailChallenge(ctx context.Context, input identity.RequestEmailChallengeInput, key string) (identity.VerificationChallenge, error) {
@@ -226,7 +226,7 @@ func (s stubApplication) UpdateAccount(ctx context.Context, claims identity.Clai
 	return s.updateAccount(ctx, claims, input, key)
 }
 
-func (s stubApplication) BindIdentity(ctx context.Context, claims identity.Claims, input identity.BindIdentityInput, key string) (identity.IdentityBinding, error) {
+func (s stubApplication) BindIdentity(ctx context.Context, claims identity.Claims, input identity.BindIdentityInput, key string) (identity.Binding, error) {
 	return s.bindIdentity(ctx, claims, input, key)
 }
 

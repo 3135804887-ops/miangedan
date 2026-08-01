@@ -22,6 +22,7 @@ func (a *syntheticAdapter) Verify(context.Context, VerifyRequest) (VerifiedSubje
 
 // TASK-010 / SEC-012: OAuth configuration uses region admission and *_REF only.
 func TestAdapterConfigValidation(t *testing.T) {
+	//nolint:gosec // Synthetic *_REF handles exercise reference validation; they are not credentials.
 	valid := AdapterConfig{
 		Provider: Google, DataRegion: "eu", ClientID: "synthetic-client-id",
 		ClientSecretRef: "OAUTH_GOOGLE_CLIENT_SECRET_REF",
@@ -30,7 +31,9 @@ func TestAdapterConfigValidation(t *testing.T) {
 		t.Fatalf("valid adapter config rejected: %v", err)
 	}
 	for name, config := range map[string]AdapterConfig{
-		"cross region":    {Provider: Google, DataRegion: "cn", ClientID: "synthetic", ClientSecretRef: "OAUTH_GOOGLE_CLIENT_SECRET_REF"},
+		//nolint:gosec // Synthetic *_REF handles exercise reference validation; they are not credentials.
+		"cross region": {Provider: Google, DataRegion: "cn", ClientID: "synthetic", ClientSecretRef: "OAUTH_GOOGLE_CLIENT_SECRET_REF"},
+		//nolint:gosec // This deliberately invalid synthetic name verifies raw-secret rejection.
 		"raw secret name": {Provider: Google, DataRegion: "eu", ClientID: "synthetic", ClientSecretRef: "OAUTH_GOOGLE_CLIENT_SECRET"},
 		"email adapter":   {Provider: Email, DataRegion: "eu", ClientID: "synthetic", ClientSecretRef: "EMAIL_SECRET_REF"},
 	} {

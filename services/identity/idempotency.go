@@ -40,6 +40,7 @@ func NewMemoryIdempotency() *MemoryIdempotency {
 	return &MemoryIdempotency{entries: make(map[string]*idempotencyEntry)}
 }
 
+// Execute serializes one operation, region and key and replays its completed result.
 func (m *MemoryIdempotency) Execute(
 	ctx context.Context,
 	operation, dataRegion, key, requestHash string,

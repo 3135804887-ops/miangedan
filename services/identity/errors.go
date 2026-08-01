@@ -5,6 +5,7 @@ import "errors"
 // ErrorCode is stable across the Go service and OpenAPI contract.
 type ErrorCode string
 
+// Stable identity error codes shared by the service and OpenAPI contract.
 const (
 	CodeUnauthorized             ErrorCode = "unauthorized"
 	CodeForbidden                ErrorCode = "forbidden"

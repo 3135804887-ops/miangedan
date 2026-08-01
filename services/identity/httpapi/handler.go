@@ -31,7 +31,7 @@ type Application interface {
 	Authenticate(string) (identity.Claims, error)
 	GetAccount(context.Context, identity.Claims) (identity.Account, error)
 	UpdateAccount(context.Context, identity.Claims, identity.UpdateAccountInput, string) (identity.Account, error)
-	BindIdentity(context.Context, identity.Claims, identity.BindIdentityInput, string) (identity.IdentityBinding, error)
+	BindIdentity(context.Context, identity.Claims, identity.BindIdentityInput, string) (identity.Binding, error)
 }
 
 // New builds a region-pinned handler. A request cannot select another region;

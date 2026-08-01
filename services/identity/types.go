@@ -9,6 +9,7 @@ import "time"
 // Provider is the stable domain identifier for a login identity.
 type Provider string
 
+// Supported login provider values.
 const (
 	ProviderEmailOTP Provider = "email_otp"
 	ProviderGoogle   Provider = "google"
@@ -30,6 +31,7 @@ func (p Provider) Valid() bool {
 // account and therefore are deliberately absent from these persisted values.
 type AgeStatus string
 
+// Persistable age and guardian states.
 const (
 	AgeAdult                 AgeStatus = "adult"
 	AgeMinorGuardianVerified AgeStatus = "minor_guardian_verified"
@@ -49,6 +51,7 @@ func (a AgeStatus) Valid() bool {
 // AccountStatus is the user account lifecycle state.
 type AccountStatus string
 
+// Account lifecycle values.
 const (
 	AccountActive            AccountStatus = "active"
 	AccountDeletionPending   AccountStatus = "deletion_pending"
@@ -58,6 +61,7 @@ const (
 // Language is an approved launch UI language.
 type Language string
 
+// Supported launch-language values.
 const (
 	LanguageZH Language = "zh-CN"
 	LanguageEN Language = "en-US"
@@ -116,8 +120,8 @@ type Identity struct {
 	CreatedAt           time.Time
 }
 
-// IdentityBinding is the public, non-sensitive view of a bound identity.
-type IdentityBinding struct {
+// Binding is the public, non-sensitive view of a bound identity.
+type Binding struct {
 	IdentityID string    `json:"identity_id"`
 	Provider   Provider  `json:"provider"`
 	VerifiedAt time.Time `json:"verified_at"`
@@ -127,18 +131,19 @@ type IdentityBinding struct {
 // Account is the public account representation. Provider subjects and contact
 // values are intentionally absent.
 type Account struct {
-	UserID      string            `json:"user_id"`
-	DataRegion  string            `json:"data_region"`
-	UILanguage  Language          `json:"ui_language"`
-	AgeStatus   AgeStatus         `json:"age_status"`
-	Status      AccountStatus     `json:"status"`
-	DisplayName *string           `json:"display_name"`
-	Identities  []IdentityBinding `json:"identities"`
+	UserID      string        `json:"user_id"`
+	DataRegion  string        `json:"data_region"`
+	UILanguage  Language      `json:"ui_language"`
+	AgeStatus   AgeStatus     `json:"age_status"`
+	Status      AccountStatus `json:"status"`
+	DisplayName *string       `json:"display_name"`
+	Identities  []Binding     `json:"identities"`
 }
 
 // VerificationStatus is the lifecycle of an email/OAuth verification.
 type VerificationStatus string
 
+// Verification lifecycle values.
 const (
 	VerificationPending  VerificationStatus = "pending"
 	VerificationVerified VerificationStatus = "verified"
@@ -201,6 +206,7 @@ type SessionRecord struct {
 	RotatedAt        *time.Time
 }
 
+// Session lifecycle values.
 const (
 	SessionActive  = "active"
 	SessionRotated = "rotated"

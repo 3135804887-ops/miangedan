@@ -21,6 +21,7 @@ type IDGenerator interface {
 // CryptoIDGenerator emits RFC 4122 version-4 UUIDs using crypto/rand.
 type CryptoIDGenerator struct{}
 
+// NewID returns a cryptographically random RFC 4122 version-4 UUID.
 func (CryptoIDGenerator) NewID() (string, error) {
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {

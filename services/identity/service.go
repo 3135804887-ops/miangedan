@@ -572,15 +572,15 @@ func (s *Service) BindIdentity(
 	claims Claims,
 	input BindIdentityInput,
 	idempotencyKey string,
-) (IdentityBinding, error) {
+) (Binding, error) {
 	if err := validateContextAndKey(ctx, idempotencyKey); err != nil || claims.UserID == "" || !region.Valid(claims.DataRegion) ||
 		strings.TrimSpace(input.SourceProofToken) == "" || strings.TrimSpace(input.TargetProofToken) == "" {
-		return IdentityBinding{}, validationError()
+		return Binding{}, validationError()
 	}
 	requestHash := secureDigest(secureDigest(input.SourceProofToken) + "\x00" + secureDigest(input.TargetProofToken))
-	return executeJSON(ctx, s.idempotency, "identity.binding.create", claims.DataRegion, idempotencyKey, requestHash, func() (IdentityBinding, error) {
+	return executeJSON(ctx, s.idempotency, "identity.binding.create", claims.DataRegion, idempotencyKey, requestHash, func() (Binding, error) {
 		now := s.clock.Now().UTC()
-		var binding IdentityBinding
+		var binding Binding
 		var outcomeErr error
 		if err := s.store.Transact(ctx, func(tx Tx) error {
 			source, sourceErr := s.usableProof(tx, input.SourceProofToken, claims.DataRegion, now)
@@ -678,10 +678,10 @@ func (s *Service) BindIdentity(
 			binding = publicBinding(targetIdentity)
 			return nil
 		}); err != nil {
-			return IdentityBinding{}, mapStoreError(err)
+			return Binding{}, mapStoreError(err)
 		}
 		if outcomeErr != nil {
-			return IdentityBinding{}, outcomeErr
+			return Binding{}, outcomeErr
 		}
 		return binding, nil
 	})
@@ -723,7 +723,7 @@ func accountFromTx(tx Tx, user User) (Account, error) {
 	if err != nil {
 		return Account{}, err
 	}
-	bindings := make([]IdentityBinding, 0, len(identities))
+	bindings := make([]Binding, 0, len(identities))
 	for _, identity := range identities {
 		bindings = append(bindings, publicBinding(identity))
 	}
@@ -738,8 +738,8 @@ func accountFromTx(tx Tx, user User) (Account, error) {
 	}, nil
 }
 
-func publicBinding(identity Identity) IdentityBinding {
-	return IdentityBinding{
+func publicBinding(identity Identity) Binding {
+	return Binding{
 		IdentityID: identity.IdentityID,
 		Provider:   identity.Provider,
 		VerifiedAt: identity.VerifiedAt,
