@@ -14,5 +14,6 @@ use (
 	./services/project
 	./services/region
 	./services/secretref
+	./services/source
 	./services/temporal
 )

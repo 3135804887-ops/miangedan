@@ -13,7 +13,7 @@
 
 ## 2. 范围
 
-- 30 张核心业务表、追加式账本约束、索引与分区策略。
+- 32 张核心业务表（含 TASK-012 的 `resume_uploads`、`upload_scan_attempts`）、追加式账本约束、索引与分区策略。
 - 对象存储桶划分、Redis 用途边界、区域事件流主题清单。
 
 ## 3. 非目标
@@ -47,11 +47,18 @@
 
 | 表 | 用途 | 关键字段 | 主要索引 |
 |---|---|---|---|
+| `resume_uploads` | 简历隔离上传与当前扫描状态 | upload_id PK、user_id、data_region、idempotency_key、content_fingerprint、filename、size_bytes、status、object_bucket/key、rejection_reason、sandbox_attestation、created_at/updated_at | resume_uploads(data_region,user_id,idempotency_key) UNIQUE；resume_uploads(user_id,created_at) |
+| `upload_scan_attempts` | 首次扫描与重试幂等执行记录 | attempt_id PK、upload_id FK、attempt_number、idempotency_key、status、failure_code、started_at/completed_at | upload_scan_attempts(upload_id,attempt_number) UNIQUE；upload_scan_attempts(upload_id,idempotency_key) UNIQUE |
 | `resumes` | 简历主记录 | resume_id PK、user_id FK、data_region、current_version、created_at、deleted_at | resumes(user_id, deleted_at) |
 | `resume_versions` | 简历版本（冻结） | (resume_id, resume_version) PK、original_file_ref（对象存储键）、profile_json（符合 resume-profile schema）、parse_meta_json、confirmed_by_user、created_at | resume_versions(user_id 经 resumes  join) |
 | `job_profiles` | 岗位主记录 | job_id PK、user_id FK、data_region、current_version、created_at、deleted_at | job_profiles(user_id, deleted_at) |
 | `job_versions` | JD 版本（冻结） | (job_id, job_version) PK、raw_text_ref、profile_json（符合 job-profile schema）、parse_meta_json、confirmed_by_user、created_at | — |
-| `process_sources` | 企业流程来源 | source_id PK、url、source_type、retrieved_at、credibility、expires_at、region、job_family、status | process_sources(region, job_family, status)；process_sources(expires_at)（失效任务） |
+| `process_sources` | 企业流程来源 | source_id PK、url（通用模板为空）、source_type（CHECK 白名单）、retrieved_at、credibility（CHECK）、expires_at、region（CHECK）、job_family、company/role/level（检索维度）、is_unofficial_experience、status（active/under_review/taken_down）、idempotency_key UNIQUE、data_region（CHECK 且与 region 相等） | process_sources(region, job_family, status)；process_sources(expires_at)（失效任务）；process_sources(data_region, url) UNIQUE WHERE url IS NOT NULL |
+
+> `process_sources` 约束与迁移对应 `services/migrate/migrations/0002_process_sources.sql`（TASK-015）：
+> 非追加式账本，允许状态流转（active → under_review → taken_down，版权投诉与下架）；
+> 仅存结构化元数据（不含网页正文），来源内容不得进入评分证据（FR-008）；
+> 同幂等键/同 (data_region, url) 唯一去重（NFR-006）。
 
 ### 5.3 项目与会话族
 
@@ -101,7 +108,7 @@
 
 | 桶 | 内容 | 分类 | 规则 |
 |---|---|---|---|
-| `{region}-uploads` | 原始简历/JD 文件 | restricted | 隔离桶；解析在沙箱完成；不直接对外暴露，仅签名 URL |
+| `{region}-uploads` | 原始简历/JD 文件 | restricted | `quarantine/` 隔离前缀只供无网络一次性沙箱扫描；通过后移入 `accepted/`，解析器只读 accepted；安全拒绝删除隔离副本，扫描超时/暂时不可用保留以供重试；不直接对外暴露，仅签名 URL |
 | `{region}-exports` | 用户导出物 | restricted | 短时效签名 URL；生成任务审计 |
 | `{region}-media` | 明确授权的原始音视频 | restricted | **默认为空**；仅在 ConsentGrant 有效时写入；30 天生命周期自动过期；未成年用户禁止写入 |
 
@@ -128,6 +135,7 @@
 2. `data_region` 全表强制；跨区外键与跨区复制通道不存在。
 3. 敏感字段（电话/邮箱/证件/地址/照片/保护属性）只存在于 `restricted` 隔离存储，不进入 `resume_versions.profile_json`、`evidence_items`、`handoff_packages`、`score_versions` 的内容字段。
 4. `payment_events`、`usage_ledger.idempotency_key`、`score_versions.idempotency_key` 唯一约束是幂等的最后防线（NFR-006）。
+5. `resume_uploads` 的 CHECK 强制对象桶等于 `{data_region}-uploads`；`upload_scan_attempts` 唯一键保证首次扫描与重试无重复副作用（TASK-012）。
 
 ## 10. 异常处理
 
@@ -141,6 +149,7 @@
 ## 11. 验证方式
 
 1. 迁移脚本通过 CI：约束存在性检查（REVOKE、UNIQUE、CHECK、分区）。基线迁移位于
-   `services/migrate/migrations/`（`schema_migrations` + SHA-256 校验和，TASK-003）。
+   `services/migrate/migrations/`（`schema_migrations` + SHA-256 校验和，TASK-003）；
+   `0012_resume_uploads.sql` 落地 TASK-012 上传与扫描幂等状态表。
 2. 服务层测试：尝试 UPDATE/DELETE 追加式表被拒；幂等键重复写入返回冲突或去重成功。
-3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（30 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。
+3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（32 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。

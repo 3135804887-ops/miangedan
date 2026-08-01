@@ -1,0 +1,18 @@
+synthetic: true
+task_id: TASK-012
+requirements: [FR-001, FR-006, TM-02, SEC-020]
+description: >-
+  测试代码按本清单在内存生成最小 PDF、OLE DOC 与 ZIP DOCX；全部内容为虚构字节，
+  不包含真实简历、联系方式、证件号或真实恶意软件。
+generated_cases:
+  - valid_pdf
+  - valid_doc
+  - valid_docx
+  - synthetic_malware_signature
+  - doc_macro_marker
+  - docx_vba_entry
+  - docx_abnormal_compression_ratio
+  - extension_magic_mismatch
+  - corrupted_pdf
+  - encrypted_pdf
+  - oversized_payload

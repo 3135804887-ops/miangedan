@@ -7,7 +7,8 @@
 
 ## 桶隔离
 
-- `uploads`：原始简历/JD，restricted，仅签名 URL。
+- `uploads`：原始简历/JD，restricted，仅签名 URL。`quarantine/` 仅供 TASK-012 无网络一次性沙箱扫描；
+  安全通过后移动到 `accepted/`，后续解析器只读 accepted；拒绝文件删除，扫描暂时失败原件保留以供幂等重试。
 - `exports`：用户导出物，restricted，短时效签名 URL。
 - `media`：明确授权的原始音视频，restricted，**默认为空**，30 天生命周期自动过期。
 
