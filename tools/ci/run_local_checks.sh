@@ -31,7 +31,14 @@ python tools/validate_docs.py --suites yaml,json,schema,openapi
 echo "== 阶段6 构建 =="
 # 产物写入临时目录，不在服务目录留下二进制（与 ci.yml 一致）
 tmpbin="$(mktemp -d)"
-for m in services/*/; do (cd "$m" && go build -o "$tmpbin/" ./...); done
+for m in services/*/; do
+  # 仅含库包（无 main）的模块（如 services/region）不能配合 -o 目录构建，做编译检查即可
+  if (cd "$m" && go list -f '{{.Name}}' ./... 2>/dev/null | grep -q '^main$'); then
+    (cd "$m" && go build -o "$tmpbin/" ./...)
+  else
+    (cd "$m" && go build ./...)
+  fi
+done
 rm -rf "$tmpbin"
 
 echo "== 阶段5 本地等价：仓内密钥模式扫描 =="

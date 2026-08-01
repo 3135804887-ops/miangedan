@@ -180,7 +180,11 @@ jobs:
         run: |
           tmpbin="$(mktemp -d)"
           for m in services/*/; do
-            (cd "$m" && go build -o "$tmpbin/" ./...) || exit 1
+            if (cd "$m" && go list -f '{{.Name}}' ./... 2>/dev/null | grep -q '^main$'); then
+              (cd "$m" && go build -o "$tmpbin/" ./...) || exit 1
+            else
+              (cd "$m" && go build ./...) || exit 1
+            fi
           done
           rm -rf "$tmpbin"
       - uses: actions/setup-python@v5

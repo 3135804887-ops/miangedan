@@ -26,6 +26,9 @@
     （`DATA_REGION == INFRA_REGION`、`SERVICE_ENV` 合法）与区域路由决策（跨区拒绝并返回
     `region_mismatch`）；七个 Go 控制面服务与四个 Python AI 服务接入，全部含正常/异常/幂等单测。
     （TASK-002、SEC-051、ADR-0005）
+  - CI 阶段 6 与本地脚本构建循环适配库模块：仅对含 main 包的模块写入临时产物，纯库模块
+    （如 `services/region`）执行 `go build` 编译检查，避免 `go: no main packages to build`。
+    （TASK-002）
   - `.env.example` 新增 `[REGION-SCOPED] INFRA_REGION`；README 与各服务 README 同步运行与自检说明。
     （TASK-002）
 - TASK-001 单仓工程骨架（`task/TASK-001-monorepo-skeleton-ci` 分支）：
