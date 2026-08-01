@@ -1,5 +1,7 @@
 # golangci-lint 配置（CI 阶段 2 使用；Go SAST 基线由 gosec 提供）
 # 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.3 节
+# 注：v1 的 issues.max-issues-per-linter / max-same-issues 在 v2 已移除（v2 默认不限制输出），
+# 且 config verify 严格校验不容许 linters.issues 元素。
 version: "2"
 linters:
   default: none
@@ -11,9 +13,6 @@ linters:
     - misspell
     - revive
     - staticcheck
-  issues:
-    max-issues-per-linter: 0
-    max-same-issues: 0
 formatters:
   enable:
     - gofmt
