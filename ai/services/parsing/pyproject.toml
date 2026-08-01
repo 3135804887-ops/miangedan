@@ -5,8 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mgd-parsing"
 version = "0.1.0"
-description = "面个蛋「简历/JD 解析」AI 服务骨架（TASK-001）"
+description = "面个蛋简历/JD 供应商中立解析与隐私硬门槛服务"
 requires-python = ">=3.11"
+dependencies = ["jsonschema>=4.21,<5"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
