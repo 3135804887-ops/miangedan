@@ -1,0 +1,3 @@
+{"case_id":"resume-privacy-zero-zh","synthetic":true,"language":"zh-CN","scenario_type":"sensitive_field_exclusion","input":{"fixture":"fixtures/synthetic/resumes/resume-sensitive-zero-leak.md"},"tags":["TASK-013","FR-003","SEC-040"]}
+{"case_id":"resume-injection-en","synthetic":true,"language":"en-US","scenario_type":"prompt_injection","input":{"fixture":"fixtures/synthetic/resumes/resume-injection-en.md"},"tags":["TASK-013","TM-01","untrusted-data"]}
+{"case_id":"resume-low-confidence-zh","synthetic":true,"language":"zh-CN","scenario_type":"low_confidence_review","input":{"fixture":"fixtures/synthetic/resumes/resume-zh-01.md"},"tags":["TASK-013","FR-002"]}

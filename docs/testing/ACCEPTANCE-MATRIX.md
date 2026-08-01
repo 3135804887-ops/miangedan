@@ -46,8 +46,8 @@
 | 需求 ID | 摘要 | 正常场景 | 异常场景 | 层级 | Epic/TASK |
 |---|---|---|---|---|---|
 | FR-001 | 简历上传格式与大小 | TC-FR-001-N01 .pdf/.doc/.docx ≤10MiB 先写所属区域 uploads/quarantine，经安全通过后移入 accepted 并进入解析队列；同一幂等键只写一次 | TC-FR-001-A01 实际内容 >10MiB、非法扩展名或扩展名/魔数不一致在解析前拒绝，不写 exports/media；相同幂等键不同内容返回冲突 | contract、integration | EPIC-02 / TASK-012 |
-| FR-002 | 简历解析与校对 | TC-FR-002-N01 逐字段编辑、低置信度高亮、确认后版本化 | TC-FR-002-A01 低置信度字段未确认时禁止生成计划 | e2e、unit | EPIC-02 / TASK-013 |
-| FR-003 | 敏感字段排除 | TC-FR-003-N01 面试上下文构建结果不含电话/邮箱/证件/地址/照片/保护属性 | TC-FR-003-A01 注入含敏感字段简历，上下文扫描命中率为 0（硬门槛） | security、contract | EPIC-02 / TASK-013 |
+| FR-002 | 简历解析与校对 | TC-FR-002-N01 accepted 原件经供应商中立适配层生成 Schema 合法结构；低于 0.75 的路径高亮；每次单字段 add/replace/remove/confirm 追加新版本，全部校对后最终确认冻结 | TC-FR-002-A01 仍有低置信度路径、过期 base_version、已确认版本再编辑均阻断；相同幂等键不重复调用模型或写版本 | e2e、unit、ai_eval | EPIC-02 / TASK-013 |
+| FR-003 | 敏感字段排除 | TC-FR-003-N01 含电话/邮箱/证件/地址/照片/保护属性的合成简历经四道门后，结构化版本、面试上下文、评分上游材料的敏感命中数均为 0；版本仅存排除类别 | TC-FR-003-A01 恶意供应商输出和人工字段编辑尝试夹带敏感键/值均 fail-closed 且不追加版本；跨用户/跨数据区 accepted 原件读取拒绝 | security、contract、ai_eval | EPIC-02 / TASK-013 |
 | FR-004 | JD 解析与标记 | TC-FR-004-N01 JD 结构化、AI 推理面试重点明确标记且可编辑 | TC-FR-004-A01 薪资福利/招聘联系人进入评分上下文的请求被排除 | e2e、contract | EPIC-02 / TASK-014 |
 | FR-005 | 缺失降级模式 | TC-FR-005-N01 仅 JD → 通用岗位面试，不做简历深挖与经历匹配评分 | TC-FR-005-A01 用户未明确同意降级时不得继续 | e2e | EPIC-02 / TASK-014 |
 | FR-006 | 恶意文件检测 | TC-FR-006-N01 病毒/宏（DOC、DOCX）/压缩炸弹/伪装/损坏/加密矩阵全部在无网络、一次性、只读根文件系统、无凭证沙箱内扫描并以稳定具体原因拒绝 | TC-FR-006-A01 沙箱证明不完整时 fail-closed；扫描超时/扫描器暂时不可用保留隔离原件并只重试扫描步骤，重复重试无副作用；安全拒绝不可重试并清除隔离对象 | security、manual_review | EPIC-02 / TASK-012 |
@@ -104,7 +104,7 @@
 | NFR-012 | 默认 ≥720p24fps | TC-NFR-012-N01 默认数字人视频 ≥720p、24fps | TC-NFR-012-A01 弱网降码率但音频连续不中断 | performance | EPIC-03 / TASK-021 |
 | NFR-013 | 评分 P95 ≤60s | TC-NFR-013-N01 单轮评分生成 P95 ≤60s | TC-NFR-013-A01 超时标记评估未完成而非失败，可重算 | performance、integration | EPIC-05 / TASK-040 |
 | NFR-014 | 报告 P95 ≤120s | TC-NFR-014-N01 完整报告生成 P95 ≤120s | TC-NFR-014-A01 单模块超时局部失败，其余正常 | performance、integration | EPIC-06 / TASK-050 |
-| NFR-015 | 解析 P95 ≤60s | TC-NFR-015-N01 10MB 内简历解析 P95 ≤60s | TC-NFR-015-A01 超时保留原始输入并可重试 | performance、integration | EPIC-02 / TASK-013 |
+| NFR-015 | 解析 P95 ≤60s | TC-NFR-015-N01 10MB 内简历解析 P95 ≤60s，Schema/暂时错误自动重试不超过 2 次 | TC-NFR-015-A01 连续超时后 uploads/accepted 原件保留，只重试失败解析步骤；重复重试无副作用、未计费且不影响评分 | performance、integration | EPIC-02 / TASK-013 |
 | NFR-016 | 计划 P95 ≤120s | TC-NFR-016-N01 面试计划生成 P95 ≤120s | TC-NFR-016-A01 单模块失败只重试该模块 | performance、integration | EPIC-04 / TASK-033 |
 
 ## 8. 评分边界案例映射（SCORING-SPEC 第 7 节）

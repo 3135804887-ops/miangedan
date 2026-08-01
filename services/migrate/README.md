@@ -15,6 +15,8 @@
   `REVOKE UPDATE, DELETE` 约束（ADR-0004）。
 - `0012_resume_uploads.sql` 落地 TASK-012 的 `resume_uploads` / `upload_scan_attempts`，
   强制 10 MiB 上限、所属区域 uploads 桶、上传与扫描重试两级幂等唯一键。
+- `0013_resume_parsing.sql` 落地 TASK-013 的 `resumes` / `resume_parse_attempts` /
+  `resume_versions`，强制追加式版本、操作幂等、敏感根键二次阻断与低置信度清零后确认。
 
 ## 用法
 

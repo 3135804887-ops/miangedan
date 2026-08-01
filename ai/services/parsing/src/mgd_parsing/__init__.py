@@ -1,10 +1,24 @@
-"""面个蛋「简历/JD 解析」AI 服务骨架（TASK-001；区域自检 TASK-002）。
+"""面个蛋简历/JD 解析服务（TASK-001、TASK-002、TASK-013、TASK-014）。
 
 追踪：IMPLEMENTATION_PLAN.md TASK-001、TASK-002；
 docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；TASK-013、TASK-014。
 """
 
-__all__ = ["SERVICE_NAME", "check_startup", "require_data_region"]
+__all__ = [
+    "SERVICE_NAME",
+    "AcceptedResumeText",
+    "FieldEditRequest",
+    "InMemoryAcceptedUploadReader",
+    "InMemoryParsingRepository",
+    "JsonSchemaProfileValidator",
+    "ResumeParsingService",
+    "RetryableProviderError",
+    "StartParseRequest",
+    "SyntheticResumeParsingProvider",
+    "check_startup",
+    "leakage_count",
+    "require_data_region",
+]
 
 SERVICE_NAME = "parsing"
 
@@ -37,3 +51,12 @@ def check_startup(
     if service_env is None or service_env not in _VALID_ENVIRONMENTS:
         msg = f"SERVICE_ENV {service_env!r} 非法：必须为 dev | staging | production"
         raise ValueError(msg)
+
+
+from .models import FieldEditRequest, StartParseRequest  # noqa: E402
+from .privacy import leakage_count  # noqa: E402
+from .provider import RetryableProviderError, SyntheticResumeParsingProvider  # noqa: E402
+from .repository import InMemoryParsingRepository  # noqa: E402
+from .service import ResumeParsingService  # noqa: E402
+from .uploads import AcceptedResumeText, InMemoryAcceptedUploadReader  # noqa: E402
+from .validation import JsonSchemaProfileValidator  # noqa: E402

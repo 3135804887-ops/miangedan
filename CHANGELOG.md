@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-013 简历结构化解析与敏感字段硬隔离（`task/TASK-013-resume-parsing` 分支）：
+  - 新增 `/v1/parsing/resumes*` OpenAPI 3.1 契约：accepted 原件解析/状态/步骤级重试、
+    追加式版本查询、逐字段 add/replace/remove/confirm 与低置信度清零后最终确认。
+  - `ai/services/parsing` 新增供应商中立 `ResumeParsingProvider`、L1/L2/L4 分层请求、确定性合成桩、
+    Schema/暂时错误自动重试 ≤2 次及 NFR-015 原件保留重试；不绑定厂商 SDK。（TASK-013、FR-002）
+  - 落实 SEC-040 四道门：解析前脱敏、模型输出后递归清洗、版本写入前 Schema/零命中断言、
+    面试上下文与评分上游材料组装前再次 fail-closed；新增全类别合成样例与
+    `resume-parsing-security` 评测集，敏感泄露命中为 0。（TASK-013、FR-003、SEC-040）
+  - 新增 `0013_resume_parsing.sql` 的解析尝试/主记录/追加式版本、幂等、敏感根键与低置信度
+    二次 CHECK；同步领域、数据、安全、隐私、验收、Provider/Prompt 契约与实施计划。
 - TASK-012 简历隔离上传与恶意文件检测（`task/TASK-012-upload-scanning` 分支）：
   - 新增 `/v1/uploads/resumes`、`/v1/uploads/{uploadId}`、`/v1/uploads/{uploadId}:retry`
     OpenAPI 3.1 契约：具体拒绝码、沙箱证明、原件保留/可重试/不计费/不影响评分语义。
