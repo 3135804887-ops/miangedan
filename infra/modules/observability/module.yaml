@@ -1,0 +1,22 @@
+# 观测模块契约（TASK-005）
+# 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 6 节；SEC-032、SEC-033；
+#       docs/observability/LOGGING-POLICY.md；docs/observability/STATUS-PAGE.md
+kind: observability
+otel:
+  collector_per_region: true
+  protocol: http/protobuf
+  endpoint_scheme: https
+  default_exporter: otlp
+redaction:
+  default: strict
+  sdk_level: true
+  production_strict: true
+metric_labels:
+  allowlist: [data_region, language, input_mode, provider, job_family, version, service_name, service_version, service_env, component, operation, status, error_code, queue, workflow_domain]
+  content_labels: false
+status_page:
+  per_region: true
+  bilingual: true
+  error_budget: true
+  incident_timeline: true
+  slo_monthly: true

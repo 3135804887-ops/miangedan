@@ -7,8 +7,9 @@
 
 ## 结构
 
-- `modules/`：可复用 IaC 模块（网络、数据库、对象存储、事件流、SFU、Temporal）；
-  TASK-003 已落地 `database/`、`object-storage/`、`event-stream/`，TASK-004 落地 `temporal/` 模块契约。
+- `modules/`：可复用 IaC 模块（网络、数据库、对象存储、事件流、SFU、Temporal、观测）；
+  TASK-003 已落地 `database/`、`object-storage/`、`event-stream/`，TASK-004 落地 `temporal/`，
+  TASK-005 落地 `observability/` 模块契约。
 - `regions/`：cn / eu / intl 三数据区实例化配置；每区 `envs/{dev,staging,production}.yaml`
   共 9 个环境拓扑实例（TASK-002）。
 - 区域拓扑由 `python tools/validate_docs.py --suites regions` 自动校验（区域/环境/3 AZ/

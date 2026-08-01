@@ -68,6 +68,17 @@
 - 零容忍：严重泄露、越权、重复扣费、评分证据丢失任一项出现即阻塞发布。
 - 供应链：SBOM、依赖与密钥扫描、SAST/DAST 纳入 CI。
 
+### 4.9 观测与日志扫描
+
+- 对象：结构化日志、追踪属性、指标标签与错误上报（OpenTelemetry 基线，TASK-005）。
+- 红线：日志与追踪禁止记录简历正文、完整回答、令牌、原始媒体；监控使用匿名技术标识，
+  禁止面试正文作为日志标签或追踪属性（SEC-032、PRD Observability and Operations）。
+- 测试方法：`services/observability` 单测覆盖敏感键整值替换、JWT/Bearer/`sk-`/超长令牌值模式替换、
+  生产强制 strict、属性白名单拒绝路径，并使用 `fixtures/synthetic/log-scan/sensitive-samples.json`
+  合成样本断言日志输出零泄露（发布门禁）。
+- 频率：发布时 CI 日志敏感数据扫描；月度运营对线上日志/追踪管道敏感数据扫描
+  （SEC-032、PRIVACY-DATA-MAP）；发现正文进入日志/追踪按隐私事故分级处置。
+
 ### 4.9 无障碍测试
 
 - WCAG 2.2 AA：自动化扫描 + 键盘走查 + 屏幕阅读器（中英文）+ 残障用户可用性测试。

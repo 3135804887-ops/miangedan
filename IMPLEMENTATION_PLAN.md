@@ -94,7 +94,9 @@
 > **任务状态（2026-08-01 更新）**：TASK-001（单仓骨架与 CI）与 TASK-002（三数据区环境拓扑与区域路由）
 > 已完成；TASK-003（数据平台基线部署与迁移工具）已实现（迁移工具 `services/migrate`、
 > `data-platform` 校验套件、数据平台模块契约）；TASK-004（Temporal 集群与每区命名空间、任务队列划分）
-> 已实现（`services/temporal` 契约包、`infra/modules/temporal`、`temporal` 校验套件）；
+> 已实现（`services/temporal` 契约包、`infra/modules/temporal`、`temporal` 校验套件）；TASK-005
+> （OpenTelemetry 观测与日志脱敏）已实现（`services/observability` 共享包、`infra/modules/observability`、
+> `observability` 校验套件、日志脱敏政策与中英双语状态页骨架）；
 > EPIC-01 其余任务按依赖继续推进
 > （实施细节见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）。
 

@@ -15,6 +15,22 @@
 
 ### Added
 
+- TASK-005 OpenTelemetry 观测与日志脱敏（`task/TASK-005-observability-otel` 分支）：
+  - 新增 `services/observability` 共享 Go 包（OTel v1.44.0）：结构化 JSON 日志默认 strict 脱敏
+    （敏感键整值替换 + JWT/Bearer/`sk-`/超长令牌值模式替换；生产强制 strict，SEC-032）、
+    OTLP HTTP 指标/追踪 Provider 装配（资源含 `data_region`，导出器 none 时业务链路不受影响）、
+    指标/追踪属性白名单校验（强制 `data_region`，白名单外/敏感键/疑似敏感值拒绝）；
+    含正常/异常/幂等单测与合成敏感样本零泄露回归。（TASK-005、SEC-032）
+  - 新增 `infra/modules/observability/` 模块契约与 README（每区 OTLP 采集端点、strict 脱敏、
+    状态页骨架）；三区×三环境拓扑实例补充 `otel_collector`、`otlp_endpoint`、`redaction`、
+    `status_page`，纳入 `regions` 套件校验。（TASK-005）
+  - `tools/validate_docs.py` 新增 `observability` 套件（第 15 套件：模块契约、SDK 符号与测试、
+    合成敏感样本、日志政策与状态页文档）并接入 CI 阶段 1、golangci 矩阵与本地检查。
+    （TASK-005、SEC-032、SEC-033）
+  - 新增 `docs/observability/LOGGING-POLICY.md`（日志与观测脱敏政策）与
+    `docs/observability/STATUS-PAGE.md`（中英双语公开状态页骨架）；`.env.example` 增加
+    SERVICE_NAME/SERVICE_VERSION/OTEL_* /REDACTION_MODE/STATUS_PAGE_BASE_URL；README、
+    IMPLEMENTATION_PLAN、EPIC-01 设计、TEST-STRATEGY 同步。（TASK-005）
 - TASK-004 Temporal 集群与每区命名空间、任务队列划分（`task/TASK-004-temporal-cluster-namespaces` 分支）：
   - 新增 `services/temporal` 共享 Go 包：`mgd-{region}-{env}-temporal` 命名空间生成与校验、
     七域任务队列（ingestion/plan/interview/scoring/report/billing/deletion）集合校验、

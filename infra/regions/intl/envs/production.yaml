@@ -34,6 +34,11 @@ topology:
     task_queues: [ingestion, plan, interview, scoring, report, billing, deletion]
     cross_az: true
     history_retention_days: 30
+  observability:
+    otel_collector: mgd-intl-prod-otel
+    otlp_endpoint: https://mgd-intl-prod-otel.example.com:4318
+    redaction: strict
+    status_page: mgd-intl-prod-status
   secrets:
     refs:
       identity_signing_key: IDENTITY_SIGNING_KEY_REF

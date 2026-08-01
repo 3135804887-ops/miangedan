@@ -1,0 +1,54 @@
+{
+  "synthetic": true,
+  "notice": "合成日志脱敏回归样本（TASK-005 / SEC-032），全部为虚构内容，不含真实个人信息；用于验证 SDK 级日志脱敏零泄露。",
+  "schema_note": "每项样本含 name（用例名）、key（日志属性键名）、value（虚构敏感内容）；Go 测试 services/observability 逐项断言日志输出零泄露。",
+  "samples": [
+    {
+      "name": "resume_text",
+      "key": "resume_text",
+      "value": "虚构简历：李明 2012-2020 就职于合成科技公司，负责分布式系统架构设计与性能优化。"
+    },
+    {
+      "name": "full_answer",
+      "key": "full_answer",
+      "value": "虚构完整回答：我把串行任务拆成四个并行分片，整体吞吐提升百分之十三，延迟从四十分钟降到八分钟。"
+    },
+    {
+      "name": "access_token",
+      "key": "access_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzeW50aGV0aWMifQ.signature"
+    },
+    {
+      "name": "api_key",
+      "key": "api_key",
+      "value": "mgd-synthetic-api-key-abcdef0123456789abcdef0123456789"
+    },
+    {
+      "name": "raw_media_uri",
+      "key": "raw_media_uri",
+      "value": "s3://mgd-cn-dev-media/synthetic/00000000-0000-4000-8000-00000000d003.webm"
+    }
+  ],
+  "value_patterns": [
+    {
+      "name": "jwt",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
+    },
+    {
+      "name": "bearer",
+      "value": "Bearer mgd-synthetic-bearer-token-abcdef0123456789"
+    },
+    {
+      "name": "sk",
+      "value": "sk-mgd-synthetic-key-abcdef0123456789"
+    },
+    {
+      "name": "opaque",
+      "value": "abcdef0123456789abcdef0123456789abcdef0123456789"
+    },
+    {
+      "name": "embedded",
+      "value": "header eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.sig tail"
+    }
+  ]
+}

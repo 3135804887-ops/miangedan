@@ -29,7 +29,7 @@ jobs:
       - name: 安装校验依赖
         run: pip install -r tools/requirements-dev.txt
       - name: 文档治理与需求追踪校验（0 失败门槛）
-        run: python tools/validate_docs.py --suites required,fences,placeholders,coverage,consistency,semantics,regions,data-platform,temporal
+        run: python tools/validate_docs.py --suites required,fences,placeholders,coverage,consistency,semantics,regions,data-platform,temporal,observability
 
   stage2-lint:
     name: "阶段2 静态检查"
@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [adminapi, billing, consent, identity, ingestion, migrate, org, project, region, temporal]
+        module: [adminapi, billing, consent, identity, ingestion, migrate, observability, org, project, region, temporal]
     steps:
       - uses: actions/checkout@v4
       - name: golangci-lint（逐模块；根配置经 --config 显式指定）
