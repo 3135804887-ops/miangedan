@@ -51,6 +51,8 @@ tags:
     description: 简历上传、解析、校对与版本（US-01、FR-001 ~ FR-003、FR-006）
   - name: jobs
     description: 岗位 JD 解析与版本（US-01、FR-004、FR-005）
+  - name: sources
+    description: 企业公开流程来源：检索、来源元数据与通用模板回退（US-02、FR-007、FR-008）
   - name: projects
     description: 面试项目生命周期（US-05、FR-029、FR-030）
   - name: plans
@@ -557,6 +559,68 @@ paths:
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '200': { description: 已确认, content: { application/json: { schema: { $ref: '#/components/schemas/JobVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== sources ==============================
+  # 企业公开流程来源（TASK-015、FR-007/FR-008）。
+  # 安全边界：外部网页内容仅作为不可信数据进入结构化提取，不得作为系统指令（SEC-024/SEC-025）；
+  # 禁止绕过网站协议/登录/验证码/反爬；来源内容不得进入评分证据。
+  /v1/sources/search:
+    post:
+      tags: [sources]
+      operationId: searchProcessSources
+      summary: 按公司/岗位/级别/地区检索公开面试流程来源；无可靠来源自动回退通用模板并标记 AI 推导
+      description: |
+        检索链路经供应商中立适配层（PROVIDER-ADAPTERS §4.5）；返回来源元数据
+        （链接/日期/类型/可信度/失效状态）。无公司信息、检索故障或无可靠来源时
+        自动回退通用岗位/级别模板，`flow_uses_generic_template=true` 且 `ai_derived=true`，
+        不伪装企业流程（US-02 场景 2）。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SourceSearchQuery' }
+      responses:
+        '200':
+          description: 检索结果（来源元数据 + 回退标记）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourceSearchResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sources:
+    get:
+      tags: [sources]
+      operationId: listProcessSources
+      summary: 来源库分页列表（按区域/岗位族/状态/失效筛选）
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - { name: job_family, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/SourceStatus' } }
+        - { name: include_expired, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: 分页列表
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourcePage' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sources/{sourceId}:
+    get:
+      tags: [sources]
+      operationId: getProcessSource
+      summary: 来源详情（链接/日期/类型/可信度/失效状态）
+      parameters:
+        - $ref: '#/components/parameters/SourceId'
+      responses:
+        '200':
+          description: 来源详情
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProcessSource' }
+        '404': { $ref: '#/components/responses/Error' }
         default: { $ref: '#/components/responses/Error' }
 
   # ============================== projects ==============================
@@ -1443,6 +1507,7 @@ components:
     OrgId: { name: orgId, in: path, required: true, schema: { type: string, format: uuid } }
     AssignmentId: { name: assignmentId, in: path, required: true, schema: { type: string, format: uuid } }
     RoundSequence: { name: sequence, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 5 } }
+    SourceId: { name: sourceId, in: path, required: true, schema: { type: string, format: uuid } }
 
   responses:
     Error:
@@ -1626,6 +1691,59 @@ components:
         job_version: { type: integer, minimum: 1 }
         confirmed_by_user: { type: boolean }
         profile: { type: ['object', 'null'], description: 结构对齐 ai/schemas/job-profile.schema.json, additionalProperties: true }
+    SourceType:
+      enum: [official_careers_page, official_recruiting_content, credible_public_material, candidate_experience, generic_template]
+      description: 来源类型；generic_template 为无可靠来源时的通用模板回退（FR-008）
+    SourceCredibility:
+      enum: [high, medium, low]
+      description: 来源可信度
+    SourceStatus:
+      enum: [active, under_review, taken_down]
+      description: 来源状态（active → under_review → taken_down；支持版权投诉与下架）
+    ProcessSource:
+      type: object
+      required: [source_id, source_type, retrieved_at, credibility, region, job_family, is_unofficial_experience, status, data_region]
+      properties:
+        source_id: { type: string, format: uuid }
+        url: { type: ['string', 'null'], format: uri, description: 来源链接；通用模板为 null（不伪装企业流程） }
+        source_type: { $ref: '#/components/schemas/SourceType' }
+        retrieved_at: { type: string, format: date-time }
+        credibility: { $ref: '#/components/schemas/SourceCredibility' }
+        expires_at: { type: ['string', 'null'], format: date-time, description: 失效时间；过期来源自动回退通用模板 }
+        region: { $ref: '#/components/schemas/Region' }
+        job_family: { type: string }
+        company: { type: ['string', 'null'] }
+        role: { type: ['string', 'null'] }
+        level: { type: ['string', 'null'] }
+        is_unofficial_experience: { type: boolean, description: 候选人经验必须标记非官方（FR-008） }
+        summary: { type: ['string', 'null'], description: 结构化提取摘要；网页内容仅作不可信数据（SEC-024/SEC-025） }
+        status: { $ref: '#/components/schemas/SourceStatus' }
+        data_region: { $ref: '#/components/schemas/Region' }
+        created_at: { type: string, format: date-time }
+    SourceSearchQuery:
+      type: object
+      required: [region]
+      properties:
+        company: { type: ['string', 'null'], description: 公司名；为空时直接回退通用模板并标记 AI 推导 }
+        role: { type: ['string', 'null'], description: 岗位 }
+        level: { type: ['string', 'null'], description: 级别 }
+        region: { $ref: '#/components/schemas/Region' }
+    SourceSearchResult:
+      type: object
+      required: [sources, flow_uses_generic_template, ai_derived, data_region]
+      properties:
+        sources: { type: array, items: { $ref: '#/components/schemas/ProcessSource' } }
+        flow_uses_generic_template: { type: boolean, description: 无公司/检索故障/无可信来源时为 true（US-02 场景 2） }
+        ai_derived: { type: boolean, description: 推导内容必须标记 AI 推导并可人工校对（FR-007/FR-008） }
+        fallback_reason: { type: ['string', 'null'], enum: [missing_company, search_failed, no_reliable_source] }
+        data_region: { $ref: '#/components/schemas/Region' }
+    SourcePage:
+      type: object
+      required: [data_region, items, next_cursor]
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        items: { type: array, items: { $ref: '#/components/schemas/ProcessSource' } }
+        next_cursor: { type: ['string', 'null'] }
     Project:
       type: object
       required: [project_id, data_region, interview_language, degraded_mode, status, current_round_sequence]

@@ -24,6 +24,20 @@
   - 新增 `0012_resume_uploads.sql`：上传/扫描尝试状态表、10 MiB 与区域 uploads 桶 CHECK、
     上传及扫描重试两级幂等唯一键；同步领域、数据、安全、威胁、验收与对象存储契约。
     （TASK-012、TM-02、SEC-020、NFR-006）
+- TASK-015 企业公开流程来源服务（`task/TASK-015-enterprise-process-sources` 分支）：
+  - 新增 `services/source` Go 控制面服务（单模块，登记 `go.work` 与 CI golangci 矩阵）：来源领域模型
+    （链接/日期/类型/可信度/失效状态，候选人经验强制标记非官方）、官方优先排序与可靠性判定、
+    供应商中立检索适配层契约 + 合成桩（TASK-030 未开工前不绑定厂商 SDK，PROVIDER-ADAPTERS §4.5）、
+    可重试错误退避重试 ≤2 次、幂等键去重（NFR-006）；无公司/断网/无可信来源自动回退通用模板并
+    标记 AI 推导（`flow_uses_generic_template`/`ai_derived`，可人工校对，不伪装企业流程）；
+    内存幂等存储抽象；外部网页内容仅作为不可信数据进入结构化提取（SEC-024/SEC-025）。
+    含正常/异常/幂等/并发/重试/注入按数据处理单测。（TASK-015、FR-007、FR-008、NFR-006）
+  - 新增追加式迁移 `services/migrate/migrations/0002_process_sources.sql`（幂等键/URL 唯一、
+    data_region 强制且与 region 一致、source_type/credibility/status CHECK；TASK-003 迁移工具）。
+  - API 契约新增 `/v1/sources/*`（search/list/get）与 ProcessSource/SourceSearchResult 等 Schema，
+    同步 DOMAIN-MODEL §6.6、DATA-MODEL §5.2、ACCEPTANCE-MATRIX FR-007/FR-008、
+    IMPLEMENTATION_PLAN（TASK-015 状态）；`fixtures/synthetic/process-sources/` 扩展合成样例。
+    （TASK-015、FR-007、FR-008、SEC-024、SEC-025）
 - TASK-008 备份与恢复（`task/TASK-008-backup-recovery` 分支）：
   - 新增 `services/backup` 共享包与 CLI（yaml.v3）：备份契约 fail-closed（每日完整+WAL+PITR、
     证据 RPO=0、其他 RPO ≤5s、RTO ≤30 分钟、区域内备份桶、恢复前强制 tombstone 过滤）、

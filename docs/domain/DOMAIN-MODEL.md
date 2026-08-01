@@ -124,8 +124,13 @@ erDiagram
 | 要点 | 内容 |
 |---|---|
 | 职责 | 公开面试流程参考的来源元数据 |
-| 关键字段 | `source_id`、`url`、`source_type`（官方招聘页/官方招聘内容/可信公开材料/候选人经验/通用模板）、`retrieved_at`、`credibility`、`expires_at`、`region`、`job_family`、`status`（`active`/`under_review`/`taken_down`） |
-| 规则 | 经验内容标记非官方；无可靠来源回退通用模板并标记 AI 推导；支持冲突、复核、下架与版权投诉；禁止绕过网站协议/登录/验证码/反爬 |
+| 关键字段 | `source_id`、`url`（通用模板为空）、`source_type`（官方招聘页/官方招聘内容/可信公开材料/候选人经验/通用模板）、`retrieved_at`、`credibility`（high/medium/low）、`expires_at`、`region`、`job_family`、`company`/`role`/`level`（检索维度）、`is_unofficial_experience`、`status`（`active`/`under_review`/`taken_down`）、`idempotency_key`（唯一）、`data_region`（物理归属，与 `region` 一致） |
+| 检索链路 | 按公司/岗位/级别/地区经供应商中立搜索适配层（PROVIDER-ADAPTERS §4.5）查找公开流程（FR-007）；TASK-030 未开工前以契约接口 + 合成桩落地，禁止业务代码直连厂商 SDK（ADR-0003） |
+| 优先级 | 官方招聘页 > 官方招聘内容 > 可信公开材料 > 候选人经验（FR-008）；候选人经验必须标记非官方且不作为"可靠来源" |
+| 回退规则 | 无公司信息、检索故障（断网/不可达）或无可信来源时，自动回退通用岗位/级别模板（`source_type=generic_template`），并标记 AI 推导（`flow_uses_generic_template=true`、`ai_derived=true`），可人工校对，不伪装企业流程（US-02 规则 3、FR-008） |
+| 幂等 | 检索与落库按 `idempotency_key` 去重；同 `(data_region, url)` 唯一（NFR-006） |
+| 安全边界 | 外部网页内容仅作为不可信数据进入结构化提取，绝不作为系统指令（SEC-024/SEC-025）；来源内容不得进入评分证据（EvidenceItem/ScoreVersion 无来源正文引用） |
+| 治理 | 支持冲突、复核、下架与版权投诉（`active` → `under_review` → `taken_down`）；禁止绕过网站协议/登录/验证码/反爬（US-08 规则 8） |
 
 ### 6.8 InterviewProject（面试项目）
 

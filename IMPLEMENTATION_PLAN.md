@@ -127,6 +127,17 @@
 > 逐项扫描、具体拒绝原因与上传/重试两级幂等；扫描超时或扫描器暂时不可用时保留隔离原件并可只重试
 > 失败步骤。数据库迁移为 `0012_resume_uploads.sql`，API 使用 `/v1/uploads/*` 前缀。
 
+> **任务状态（2026-08-01 更新）**：TASK-015（企业公开流程来源服务）已实现：
+> `services/source`（Go 控制面单模块，登记 go.work 与 CI golangci 矩阵）——来源领域模型与
+> 可信度/优先级规则（官方 > 官方内容 > 可信公开 > 经验；候选人经验强制标记非官方）、
+> `search` 供应商中立适配层契约 + 合成桩（TASK-030 未开工前不绑定厂商 SDK，PROVIDER-ADAPTERS §4.5）、
+> 检索编排（可重试错误退避重试 ≤2 次、幂等键去重）、无公司/断网/无可信来源自动回退通用模板并标记
+> AI 推导（`flow_uses_generic_template`/`ai_derived`）、`store` 幂等存储抽象；
+> 新增追加式迁移 `services/migrate/migrations/0002_process_sources.sql`（幂等键/URL 唯一、data_region 强制）；
+> 契约同步：openapi.yaml 新增 `/v1/sources/*`（search/list/get）、DOMAIN-MODEL §6.6、DATA-MODEL §5.2、
+> ACCEPTANCE-MATRIX FR-007/FR-008、CHANGELOG；合成来源样例扩展
+> （`fixtures/synthetic/process-sources/`，synthetic: true）；含正常/异常/幂等/重试/注入按数据处理的单测。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。
