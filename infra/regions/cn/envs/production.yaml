@@ -29,8 +29,11 @@ topology:
   sfu:
     node_group: mgd-cn-prod-sfu
   temporal:
+    cluster_name: mgd-cn-prod-temporal-cluster
     namespace: mgd-cn-prod-temporal
     task_queues: [ingestion, plan, interview, scoring, report, billing, deletion]
+    cross_az: true
+    history_retention_days: 30
   secrets:
     refs:
       identity_signing_key: IDENTITY_SIGNING_KEY_REF

@@ -108,6 +108,11 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 > `infra/modules/{database,object-storage,event-stream}` 模块契约；区域拓扑补充事件流六主题
 > 与媒体桶 30 天生命周期，纳入 `regions` 套件校验。
 | TASK-004 Temporal | 每区独立集群/命名空间；任务队列按域划分（ingestion/plan/interview/scoring/report/billing/deletion）；工作流跨 AZ 故障恢复演练 | 故障注入测试通过 |
+
+> TASK-004 实施（2026-08-01）：`services/temporal` 提供 `mgd-{region}-{env}-temporal` 命名空间与七域
+> 任务队列契约校验（`ValidateConfig` fail-closed）；`infra/modules/temporal` 定义每区独立集群、
+> 跨 3 AZ、30 天历史保留与队列所有权；区域拓扑补充 `cluster_name`/`cross_az`/`history_retention_days`
+> 并纳入 `regions` 与新增 `temporal` 套件校验；workflows README 登记队列所有权表。
 | TASK-005 观测 | OpenTelemetry 采集；日志管道内置正文/令牌过滤规则（SDK 级）；指标按数据区/语言/输入模式/供应商/岗位族/版本标签化；状态页骨架（中英双语） | 日志扫描用例（含合成敏感样本）通过 |
 | TASK-006 密钥 | 密钥管理系统接入；`*.example` 中 `*_REF` 变量模式落地；轮换流程与责任人按 SECURITY-REQUIREMENTS 4.7 | 轮换演练不中断服务 |
 | TASK-007 通知与身份通道 | 区域化邮件服务接入；身份提供商（邮箱验证码先行，Google/Apple/微信随区域开放） | 单区通道故障不影响他区 |

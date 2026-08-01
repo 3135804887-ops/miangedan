@@ -322,6 +322,7 @@ RESOURCE_NAME_PATHS = [
     ("object_storage", "buckets", "media"),
     ("event_stream", "name"),
     ("sfu", "node_group"),
+    ("temporal", "cluster_name"),
     ("temporal", "namespace"),
 ]
 
@@ -375,6 +376,12 @@ def _validate_region_topology(data, region: str, env: str, p: Path) -> None:
     for q in TASK_QUEUES:
         if q not in queues:
             fail(f"[区域拓扑] {rel} temporal.task_queues 缺少 {q}")
+    temporal_cfg = topo.get("temporal", {})
+    if temporal_cfg.get("cross_az") is not True:
+        fail(f"[区域拓扑] {rel} temporal.cross_az 必须为 true（跨 AZ 故障可恢复）")
+    retention = temporal_cfg.get("history_retention_days")
+    if not isinstance(retention, int) or retention < 30:
+        fail(f"[区域拓扑] {rel} temporal.history_retention_days 应 ≥ 30")
     event_stream = topo.get("event_stream", {})
     topics = event_stream.get("topics", [])
     for topic in EVENT_TOPICS:
@@ -505,6 +512,45 @@ def check_data_platform() -> None:
         fail("[数据平台] 迁移测试缺少幂等用例 TestApplyIdempotent")
 
 
+# ---------- 9f. Temporal 契约校验（TASK-004） ----------
+TEMPORAL_TASK_QUEUES = ["ingestion", "plan", "interview", "scoring", "report", "billing", "deletion"]
+
+
+def check_temporal() -> None:
+    import yaml
+    module_rel = "infra/modules/temporal/module.yaml"
+    p = ROOT / module_rel
+    if not p.exists():
+        fail(f"[Temporal] 缺少模块清单 {module_rel}")
+        return
+    try:
+        data = yaml.safe_load(read(p))
+    except Exception as e:  # noqa: BLE001
+        fail(f"[Temporal] 模块清单解析失败: {e}")
+        return
+    if data.get("kind") != "temporal":
+        fail("[Temporal] 模块清单 kind 应为 temporal")
+    queues = data.get("task_queues", {})
+    for q in TEMPORAL_TASK_QUEUES:
+        if q not in queues:
+            fail(f"[Temporal] 模块清单 task_queues 缺少 {q}")
+    pattern = data.get("namespace", {}).get("pattern")
+    if pattern != "mgd-{region}-{env}-temporal":
+        fail(f"[Temporal] namespace.pattern 应为 mgd-{{region}}-{{env}}-temporal，实际 {pattern!r}")
+    cluster = data.get("cluster", {})
+    if cluster.get("cross_az") is not True or cluster.get("min_az", 0) < 3:
+        fail("[Temporal] 模块清单 cluster 必须 cross_az=true 且 min_az ≥ 3")
+    pkg = ROOT / "services/temporal/temporal.go"
+    if pkg.exists():
+        pkg_text = read(pkg)
+        for symbol in ["Namespace", "ValidateConfig", "AllTaskQueues"]:
+            if symbol not in pkg_text:
+                fail(f"[Temporal] services/temporal 缺少 {symbol}")
+    test_file = ROOT / "services/temporal/temporal_test.go"
+    if test_file.exists() and "TestValidateConfig" not in read(test_file):
+        fail("[Temporal] 缺少配置校验测试 TestValidateConfig")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -539,6 +585,7 @@ SUITES = [
     ("semantics", "配置语义", check_semantics),
     ("regions", "区域拓扑", check_regions),
     ("data-platform", "数据平台", check_data_platform),
+    ("temporal", "Temporal 契约", check_temporal),
     ("secrets", "密钥扫描", check_secrets),
 ]
 

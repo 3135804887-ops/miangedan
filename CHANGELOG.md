@@ -15,6 +15,18 @@
 
 ### Added
 
+- TASK-004 Temporal 集群与每区命名空间、任务队列划分（`task/TASK-004-temporal-cluster-namespaces` 分支）：
+  - 新增 `services/temporal` 共享 Go 包：`mgd-{region}-{env}-temporal` 命名空间生成与校验、
+    七域任务队列（ingestion/plan/interview/scoring/report/billing/deletion）集合校验、
+    `ValidateConfig` fail-closed；含正常/异常/幂等单测。（TASK-004、ADR-0001、ADR-0005）
+  - 新增 `infra/modules/temporal/` 模块契约与 README：每区独立集群、跨 3 AZ、
+    `history_retention_days=30`、命名空间模式与队列所有权；三区×三环境拓扑实例补充
+    `cluster_name`、`cross_az: true`、`history_retention_days: 30`。（TASK-004）
+  - `tools/validate_docs.py` 新增 `temporal` 套件（第 14 套件）并接入 CI 阶段 1 与本地检查；
+    `regions` 套件扩展 Temporal 跨 AZ 与保留期校验；golangci 矩阵新增 `temporal`。
+    （TASK-004）
+  - `workflows/README.md` 登记命名空间模式与七域队列所有权表；README、
+    IMPLEMENTATION_PLAN、EPIC-01 设计同步。（TASK-004）
 - TASK-003 数据平台基线部署与迁移工具（`task/TASK-003-data-platform-migrations` 分支）：
   - 新增 `services/migrate` 迁移工具：`schema_migrations` + SHA-256 校验和，重复执行幂等；
     已应用迁移校验和变化即失败（fail-closed）；CLI 支持 `up` / `status`，并复用

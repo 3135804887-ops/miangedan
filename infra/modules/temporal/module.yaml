@@ -1,0 +1,19 @@
+# Temporal 模块契约（TASK-004）
+# 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 6 节；ADR-0001、ADR-0005
+kind: temporal
+cluster:
+  per_region: true
+  cross_az: true
+  min_az: 3
+  history_retention_days: 30
+namespace:
+  pattern: mgd-{region}-{env}-temporal
+  search_attributes: [project_id, session_id, data_region, workflow_domain]
+task_queues:
+  ingestion: { owner: ingestion }
+  plan: { owner: project }
+  interview: { owner: project }
+  scoring: { owner: scoring }
+  report: { owner: report }
+  billing: { owner: billing }
+  deletion: { owner: deletion }
