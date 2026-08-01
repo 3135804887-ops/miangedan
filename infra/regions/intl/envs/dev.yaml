@@ -59,6 +59,8 @@ topology:
     payment: [psp_intl_primary]
   notification:
     email_from: mgd-intl-dev@miangedan.example
+    channels: [email]
+  identity_providers: [email, google, apple]
   routing:
     gateway_region: intl
     reject_mismatch: true

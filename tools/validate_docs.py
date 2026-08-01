@@ -312,12 +312,17 @@ EVENT_TOPICS = [
 ]
 TOPOLOGY_REQUIRED_KEYS = [
     "network", "database", "object_storage", "event_stream", "sfu", "temporal", "observability",
-    "secrets", "provider_allowlist", "notification", "routing",
+    "secrets", "provider_allowlist", "notification", "identity_providers", "routing",
 ]
 TASK_QUEUES = ["ingestion", "plan", "interview", "scoring", "report", "billing", "deletion"]
 OBSERVABILITY_LABELS = [
     "data_region", "language", "input_mode", "provider", "job_family", "version",
 ]
+IDENTITY_PROVIDER_REGIONS = {
+    "cn": ["email", "wechat"],
+    "eu": ["email", "google", "apple"],
+    "intl": ["email", "google", "apple"],
+}
 PROVIDER_CATEGORIES = ["llm", "asr", "tts", "avatar", "email", "payment"]
 RESOURCE_NAME_PATHS = [
     ("network", "vpc_name"),
@@ -413,6 +418,21 @@ def _validate_region_topology(data, region: str, env: str, p: Path) -> None:
         for pid in ids:
             if not isinstance(pid, str) or f"_{region}_" not in pid:
                 fail(f"[区域拓扑] {rel} 供应商 {pid!r} 未含区域 {region} 标识")
+    channels = topo.get("notification", {}).get("channels") or []
+    if "email" not in channels:
+        fail(f"[区域拓扑] {rel} notification.channels 必须含 email（FR-027）")
+    providers = topo.get("identity_providers")
+    allowed_providers = IDENTITY_PROVIDER_REGIONS.get(region, [])
+    if not isinstance(providers, list) or not providers:
+        fail(f"[区域拓扑] {rel} identity_providers 必须为非空列表")
+    elif "email" not in providers:
+        fail(f"[区域拓扑] {rel} identity_providers 必须含 email（FR-027）")
+    elif len(set(providers)) != len(providers):
+        fail(f"[区域拓扑] {rel} identity_providers 不得重复")
+    else:
+        for pid in providers:
+            if pid not in allowed_providers:
+                fail(f"[区域拓扑] {rel} 身份提供商 {pid} 不在区域 {region} 开放范围（允许：{','.join(allowed_providers)}）")
     routing = topo.get("routing", {})
     if routing.get("gateway_region") != region:
         fail(f"[区域拓扑] {rel} routing.gateway_region 应为 {region}")
@@ -683,6 +703,62 @@ def check_key_mgmt() -> None:
             fail(f"[密钥] 轮换演练失败：{result.stdout.strip()} {result.stderr.strip()}")
 
 
+# ---------- 9g. 通知与身份通道契约校验（TASK-007） ----------
+def check_channels() -> None:
+    import yaml
+    module_rel = "infra/modules/notification/module.yaml"
+    p = ROOT / module_rel
+    if not p.exists():
+        fail(f"[通道] 缺少模块清单 {module_rel}")
+        return
+    try:
+        data = yaml.safe_load(read(p))
+    except Exception as e:  # noqa: BLE001
+        fail(f"[通道] 模块清单解析失败: {e}")
+        return
+    if data.get("kind") != "notification":
+        fail("[通道] 模块清单 kind 应为 notification")
+    channels = data.get("channels", {})
+    if channels.get("email", {}).get("per_region") is not True:
+        fail("[通道] 模块清单 channels.email.per_region 必须为 true")
+    idp = data.get("identity_providers", {})
+    if idp.get("email", {}).get("regions") != ["cn", "eu", "intl"]:
+        fail("[通道] 身份提供商 email 必须全区域开放")
+    if idp.get("google", {}).get("regions") != ["eu", "intl"]:
+        fail("[通道] 身份提供商 google 必须仅 eu/intl 开放")
+    if idp.get("apple", {}).get("regions") != ["eu", "intl"]:
+        fail("[通道] 身份提供商 apple 必须仅 eu/intl 开放")
+    if idp.get("wechat", {}).get("regions") != ["cn"]:
+        fail("[通道] 身份提供商 wechat 必须仅 cn 开放")
+    isolation = data.get("isolation", {})
+    if isolation.get("per_region_channels") is not True or isolation.get("cross_region_send") is not False:
+        fail("[通道] 模块清单 isolation 必须 per_region_channels=true 且 cross_region_send=false")
+    notify_pkg = ROOT / "services/notify/notify.go"
+    if notify_pkg.exists():
+        pkg_text = read(notify_pkg)
+        for symbol in ["Config", "Validate", "Router", "Send", "Message"]:
+            if symbol not in pkg_text:
+                fail(f"[通道] services/notify 缺少 {symbol}")
+    notify_test = ROOT / "services/notify/notify_test.go"
+    if notify_test.exists():
+        test_text = read(notify_test)
+        for symbol in ["TestNotifyConfig", "TestMessage", "TestRouter"]:
+            if symbol not in test_text:
+                fail(f"[通道] services/notify 缺少测试 {symbol}")
+    idp_pkg = ROOT / "services/identity/provider/provider.go"
+    if idp_pkg.exists():
+        pkg_text = read(idp_pkg)
+        for symbol in ["RegionProviders", "ValidateProviders"]:
+            if symbol not in pkg_text:
+                fail(f"[通道] services/identity/provider 缺少 {symbol}")
+    idp_test = ROOT / "services/identity/provider/provider_test.go"
+    if idp_test.exists():
+        test_text = read(idp_test)
+        for symbol in ["TestRegionProviders", "TestValidateProviders"]:
+            if symbol not in test_text:
+                fail(f"[通道] services/identity/provider 缺少测试 {symbol}")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -720,6 +796,7 @@ SUITES = [
     ("temporal", "Temporal 契约", check_temporal),
     ("observability", "观测契约", check_observability),
     ("key-mgmt", "密钥管理", check_key_mgmt),
+    ("channels", "通知与身份通道", check_channels),
     ("secrets", "密钥扫描", check_secrets),
 ]
 

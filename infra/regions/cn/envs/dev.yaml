@@ -59,6 +59,8 @@ topology:
     payment: [psp_cn_primary]
   notification:
     email_from: mgd-cn-dev@miangedan.example
+    channels: [email]
+  identity_providers: [email, wechat]
   routing:
     gateway_region: cn
     reject_mismatch: true
