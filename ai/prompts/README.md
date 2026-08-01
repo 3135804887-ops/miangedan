@@ -84,6 +84,7 @@ status: draft_for_review  # draft_for_review | approved | deprecated
 | 文件 | prompt_id | 用途 |
 |---|---|---|
 | [resume-parsing.md](resume-parsing.md) | prompt-resume-parsing | 从已脱敏的不可信简历文本提取安全结构化事实与逐字段置信度 |
+| [job-parsing.md](job-parsing.md) | prompt-job-parsing | 解析已排除薪资/联系人的 JD，或从已确认简历推导带来源标记的岗位画像 |
 | [plan-generation.md](plan-generation.md) | prompt-plan-generation | 生成个性化多轮面试计划草稿 |
 | [realtime-interviewer.md](realtime-interviewer.md) | prompt-realtime-interviewer | 数字面试官实时提问与追问 |
 | [cross-round-handoff.md](cross-round-handoff.md) | prompt-cross-round-handoff | 生成跨轮交接包 |

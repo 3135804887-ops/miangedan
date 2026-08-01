@@ -15,6 +15,18 @@
 
 ### Added
 
+- TASK-014 JD 解析、AI 推理校对与材料缺失降级（`task/TASK-014-jd-parsing` 分支）：
+  - 扩展 `/v1/jobs*` OpenAPI 3.1 契约：JD 粘贴原文保留、解析/重试、不可变版本单字段校对与
+    确认、仅简历推导岗位、四种材料影响弹窗和严格匹配的显式降级同意。（TASK-014、FR-004、FR-005）
+  - `ai/services/parsing` 新增供应商中立 `JobParsingProvider`、L1/L2/L4 JD 请求及 L3 已确认
+    安全简历快照、确定性合成桩、Schema/暂时错误自动重试 ≤2 次与 NFR-015 输入保留重试；
+    TASK-030 前不绑定厂商 SDK。AI 推理来源标记不可移除，人工校对和确认均追加新版本。
+  - 薪资福利、公司福利、招聘联系人在适配器调用前整段剔除、输出后递归清洗、写版本及
+    面试上下文/评分上游前零命中 fail-closed；新增中英文/注入合成样例与
+    `job-parsing-governance` 评测集，排除内容泄露命中为 0。（TASK-014、FR-004、SEC-026）
+  - 新增 `0014_job_parsing.sql`：区域 uploads 原文引用或已确认简历引用二选一、解析尝试、
+    追加式岗位版本、材料影响快照及显式降级同意的幂等/不可变约束；同步领域、数据、隐私、
+    安全、Provider/Prompt、验收矩阵与实施计划。
 - TASK-013 简历结构化解析与敏感字段硬隔离（`task/TASK-013-resume-parsing` 分支）：
   - 新增 `/v1/parsing/resumes*` OpenAPI 3.1 契约：accepted 原件解析/状态/步骤级重试、
     追加式版本查询、逐字段 add/replace/remove/confirm 与低置信度清零后最终确认。

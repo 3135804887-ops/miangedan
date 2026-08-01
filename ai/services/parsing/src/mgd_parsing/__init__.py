@@ -7,15 +7,28 @@ docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；TASK-013、TASK-014。
 __all__ = [
     "SERVICE_NAME",
     "AcceptedResumeText",
+    "CreateInferredJobRequest",
+    "CreateJobRequest",
+    "ExplicitConsentRequiredError",
     "FieldEditRequest",
     "InMemoryAcceptedUploadReader",
+    "InMemoryConfirmedMaterialReferenceValidator",
+    "InMemoryConfirmedResumeReader",
+    "InMemoryJobRawTextStore",
+    "InMemoryJobRepository",
     "InMemoryParsingRepository",
+    "JobFieldEditRequest",
+    "JobNotConfirmedError",
+    "JobParsingService",
     "JsonSchemaProfileValidator",
+    "MaterialReadinessService",
     "ResumeParsingService",
     "RetryableProviderError",
     "StartParseRequest",
+    "SyntheticJobParsingProvider",
     "SyntheticResumeParsingProvider",
     "check_startup",
+    "job_leakage_count",
     "leakage_count",
     "require_data_region",
 ]
@@ -53,6 +66,25 @@ def check_startup(
         raise ValueError(msg)
 
 
+from .job_models import (  # noqa: E402
+    CreateInferredJobRequest,
+    CreateJobRequest,
+    JobFieldEditRequest,
+)
+from .job_privacy import job_leakage_count  # noqa: E402
+from .job_provider import SyntheticJobParsingProvider  # noqa: E402
+from .job_repository import (  # noqa: E402
+    InMemoryConfirmedMaterialReferenceValidator,
+    InMemoryConfirmedResumeReader,
+    InMemoryJobRawTextStore,
+    InMemoryJobRepository,
+)
+from .job_service import (  # noqa: E402
+    ExplicitConsentRequiredError,
+    JobNotConfirmedError,
+    JobParsingService,
+    MaterialReadinessService,
+)
 from .models import FieldEditRequest, StartParseRequest  # noqa: E402
 from .privacy import leakage_count  # noqa: E402
 from .provider import RetryableProviderError, SyntheticResumeParsingProvider  # noqa: E402
