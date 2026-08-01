@@ -2,68 +2,116 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.miangedan.example/v1/job-profile.schema.json",
   "title": "JobProfile",
-  "description": "面个蛋岗位 JD 结构化画像。追踪 PRD-001 US-01、FR-004、FR-005。薪资福利与招聘联系人不进入面试评分上下文；AI 推导内容必须标记。",
+  "description": "面个蛋岗位 JD 结构化画像。追踪 PRD-001 US-01、FR-004、FR-005。薪资福利与招聘联系人不进入面试评分上下文；AI 推导内容始终可识别、可编辑。",
   "type": "object",
-  "required": ["schema_version", "job_id", "job_version", "data_region", "language", "parse_meta", "confirmed_by_user"],
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "job_id", "job_version", "data_region", "language",
+    "source_kind", "job_title", "job_level", "company_name", "industry",
+    "location_region", "responsibilities", "requirements", "domain_scenarios",
+    "general_competencies", "ai_inferred_interview_focus", "ai_derived_fields",
+    "excluded_from_scoring", "parse_meta", "confirmed_by_user"
+  ],
   "properties": {
-    "schema_version": { "const": "1.0.0" },
+    "schema_version": { "const": "1.1.0" },
     "job_id": { "type": "string", "format": "uuid" },
     "job_version": { "type": "integer", "minimum": 1 },
     "data_region": { "enum": ["cn", "eu", "intl"] },
     "language": { "enum": ["zh-CN", "en-US"] },
-    "job_title": { "type": "string" },
-    "job_level": { "type": "string", "description": "岗位级别，如 初级/中级/高级/专家/管理" },
-    "company_name": { "type": ["string", "null"], "description": "可为空；为空时计划使用通用模板" },
+    "source_kind": { "enum": ["jd_text", "resume_inference"] },
+    "job_title": { "type": "string", "minLength": 1 },
+    "job_level": { "type": "string", "minLength": 1 },
+    "company_name": { "type": ["string", "null"] },
     "industry": { "type": ["string", "null"] },
-    "location_region": { "type": ["string", "null"], "description": "岗位所在地区（用于流程参考，不用于评分）" },
-    "responsibilities": { "type": "array", "items": { "type": "string" } },
+    "location_region": {
+      "type": ["string", "null"],
+      "description": "岗位所在地区，仅用于流程参考，不用于评分"
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
     "requirements": {
       "type": "array",
-      "description": "JD 要求项，岗位匹配度的计算基数",
+      "description": "JD 要求项；薪资福利与招聘联系人不得出现在此处",
       "items": {
         "type": "object",
-        "required": ["requirement_id", "text", "requirement_type", "weight"],
+        "additionalProperties": false,
+        "required": ["requirement_id", "text", "requirement_type", "category", "weight", "ai_inferred", "edited_by_user"],
         "properties": {
-          "requirement_id": { "type": "string" },
-          "text": { "type": "string" },
+          "requirement_id": { "type": "string", "minLength": 1 },
+          "text": { "type": "string", "minLength": 1 },
           "requirement_type": { "enum": ["must_have", "nice_to_have"] },
-          "category": { "enum": ["skill", "experience", "education", "domain", "competency", "other"], "default": "other" },
-          "weight": { "type": "number", "exclusiveMinimum": 0, "description": "相对权重；全部要求项权重归一化后参与岗位匹配度计算" },
-          "ai_inferred": { "type": "boolean", "default": false }
+          "category": { "enum": ["skill", "experience", "education", "domain", "competency", "other"] },
+          "weight": { "type": "number", "exclusiveMinimum": 0 },
+          "ai_inferred": { "type": "boolean" },
+          "edited_by_user": { "type": "boolean" }
         }
       }
     },
-    "domain_scenarios": { "type": "array", "items": { "type": "string" }, "description": "领域业务场景" },
-    "general_competencies": { "type": "array", "items": { "type": "string" }, "description": "通用能力要求" },
+    "domain_scenarios": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "general_competencies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
     "ai_inferred_interview_focus": {
       "type": "array",
-      "description": "AI 推导的面试重点，必须明确标注为 AI 推导",
+      "description": "AI 推导面试重点；标记不可移除，focus/rationale 可由用户校对",
       "items": {
         "type": "object",
-        "required": ["focus", "rationale"],
+        "additionalProperties": false,
+        "required": ["inference_id", "focus", "rationale", "ai_inferred", "editable", "edited_by_user"],
         "properties": {
-          "focus": { "type": "string" },
-          "rationale": { "type": "string" },
-          "ai_inferred": { "const": true }
+          "inference_id": { "type": "string", "minLength": 1 },
+          "focus": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "minLength": 1 },
+          "ai_inferred": { "const": true },
+          "editable": { "const": true },
+          "edited_by_user": { "type": "boolean" }
         }
       }
+    },
+    "ai_derived_fields": {
+      "type": "array",
+      "description": "所有 AI 推导字段的 JSON Pointer；resume_inference 来源必须非空",
+      "items": { "type": "string", "pattern": "^/" },
+      "uniqueItems": true
     },
     "excluded_from_scoring": {
       "type": "array",
-      "description": "不进入面试评分上下文的 JD 内容类别",
-      "items": { "enum": ["salary_benefits", "recruiter_contact", "company_perks"] }
+      "description": "仅记录排除类别，不存薪资福利或联系人原值",
+      "items": { "enum": ["salary_benefits", "recruiter_contact", "company_perks"] },
+      "uniqueItems": true
     },
     "parse_meta": {
       "type": "object",
-      "required": ["parser_version", "parsed_at", "overall_confidence"],
+      "additionalProperties": false,
+      "required": [
+        "parser_version", "prompt_version", "parsed_at", "overall_confidence",
+        "low_confidence_paths", "injection_detected"
+      ],
       "properties": {
-        "parser_version": { "type": "string" },
+        "parser_version": { "type": "string", "minLength": 1 },
+        "prompt_version": { "type": "string", "minLength": 1 },
         "parsed_at": { "type": "string", "format": "date-time" },
         "overall_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-        "low_confidence_paths": { "type": "array", "items": { "type": "string" } }
+        "low_confidence_paths": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^/" },
+          "uniqueItems": true
+        },
+        "injection_detected": { "type": "boolean" }
       }
     },
     "confirmed_by_user": { "type": "boolean" }
   },
-  "additionalProperties": false
+  "allOf": [
+    {
+      "if": { "properties": { "source_kind": { "const": "resume_inference" } } },
+      "then": { "properties": { "ai_derived_fields": { "minItems": 1 } } }
+    }
+  ]
 }

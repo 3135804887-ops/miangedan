@@ -13,7 +13,7 @@
 
 ## 2. 范围
 
-- 37 张核心业务表（含 TASK-010 的 4 张身份支撑表、TASK-012 的 2 张上传表及 TASK-013 的 `resume_parse_attempts`）、追加式账本约束、索引与分区策略。
+- 40 张核心业务表（含 TASK-010 的 4 张身份支撑表、TASK-012 上传/扫描、TASK-013 简历解析及 TASK-014 岗位解析/材料降级记录）、追加式账本约束、索引与分区策略。
 - 对象存储桶划分、Redis 用途边界、区域事件流主题清单。
 
 ## 3. 非目标
@@ -56,8 +56,11 @@
 | `resumes` | 简历主记录 | resume_id PK、upload_id FK UNIQUE、user_id、data_region、language、status、current_version、created_at/updated_at | resumes(user_id, updated_at) |
 | `resume_parse_attempts` | 初次解析与步骤级重试记录 | task_id PK、resume_id FK、idempotency_key、input_fingerprint、status、provider/prompt_version、input_retained、retryable、failure_code、started_at/completed_at | resume_parse_attempts(resume_id,idempotency_key) UNIQUE |
 | `resume_versions` | 简历版本（追加式冻结） | (resume_id, resume_version) PK、base_version、idempotency_key、operation_fingerprint、profile_json（符合 resume-profile schema）、excluded_sensitive_fields（仅类别）、low/reviewed paths、confirmed_by_user、created_at | resume_versions(resume_id,idempotency_key) UNIQUE；应用角色仅 SELECT/INSERT |
-| `job_profiles` | 岗位主记录 | job_id PK、user_id FK、data_region、current_version、created_at、deleted_at | job_profiles(user_id, deleted_at) |
-| `job_versions` | JD 版本（冻结） | (job_id, job_version) PK、raw_text_ref、profile_json（符合 job-profile schema）、parse_meta_json、confirmed_by_user、created_at | — |
+| `job_profiles` | 岗位主记录与原始输入引用 | job_id PK、user_id、data_region、language、source_kind、source_resume_id/version 或 uploads 区域桶 raw_text_ref（二选一）、create_idempotency_key、input_fingerprint、status、current_version、created_at/updated_at/deleted_at | job_profiles(data_region,user_id,create_idempotency_key) UNIQUE；job_profiles(user_id,updated_at) |
+| `job_parse_attempts` | JD/岗位推导初次解析与步骤级重试 | task_id PK、job_id FK、idempotency_key、input_fingerprint、status、provider/prompt_version、input_retained、retryable、failure_code、started_at/completed_at | job_parse_attempts(job_id,idempotency_key) UNIQUE |
+| `job_versions` | 岗位版本（追加式冻结） | (job_id,job_version) PK、base_version、idempotency_key、operation_fingerprint、profile_json（符合 job-profile schema）、excluded_from_scoring（仅类别）、confirmed_by_user、created_at | job_versions(job_id,idempotency_key) UNIQUE；应用角色仅 SELECT/INSERT |
+| `material_readiness_assessments` | 四种材料模式及用户可见影响快照（追加式） | assessment_id PK、user_id、data_region、resume_id/version、job_id/version、mode、consent_required、impact_snapshot_json、input_fingerprint、idempotency_key、created_at | material_readiness_assessments(data_region,user_id,idempotency_key) UNIQUE |
+| `material_degradation_consents` | 非 full 模式明确同意（追加式功能确认，不替代六类隐私授权） | consent_grant_id PK、assessment_id FK UNIQUE、user_id、data_region、mode、accepted=true、impact_snapshot_json、operation_fingerprint、idempotency_key、granted_at | material_degradation_consents(data_region,user_id,idempotency_key) UNIQUE；应用角色仅 SELECT/INSERT |
 | `process_sources` | 企业流程来源 | source_id PK、url（通用模板为空）、source_type（CHECK 白名单）、retrieved_at、credibility（CHECK）、expires_at、region（CHECK）、job_family、company/role/level（检索维度）、is_unofficial_experience、status（active/under_review/taken_down）、idempotency_key UNIQUE、data_region（CHECK 且与 region 相等） | process_sources(region, job_family, status)；process_sources(expires_at)（失效任务）；process_sources(data_region, url) UNIQUE WHERE url IS NOT NULL |
 
 > `process_sources` 约束与迁移对应 `services/migrate/migrations/0002_process_sources.sql`（TASK-015）：
@@ -161,6 +164,7 @@
    `0010_identity_accounts.sql` 落地 TASK-010 用户、身份验证、会话、防误合并与幂等约束；
    `0011_consent_grants.sql` 落地 TASK-011 六类授权、追加式版本、同事务审计与区域内幂等约束；
    `0012_resume_uploads.sql` 落地 TASK-012 上传与扫描幂等状态表；
-   `0013_resume_parsing.sql` 落地 TASK-013 解析尝试、追加式版本、幂等与敏感根键二次门槛。
+   `0013_resume_parsing.sql` 落地 TASK-013 解析尝试、追加式版本、幂等与敏感根键二次门槛；
+   `0014_job_parsing.sql` 落地 TASK-014 岗位解析、追加式版本及材料降级同意门槛。
 2. 服务层测试：尝试 UPDATE/DELETE 追加式表被拒；幂等键重复写入返回冲突或去重成功。
-3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（37 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。
+3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（40 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。

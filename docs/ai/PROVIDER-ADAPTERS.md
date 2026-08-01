@@ -91,6 +91,19 @@
 | 临时实现 | TASK-030 前仅允许供应商中立协议与 `SyntheticResumeParsingProvider` 合成桩；业务代码不得导入厂商 SDK |
 | 质量指标 | Schema 通过率、逐字段置信度校准、敏感字段泄露率（硬门槛 0）、解析 P95 ≤60s @10MB、可用性 |
 
+### 4.7 Job Parsing（JD 与岗位画像结构化解析）
+
+| 项 | 契约 |
+|---|---|
+| 方法 | `parse_job(request)`；`source_kind=jd_text \| resume_inference` |
+| JD 输入 | 所属数据区、语言、`trace_id`、超时、`job-profile` 输出 Schema；L4 JD 在调用前已删除薪资福利、公司福利、招聘联系人和联系方式 |
+| 简历输入 | 仅 TASK-013 已确认且通过 SEC-040 的安全画像，以 L3 快照传入；不得向本适配器提供简历原文 |
+| 输出 | 岗位事实、逐字段置信度、`provider_version`、`injection_detected`；AI 推导重点必须 `ai_inferred=true`、`editable=true` 并登记 `ai_derived_fields` |
+| 校验 | 服务层递归排除内容门槛 → AI 来源标记断言 → `job-profile.schema.json`；失败可用仅含路径/校验器的反馈自动重试 ≤2 次，仍失败保留原始输入供步骤级重试 |
+| 区域/权限 | 适配器按 `data_region` 注册，支持 zh-CN/en-US，禁止跨区回退；模型无密钥、无工具、无业务写权限 |
+| 临时实现 | TASK-030 前仅允许 `JobParsingProvider` 协议与 `SyntheticJobParsingProvider` 合成桩；业务代码不得导入厂商 SDK |
+| 质量指标 | Schema 通过率、推理标记率/可编辑率（均 100%）、薪资福利/招聘联系人泄露率（硬门槛 0）、可用性 |
+
 ## 5. 注册与能力发现
 
 1. **供应商注册表**（按数据区隔离）：每个供应商条目含 `provider_id`、能力类别、支持区域/语言、能力档位（如 avatar 分辨率上限）、版本、健康端点、数据保护协议状态、角色（primary/secondary/disabled）。

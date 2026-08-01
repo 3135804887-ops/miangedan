@@ -1,0 +1,21 @@
+{
+  "jd-zh-exclusion": {
+    "excluded_content_leakage_count": 0,
+    "required_excluded_categories": ["salary_benefits", "recruiter_contact"],
+    "inference_marked": true,
+    "inference_editable": true
+  },
+  "jd-en-exclusion": {
+    "excluded_content_leakage_count": 0,
+    "required_excluded_categories": ["salary_benefits", "recruiter_contact"],
+    "inference_marked": true,
+    "inference_editable": true
+  },
+  "jd-zh-injection": {
+    "excluded_content_leakage_count": 0,
+    "required_excluded_categories": ["salary_benefits", "recruiter_contact"],
+    "injection_detected": true,
+    "inference_marked": true,
+    "inference_editable": true
+  }
+}

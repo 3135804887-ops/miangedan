@@ -738,7 +738,10 @@ paths:
     post:
       tags: [jobs]
       operationId: createJob
-      summary: 粘贴完整 JD 创建岗位（薪资福利与招聘联系人不进入评分上下文）
+      summary: 粘贴完整 JD 并保留原始输入（薪资福利与招聘联系人不进入评分上下文）
+      description: |
+        `jd_text` 按 L4 不可信数据保存和解析，不写日志。相同幂等键与相同不可变输入返回
+        首次岗位；不同输入返回 409。解析失败或超时时原文保留，可只重试 `/parse` 步骤。
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -747,11 +750,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [jd_text]
+              additionalProperties: false
+              required: [jd_text, language]
               properties:
                 jd_text: { type: string, minLength: 1, description: 完整 JD 原文（视为不可信数据，仅结构化提取） }
+                language: { $ref: '#/components/schemas/Language' }
       responses:
         '201': { description: 已创建，待解析, content: { application/json: { schema: { $ref: '#/components/schemas/JobProfile' } } } }
+        '409': { description: 幂等键被用于不同输入, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
     get:
       tags: [jobs]
@@ -763,22 +769,69 @@ paths:
       responses:
         '200': { description: 分页列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/JobProfile' } }, next_cursor: { type: ['string', 'null'] } } } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/jobs:infer-from-resume:
+    post:
+      tags: [jobs]
+      operationId: createJobInferredFromResume
+      summary: 仅有简历时引用已确认安全版本创建 AI 推导岗位
+      description: |
+        只读取 TASK-013 已确认且通过 SEC-040 的安全简历画像，不复制简历原文。生成的岗位
+        `source_kind=resume_inference`，核心字段均登记在 `ai_derived_fields`，要求项及面试重点
+        保留 `ai_inferred=true`，人工校对后仍不得移除来源标记。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [resume_id, resume_version, language]
+              properties:
+                resume_id: { type: string, format: uuid }
+                resume_version: { type: integer, minimum: 1, description: 必须是当前用户所属区域的已确认版本 }
+                language: { $ref: '#/components/schemas/Language' }
+      responses:
+        '201': { description: AI 推导岗位已创建，待解析与人工确认, content: { application/json: { schema: { $ref: '#/components/schemas/JobProfile' } } } }
+        '409': { description: 简历版本未确认、跨用户/跨区或幂等冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/jobs/{jobId}/parse:
     post:
       tags: [jobs]
       operationId: parseJob
-      summary: 触发 JD 结构化解析（AI 推导内容必须标记）
+      summary: 触发或重试岗位结构化解析（AI 推导内容必须标记）
+      description: |
+        供应商中立适配层对 Schema/暂时错误自动重试不超过 2 次；仍失败返回
+        `RETRYABLE_FAILURE`，保留原始输入且可用新幂等键只重试本步骤。失败不计费、不影响评分。
       parameters:
         - $ref: '#/components/parameters/JobId'
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
-        '202': { description: 解析任务已创建, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        '202': { description: 解析任务状态；重复幂等键返回首次稳定结果, content: { application/json: { schema: { $ref: '#/components/schemas/JobParseTask' } } } }
+        '409': { description: 当前状态不可解析或幂等键冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
   /v1/jobs/{jobId}/versions/{version}:
+    get:
+      tags: [jobs]
+      operationId: getJobVersion
+      summary: 获取不可变岗位版本与 AI 推理标记
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: 岗位版本, content: { application/json: { schema: { $ref: '#/components/schemas/JobVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
     patch:
       tags: [jobs]
       operationId: editJobVersion
-      summary: 人工校对编辑 JD 结构化结果（产生新版本草稿）
+      summary: 一次人工校对一个字段并追加新版本草稿
+      description: |
+        允许 add/replace/remove 安全画像字段。`ai_inferred`、`editable`、`inference_id` 与
+        `ai_derived_fields` 为来源证明，不可删除或改写；编辑推理内容只将 `edited_by_user=true`。
       parameters:
         - $ref: '#/components/parameters/JobId'
         - name: version
@@ -792,26 +845,23 @@ paths:
           application/json:
             schema:
               type: object
-              required: [base_version, field_ops]
+              additionalProperties: false
+              required: [base_version, path, operation]
               properties:
-                base_version: { type: integer }
-                field_ops:
-                  type: array
-                  items:
-                    type: object
-                    required: [op, path]
-                    properties:
-                      op: { enum: [add, replace, remove] }
-                      path: { type: string }
-                      value: {}
+                base_version: { type: integer, minimum: 1, description: 必须等于 URL version 与最新版本 }
+                path: { type: string, pattern: '^/' }
+                operation: { enum: [add, replace, remove] }
+                value: {}
       responses:
         '200': { description: 编辑后的版本草稿, content: { application/json: { schema: { $ref: '#/components/schemas/JobVersion' } } } }
+        '409': { description: 基版本过期或幂等冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 字段越界、试图移除 AI 标记、Schema 失败或排除内容命中, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
   /v1/jobs/{jobId}/versions/{version}/confirm:
     post:
       tags: [jobs]
       operationId: confirmJobVersion
-      summary: 用户确认 JD 版本（写 jd_parse_confirmed）
+      summary: 用户确认并追加冻结岗位版本；确认后方可用于计划与评分上游
       parameters:
         - $ref: '#/components/parameters/JobId'
         - name: version
@@ -821,6 +871,58 @@ paths:
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '200': { description: 已确认, content: { application/json: { schema: { $ref: '#/components/schemas/JobVersion' } } } }
+        '409': { description: 基版本过期或幂等冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/jobs/material-readiness:assess:
+    post:
+      tags: [jobs]
+      operationId: assessInterviewMaterialReadiness
+      summary: 生成四种材料组合的功能影响弹窗快照
+      description: |
+        版本引用必须已人工确认。`full` 无需同意；`jd_only`、`resume_only`、`neither`
+        返回完整功能缺失与评分限制，后续项目创建必须提交与该快照严格匹配的同意记录。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                resume_id: { type: ['string', 'null'], format: uuid, description: 与 resume_version 同时提供；必须是已确认安全版本 }
+                resume_version: { type: ['integer', 'null'], minimum: 1 }
+                job_id: { type: ['string', 'null'], format: uuid, description: 与 job_version 同时提供；必须是已确认岗位版本 }
+                job_version: { type: ['integer', 'null'], minimum: 1 }
+      responses:
+        '200': { description: 可直接呈现的影响弹窗快照, content: { application/json: { schema: { $ref: '#/components/schemas/MaterialReadiness' } } } }
+        '409': { description: 版本未确认、跨用户/跨区或幂等冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/jobs/degraded-consents:
+    post:
+      tags: [jobs]
+      operationId: grantMaterialDegradationConsent
+      summary: 对指定影响快照追加显式降级同意记录
+      description: |
+        仅 `accepted=true` 产生记录；false、缺省、快照不匹配或跨用户/跨区均拒绝。
+        该记录是功能降级确认，不改变 `/consents` 的六类独立隐私授权。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [assessment_id, accepted]
+              properties:
+                assessment_id: { type: string, format: uuid }
+                accepted: { type: boolean, const: true }
+      responses:
+        '201': { description: 已追加显式同意；重复幂等键返回首次记录, content: { application/json: { schema: { $ref: '#/components/schemas/DegradedModeConsent' } } } }
+        '409': { description: 未显式接受、快照不匹配或幂等冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
 
   # ============================== sources ==============================
@@ -2137,21 +2239,73 @@ components:
         next_cursor: { type: ['string', 'null'] }
     JobProfile:
       type: object
-      required: [job_id, data_region, status]
+      additionalProperties: false
+      required: [job_id, data_region, language, source_kind, status]
       properties:
         job_id: { type: string, format: uuid }
         data_region: { $ref: '#/components/schemas/Region' }
         language: { $ref: '#/components/schemas/Language' }
-        status: { enum: [created, parsing, awaiting_confirmation, confirmed, parse_failed] }
+        source_kind: { enum: [jd_text, resume_inference] }
+        source_resume_id: { type: ['string', 'null'], format: uuid, description: resume_inference 时引用已确认安全简历；不复制原文 }
+        source_resume_version: { type: ['integer', 'null'], minimum: 1 }
+        status: { enum: [CREATED, PARSING, AWAITING_CONFIRMATION, CONFIRMED, RETRYABLE_FAILURE, FAILED] }
         current_version: { type: ['integer', 'null'], minimum: 1 }
+    JobParseTask:
+      type: object
+      additionalProperties: false
+      required: [task_id, job_id, data_region, status, impact]
+      properties:
+        task_id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        status: { enum: [PARSING, AWAITING_CONFIRMATION, RETRYABLE_FAILURE, FAILED] }
+        current_version: { type: ['integer', 'null'], minimum: 1 }
+        message: { type: ['string', 'null'], description: 说明影响/保留/重试/计费/评分，不含 JD 原文 }
+        impact: { $ref: '#/components/schemas/ParseImpact' }
     JobVersion:
       type: object
-      required: [job_id, job_version, confirmed_by_user]
+      additionalProperties: false
+      required: [job_id, job_version, data_region, profile, confirmed_by_user]
       properties:
         job_id: { type: string, format: uuid }
         job_version: { type: integer, minimum: 1 }
+        data_region: { $ref: '#/components/schemas/Region' }
         confirmed_by_user: { type: boolean }
-        profile: { type: ['object', 'null'], description: 结构对齐 ai/schemas/job-profile.schema.json, additionalProperties: true }
+        profile: { type: object, description: 通过 ai/schemas/job-profile.schema.json；排除内容递归命中数为 0, additionalProperties: true }
+    MaterialMode:
+      enum: [full, jd_only, resume_only, neither]
+    MaterialReadiness:
+      type: object
+      additionalProperties: false
+      required: [assessment_id, data_region, mode, consent_required, modal_title, modal_message, effects, allowed_scoring_dimensions]
+      properties:
+        assessment_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        mode: { $ref: '#/components/schemas/MaterialMode' }
+        resume_id: { type: ['string', 'null'], format: uuid }
+        resume_version: { type: ['integer', 'null'], minimum: 1 }
+        job_id: { type: ['string', 'null'], format: uuid }
+        job_version: { type: ['integer', 'null'], minimum: 1 }
+        consent_required: { type: boolean }
+        modal_title: { type: string, minLength: 1 }
+        modal_message: { type: string, minLength: 1 }
+        effects: { type: array, items: { type: string }, uniqueItems: true }
+        allowed_scoring_dimensions:
+          type: array
+          items: { enum: [expression, logic, communication, adaptability] }
+          uniqueItems: true
+          description: neither 时严格为表达、逻辑、沟通、应变；其他模式为空并由计划规则决定
+    DegradedModeConsent:
+      type: object
+      additionalProperties: false
+      required: [consent_grant_id, assessment_id, data_region, mode, accepted, effects]
+      properties:
+        consent_grant_id: { type: string, format: uuid }
+        assessment_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        mode: { enum: [jd_only, resume_only, neither] }
+        accepted: { type: boolean, const: true }
+        effects: { type: array, items: { type: string }, uniqueItems: true }
     SourceType:
       enum: [official_careers_page, official_recruiting_content, credible_public_material, candidate_experience, generic_template]
       description: 来源类型；generic_template 为无可靠来源时的通用模板回退（FR-008）
