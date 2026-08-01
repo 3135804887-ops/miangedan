@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-011 ConsentGrant 授权中心（`task/TASK-011-consent-grant` 分支）：
+  - 新增仅使用 `/v1/consent/*` 的 OpenAPI 3.1 契约与 Go HTTP 适配层：六类当前状态、明确授予、
+    独立撤回、追加式证据历史和同步在线访问判定；认证复用 TASK-010 业务令牌并双重核对数据区。
+  - `services/consent` 实现封闭 scope、文案/隐私政策/UI 上下文证据哈希、版本链、持久幂等键和
+    线性化判定；model_training 默认关闭且拒绝不影响 core_service，未成年原始音视频授权 fail-closed；
+    关键路径输出不含用户标识、scope 或证据的低基数观测事件，可映射到指标、追踪和结构化日志。
+  - 授予/撤回版本与 content-free AccessAudit 同事务提交；撤回成功返回后在线访问立即失效，审计
+    失败整体回滚并可同键重试。新增 `0011_consent_grants.sql`，数据库二次限制 scope/evidence 的键、
+    枚举、版本格式与审计区域；并新增正常、异常、并发幂等、重试、区域、
+    严格 JSON 与零内部字段泄露测试；同步领域、数据、安全、隐私、验收和实施计划。（TASK-011、FR-040、SEC-030/031/041/044）
 - TASK-014 JD 解析、AI 推理校对与材料缺失降级（`task/TASK-014-jd-parsing` 分支）：
   - 扩展 `/v1/jobs*` OpenAPI 3.1 契约：JD 粘贴原文保留、解析/重试、不可变版本单字段校对与
     确认、仅简历推导岗位、四种材料影响弹窗和严格匹配的显式降级同意。（TASK-014、FR-004、FR-005）
