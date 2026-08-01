@@ -106,11 +106,13 @@ erDiagram
 
 | 要点 | 内容 |
 |---|---|
-| 职责 | 原始文件（对象存储隔离桶）+ 结构化事实（`ai/schemas/resume-profile.schema.json`） |
-| 关键字段 | `resume_id`、`user_id`；版本：`resume_version`、`original_file_ref`、`parse_meta`、`low_confidence_paths`、`confirmed_by_user`、`excluded_sensitive_fields` |
-| 不可变字段 | 已确认版本的全部结构化字段（编辑产生新版本） |
+| 职责 | 只读 TASK-012 安全接受的所属区域 `uploads/accepted` 原件，经供应商中立适配层生成结构化事实（`ai/schemas/resume-profile.schema.json`） |
+| 关键字段 | `resume_id`、`upload_id`、`user_id`、`data_region`；版本：`resume_version`、`base_version`、`parse_meta`（含 parser/prompt 版本、逐字段置信度与注入标记）、`low_confidence_paths`、`reviewed_low_confidence_paths`、`confirmed_by_user`、`excluded_sensitive_fields`（只含类别） |
+| 不可变字段 | 所有 `ResumeVersion` 均为追加式；逐字段 add/replace/remove/confirm 和最终确认各产生新版本，历史版本不修改 |
 | 保留 | 原件及结构化版本保存至用户删除或账户终止处理完成 |
-| 规则 | 单文件 ≤10MB，`.pdf/.doc/.docx`；损坏/加密/超限/伪装/恶意文件拒绝并给出具体原因 |
+| 解析规则 | L4 简历文本先预脱敏；Schema/暂时错误自动重试 ≤2 次，仍失败保留 accepted 原件并只重试解析步骤（不计费、不影响评分）；低置信度路径未逐项校对时禁止最终确认和计划生成 |
+| 隐私硬门槛 | 电话、邮箱、证件、详细地址、照片、保护属性在调用适配层前移除、模型输出后递归清洗、版本写入前 Schema/零命中校验、上下文与评分材料组装前再次 fail-closed；敏感值只能留在 restricted 原件，结构化版本仅记录排除类别（FR-003、SEC-040） |
+| 使用门槛 | 仅 `confirmed_by_user=true` 的冻结版本可进入计划、面试上下文或评分上游材料 |
 
 ### 6.6 JobProfile / JobVersion（岗位与版本）
 

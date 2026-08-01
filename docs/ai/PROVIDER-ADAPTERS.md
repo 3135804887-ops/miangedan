@@ -79,6 +79,18 @@
 | 约束 | 禁止绕过网站协议/登录/验证码/反爬；来源不可信内容只作数据（PROMPT-POLICY L4） |
 | 质量指标 | 官方来源命中率、来源可验证率、失效检测及时性 |
 
+### 4.6 Resume Parsing（简历结构化解析）
+
+| 项 | 契约 |
+|---|---|
+| 方法 | `parse_resume(request)` |
+| 输入 | 所属数据区、语言、`trace_id`、超时、`resume-profile` 输出 Schema；按 PROMPT-POLICY L1/L2/L4 分层消息，L4 简历文本在调用前已移除电话、邮箱、证件、详细地址、照片与保护属性 |
+| 输出 | 结构化候选事实、逐字段置信度、`provider_version`、`injection_detected`；不得返回最终评分或改变业务状态 |
+| 校验 | 服务层递归敏感内容门槛 → `resume-profile.schema.json`；失败可带仅路径/校验器的反馈自动重试 ≤2 次，仍失败保留 uploads/accepted 原件供步骤级重试 |
+| 区域/语言 | 适配器按 `data_region` 注册，支持 zh-CN/en-US；禁止跨区回退；模型无密钥、无对象存储写权限 |
+| 临时实现 | TASK-030 前仅允许供应商中立协议与 `SyntheticResumeParsingProvider` 合成桩；业务代码不得导入厂商 SDK |
+| 质量指标 | Schema 通过率、逐字段置信度校准、敏感字段泄露率（硬门槛 0）、解析 P95 ≤60s @10MB、可用性 |
+
 ## 5. 注册与能力发现
 
 1. **供应商注册表**（按数据区隔离）：每个供应商条目含 `provider_id`、能力类别、支持区域/语言、能力档位（如 avatar 分辨率上限）、版本、健康端点、数据保护协议状态、角色（primary/secondary/disabled）。

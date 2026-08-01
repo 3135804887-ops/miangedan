@@ -127,6 +127,13 @@
 > 逐项扫描、具体拒绝原因与上传/重试两级幂等；扫描超时或扫描器暂时不可用时保留隔离原件并可只重试
 > 失败步骤。数据库迁移为 `0012_resume_uploads.sql`，API 使用 `/v1/uploads/*` 前缀。
 
+> **任务状态（2026-08-01 更新）**：TASK-013 已实现：`ai/services/parsing` 提供
+> `ResumeParsingProvider.parse_resume` 供应商中立契约与合成桩、L1/L2/L4 分层输入、逐字段置信度、
+> add/replace/remove/confirm 追加式校对版本及低置信度未清零禁止最终确认；电话/邮箱/证件/地址/照片/
+> 保护属性经解析前脱敏、模型输出后清洗、Schema/版本写入前扫描、上下文/评分材料组装前扫描四道
+> SEC-040 门槛，合成评测泄露命中为 0。解析连续暂时失败保留 uploads/accepted 原件并只重试失败步骤。
+> API 使用 `/v1/parsing/*`，迁移为 `0013_resume_parsing.sql`。
+
 > **任务状态（2026-08-01 更新）**：TASK-015（企业公开流程来源服务）已实现：
 > `services/source`（Go 控制面单模块，登记 go.work 与 CI golangci 矩阵）——来源领域模型与
 > 可信度/优先级规则（官方 > 官方内容 > 可信公开 > 经验；候选人经验强制标记非官方）、

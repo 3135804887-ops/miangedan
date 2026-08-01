@@ -47,6 +47,8 @@ tags:
     description: 授权中心：六类独立授权与机构分享授权（FR-040、隐私规则）
   - name: uploads
     description: 简历隔离上传、恶意文件扫描与可重试状态（TASK-012、FR-001、FR-006）
+  - name: parsing
+    description: 简历/JD 供应商中立结构化解析、逐字段校对与隐私硬门槛（TASK-013、TASK-014）
   - name: resumes
     description: 简历上传、解析、校对与版本（US-01、FR-001 ~ FR-003、FR-006）
   - name: jobs
@@ -342,6 +344,151 @@ paths:
               schema: { $ref: '#/components/schemas/ResumeUpload' }
         '409':
           description: 已接受、已安全拒绝或正在扫描的上传不可重试
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        default: { $ref: '#/components/responses/Error' }
+
+  # ============================== parsing ==============================
+  /v1/parsing/resumes:
+    post:
+      tags: [parsing]
+      operationId: createResumeParseTask
+      summary: 从安全扫描通过的所属区域 uploads/accepted 原件启动简历结构化解析
+      description: |
+        追踪 TASK-013、FR-002、FR-003、SEC-040、NFR-015。仅可读取当前用户所属数据区、
+        已由 TASK-012 接受的上传；调用供应商中立解析适配层前移除电话、邮箱、证件、详细地址、
+        照片及保护属性。输出经 resume-profile JSON Schema 和递归敏感内容门槛校验后，才追加
+        未确认版本。相同 Idempotency-Key 不重复读取、调用模型或写版本。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResumeParseCommand'
+      responses:
+        '202':
+          description: 解析任务已受理或返回同一幂等结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumeParseTask' }
+        '409':
+          description: 幂等键输入冲突、上传未安全接受、跨用户或跨数据区
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/parsing/resumes/{resumeId}:
+    get:
+      tags: [parsing]
+      operationId: getResumeParseTask
+      summary: 查询解析真实状态、影响和当前追加式版本
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+      responses:
+        '200':
+          description: 当前解析状态；暂时失败明确说明原件保留、可重试、不计费且不影响评分
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumeParseTask' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/parsing/resumes/{resumeId}:retry:
+    post:
+      tags: [parsing]
+      operationId: retryResumeParseTask
+      summary: 复用 uploads/accepted 保留原件，只重试失败的解析步骤
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: 重试已受理；同一幂等键不重复调用适配层或写版本
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResumeParseTask' }
+        '409':
+          description: 当前任务不可重试
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/parsing/resumes/{resumeId}/versions/{version}:
+    get:
+      tags: [parsing]
+      operationId: getParsedResumeVersion
+      summary: 获取追加式简历结构化版本及低置信度路径
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: 安全面试画像；排除字段只含类别、永不含原值
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParsedResumeVersion' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/parsing/resumes/{resumeId}/versions/{version}/fields:
+    patch:
+      tags: [parsing]
+      operationId: editParsedResumeField
+      summary: 一次编辑或确认一个字段并追加新草稿版本
+      description: |
+        JSON Pointer 只能指向 resume-profile 的面试安全可编辑字段。每次操作追加新版本，历史版本
+        不可修改；电话、邮箱、证件、地址、照片、保护属性等键或值在写入前 fail-closed。
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResumeFieldEdit' }
+      responses:
+        '200':
+          description: 新追加的草稿版本；重复幂等键返回首次版本
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParsedResumeVersion' }
+        '409':
+          description: 基版本过期、版本已确认或幂等键冲突
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: 字段路径非法、Schema 不通过或敏感内容硬门槛拒绝
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/parsing/resumes/{resumeId}/versions/{version}:confirm:
+    post:
+      tags: [parsing]
+      operationId: confirmParsedResumeVersion
+      summary: 低置信度字段逐项校对完成后追加用户确认的冻结版本
+      parameters:
+        - $ref: '#/components/parameters/ResumeId'
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 已确认冻结；此后才允许用于计划、面试上下文或评分上游材料
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParsedResumeVersion' }
+        '409':
+          description: 尚有低置信度字段未逐项校对，或基版本已过期
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1536,7 +1683,7 @@ components:
       enum: [PASS, FAIL, EVALUATION_INCOMPLETE]
       description: 评估未完成 ≠ 失败
     ErrorCode:
-      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, upload_rejected, scan_retryable, idempotency_conflict, rate_limited, region_mismatch, insufficient_entitlement, state_conflict, internal]
+      enum: [unauthorized, forbidden, not_found, conflict, validation_failed, upload_rejected, scan_retryable, parse_retryable, sensitive_content_rejected, low_confidence_unresolved, idempotency_conflict, rate_limited, region_mismatch, insufficient_entitlement, state_conflict, internal]
     Error:
       type: object
       required: [error]
@@ -1648,6 +1795,63 @@ components:
                   properties:
                     reason: { $ref: '#/components/schemas/UploadRejectionReason' }
                     impact: { $ref: '#/components/schemas/UploadImpact' }
+    SensitiveFieldCategory:
+      enum: [phone, email, id_number, address, photo, protected_attribute, other_pii]
+      description: 只记录类别、不记录敏感值；protected_attribute 覆盖外貌、性别、年龄、种族、国籍、残障、婚育、宗教、情绪、微表情与人格推断
+    ResumeParseCommand:
+      type: object
+      additionalProperties: false
+      required: [resume_id, accepted_upload_id, language]
+      properties:
+        resume_id: { type: string, format: uuid }
+        accepted_upload_id: { type: string, format: uuid, description: 必须为当前用户所属区域且安全扫描通过的 uploads/accepted 对象 }
+        language: { $ref: '#/components/schemas/Language' }
+    ParseImpact:
+      type: object
+      additionalProperties: false
+      required: [original_input_retained, retryable, billable, scoring_affected]
+      properties:
+        original_input_retained: { type: boolean }
+        retryable: { type: boolean }
+        billable: { type: boolean, const: false }
+        scoring_affected: { type: boolean, const: false }
+        retry_action: { type: ['string', 'null'] }
+    ResumeParseTask:
+      type: object
+      additionalProperties: false
+      required: [task_id, resume_id, accepted_upload_id, data_region, language, status, impact]
+      properties:
+        task_id: { type: string, format: uuid }
+        resume_id: { type: string, format: uuid }
+        accepted_upload_id: { type: string, format: uuid }
+        data_region: { $ref: '#/components/schemas/Region' }
+        language: { $ref: '#/components/schemas/Language' }
+        status: { enum: [PENDING, PARSING, AWAITING_CONFIRMATION, CONFIRMED, RETRYABLE_FAILURE, FAILED] }
+        current_version: { type: ['integer', 'null'], minimum: 1 }
+        message: { type: ['string', 'null'], description: 不包含简历正文或敏感值 }
+        impact: { $ref: '#/components/schemas/ParseImpact' }
+    ParsedResumeVersion:
+      type: object
+      additionalProperties: false
+      required: [resume_id, resume_version, data_region, profile, low_confidence_paths, reviewed_low_confidence_paths, excluded_sensitive_fields, confirmed_by_user]
+      properties:
+        resume_id: { type: string, format: uuid }
+        resume_version: { type: integer, minimum: 1 }
+        data_region: { $ref: '#/components/schemas/Region' }
+        profile: { type: object, description: 必须通过 ai/schemas/resume-profile.schema.json；敏感键和值递归命中数为 0, additionalProperties: true }
+        low_confidence_paths: { type: array, items: { type: string }, uniqueItems: true }
+        reviewed_low_confidence_paths: { type: array, items: { type: string }, uniqueItems: true }
+        excluded_sensitive_fields: { type: array, items: { $ref: '#/components/schemas/SensitiveFieldCategory' }, uniqueItems: true, description: 仅类别，无原值 }
+        confirmed_by_user: { type: boolean }
+    ResumeFieldEdit:
+      type: object
+      additionalProperties: false
+      required: [base_version, path, operation]
+      properties:
+        base_version: { type: integer, minimum: 1, description: 必须等于 URL version 与当前最新版本 }
+        path: { type: string, pattern: '^/', description: 面试安全画像内的非根 JSON Pointer }
+        operation: { enum: [add, replace, remove, confirm] }
+        value: { description: add/replace 必填；remove/confirm 忽略。不得包含敏感键或值 }
     Resume:
       type: object
       required: [resume_id, data_region, status]

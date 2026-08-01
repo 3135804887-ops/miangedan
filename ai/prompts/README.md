@@ -12,7 +12,7 @@
 
 ## 2. 范围
 
-本目录下的全部提示词契约：计划生成、实时面试官、跨轮交接、评分证据提取、报告生成、训练教练，以及后续新增提示词。
+本目录下的全部提示词契约：简历解析、计划生成、实时面试官、跨轮交接、评分证据提取、报告生成、训练教练，以及后续新增提示词。
 
 ## 3. 非目标
 
@@ -83,6 +83,7 @@ status: draft_for_review  # draft_for_review | approved | deprecated
 
 | 文件 | prompt_id | 用途 |
 |---|---|---|
+| [resume-parsing.md](resume-parsing.md) | prompt-resume-parsing | 从已脱敏的不可信简历文本提取安全结构化事实与逐字段置信度 |
 | [plan-generation.md](plan-generation.md) | prompt-plan-generation | 生成个性化多轮面试计划草稿 |
 | [realtime-interviewer.md](realtime-interviewer.md) | prompt-realtime-interviewer | 数字面试官实时提问与追问 |
 | [cross-round-handoff.md](cross-round-handoff.md) | prompt-cross-round-handoff | 生成跨轮交接包 |

@@ -152,6 +152,37 @@ func TestResumeUploadMigrationEnforcesIsolationAndIdempotency(t *testing.T) {
 	}
 }
 
+// TASK-013 契约：结构化简历版本追加式保存，敏感根字段与未校对确认由数据库二次阻断。
+func TestResumeParsingMigrationEnforcesAppendOnlyPrivacyAndIdempotency(t *testing.T) {
+	migrations, err := LoadMigrations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsingSQL string
+	for _, migration := range migrations {
+		if migration.Version == "0013" {
+			parsingSQL = migration.SQL
+			break
+		}
+	}
+	if parsingSQL == "" {
+		t.Fatal("缺少 TASK-013 迁移 0013")
+	}
+	for _, required := range []string{
+		"CREATE TABLE resumes",
+		"CREATE TABLE resume_parse_attempts",
+		"CREATE TABLE resume_versions",
+		"UNIQUE (resume_id, idempotency_key)",
+		"resume_versions_no_sensitive_root_keys",
+		"resume_versions_confirmed_has_no_low_confidence",
+		"GRANT SELECT, INSERT ON resume_versions TO mgd_app_runtime",
+	} {
+		if !strings.Contains(parsingSQL, required) {
+			t.Errorf("TASK-013 迁移缺少约束 %q", required)
+		}
+	}
+}
+
 // 正常路径：状态报告区分已应用与待应用。
 func TestInspectStatus(t *testing.T) {
 	migrations, err := LoadMigrations()
