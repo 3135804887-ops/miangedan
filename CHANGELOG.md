@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-012 简历隔离上传与恶意文件检测（`task/TASK-012-upload-scanning` 分支）：
+  - 新增 `/v1/uploads/resumes`、`/v1/uploads/{uploadId}`、`/v1/uploads/{uploadId}:retry`
+    OpenAPI 3.1 契约：具体拒绝码、沙箱证明、原件保留/可重试/不计费/不影响评分语义。
+  - `services/ingestion` 新增上传服务、所属区域 uploads 桶专用对象存储接口、一次性无网络沙箱
+    证明门槛、供应商中立恶意软件检测接口，以及 PDF/DOC/DOCX 病毒、宏、压缩炸弹、伪装、
+    超限、损坏、加密矩阵；含正常、异常、并发幂等与超时重试测试。（TASK-012、FR-001、FR-006）
+  - 新增 `0012_resume_uploads.sql`：上传/扫描尝试状态表、10 MiB 与区域 uploads 桶 CHECK、
+    上传及扫描重试两级幂等唯一键；同步领域、数据、安全、威胁、验收与对象存储契约。
+    （TASK-012、TM-02、SEC-020、NFR-006）
 - TASK-015 企业公开流程来源服务（`task/TASK-015-enterprise-process-sources` 分支）：
   - 新增 `services/source` Go 控制面服务（单模块，登记 `go.work` 与 CI golangci 矩阵）：来源领域模型
     （链接/日期/类型/可信度/失效状态，候选人经验强制标记非官方）、官方优先排序与可靠性判定、
