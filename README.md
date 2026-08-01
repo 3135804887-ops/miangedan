@@ -61,8 +61,9 @@
 - [x] TASK-001 单仓工程骨架与 CI 门禁（2026-08-01，`task/TASK-001-monorepo-skeleton-ci` 分支；本地检查全绿，见 `tools/ci/README.md`）
 - [x] TASK-002 三数据区环境拓扑与区域路由（2026-08-01，`task/TASK-002-three-region-topology-routing` 分支；9 份 `infra/regions/*/envs/*.yaml`、`regions` 校验套件、`services/region` 共享包）
 - [x] TASK-003 数据平台基线部署与迁移工具（2026-08-01，`task/TASK-003-data-platform-migrations` 分支；`services/migrate` 幂等迁移、四张追加式账本表基线、`data-platform` 校验套件与数据平台模块契约）
+- [x] TASK-004 Temporal 集群与每区命名空间、任务队列划分（2026-08-01，`task/TASK-004-temporal-cluster-namespaces` 分支；`services/temporal` 契约包、`infra/modules/temporal`、`temporal` 校验套件）
 - [ ] 未决事项 OD-01 ~ OD-05 关闭（OD-06 ~ OD-10 已于 2026-08-01 确认/批准，见 IMPLEMENTATION_PLAN.md 第 7 节）
-- [ ] EPIC-01 基础设施与数据区落地（TASK-001~003 已完成；下一任务 TASK-004 Temporal 集群，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
+- [ ] EPIC-01 基础设施与数据区落地（TASK-001~004 已完成；下一任务 TASK-005 观测，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
 - [ ] Phase 0 供应商评测（OD-01，方案见 `docs/testing/PHASE0-PROVIDER-EVALUATION.md`）
 
 ## 贡献

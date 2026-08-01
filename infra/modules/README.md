@@ -17,6 +17,7 @@
 - `database/`：PostgreSQL + Redis 模块契约（追加式账本约束、Redis 非证据）。
 - `object-storage/`：uploads / exports / media 三桶隔离，media 30 天生命周期。
 - `event-stream/`：六类区域事件流主题与载荷规则。
+- `temporal/`：每区独立集群、`mgd-{region}-{env}-temporal` 命名空间与七域任务队列契约（TASK-004）。
 
 模块契约由 `python tools/validate_docs.py --suites data-platform` 校验；
 区域实例化由 `--suites regions` 校验（拓扑同构、3 AZ、零跨区引用）。
