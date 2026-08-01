@@ -35,7 +35,8 @@ func TestAdapterConfigValidation(t *testing.T) {
 		"cross region": {Provider: Google, DataRegion: "cn", ClientID: "synthetic", ClientSecretRef: "OAUTH_GOOGLE_CLIENT_SECRET_REF"},
 		//nolint:gosec // This deliberately invalid synthetic name verifies raw-secret rejection.
 		"raw secret name": {Provider: Google, DataRegion: "eu", ClientID: "synthetic", ClientSecretRef: "OAUTH_GOOGLE_CLIENT_SECRET"},
-		"email adapter":   {Provider: Email, DataRegion: "eu", ClientID: "synthetic", ClientSecretRef: "EMAIL_SECRET_REF"},
+		//nolint:gosec // Synthetic *_REF handles exercise reference validation; they are not credentials.
+		"email adapter": {Provider: Email, DataRegion: "eu", ClientID: "synthetic", ClientSecretRef: "EMAIL_SECRET_REF"},
 	} {
 		if err := config.Validate(); err == nil {
 			t.Fatalf("%s config must be rejected", name)
