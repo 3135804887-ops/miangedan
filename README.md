@@ -21,6 +21,7 @@
 | API 与事件 | [docs/api/](docs/api/) | OpenAPI 3.1、实时事件契约 |
 | AI 与评分 | [docs/ai/](docs/ai/) | 编排、评分规范、跨轮交接、提示词政策、供应商适配 |
 | 数据与安全 | [docs/data/](docs/data/)、[docs/security/](docs/security/) | 数据模型、保留矩阵、分类、威胁模型、隐私地图、安全需求 |
+| 运维手册 | [docs/operations/](docs/operations/) | 密钥轮换运行手册（备份恢复手册随 TASK-008） |
 | 设计与无障碍 | [docs/design/](docs/design/) | 页面规范、设计系统、WCAG 2.2 AA |
 | 测试与发布 | [docs/testing/](docs/testing/) | 验收矩阵、测试策略、发布检查单、Phase 0 供应商评测、规范评审检查单 |
 | 配置契约 | [config/](config/) | 评分量表、面试流程、安全政策、功能开关 |

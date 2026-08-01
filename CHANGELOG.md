@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-006 密钥管理系统接入与轮换契约（`task/TASK-006-secrets-key-mgmt` 分支）：
+  - 新增 `services/secretref` 共享 Go 包（零外部依赖）：`*_REF` 引用命名契约（`ValidateRefName`）、
+    区域 `secrets.refs` fail-closed 校验（值必须为合法环境变量名、不得内联真实密钥，SEC-012）、
+    展示掩码 `MaskSecret`（只保留末 4 位）；含正常/异常/幂等单测。（TASK-006、SEC-012）
+  - 新增 `infra/modules/secret-ref/` 模块契约（每区 KMS、ref_only、零明文）与三区×三环境 `kms_name`，
+    纳入 `regions` 套件资源命名校验。（TASK-006）
+  - `tools/validate_docs.py` 新增 `key-mgmt` 套件（第 16 套件：模块契约 + `tools/secret-rotation/rotation_drill.py`
+    轮换演练）并接入 CI 阶段 1、golangci 矩阵与本地检查；新增
+    `docs/operations/KEY-ROTATION-RUNBOOK.md` 轮换运行手册（五步流程 + 分类过渡方式）。（TASK-006、SEC-013）
 - TASK-005 OpenTelemetry 观测与日志脱敏（`task/TASK-005-observability-otel` 分支）：
   - 新增 `services/observability` 共享 Go 包（OTel v1.44.0）：结构化 JSON 日志默认 strict 脱敏
     （敏感键整值替换 + JWT/Bearer/`sk-`/超长令牌值模式替换；生产强制 strict，SEC-032）、

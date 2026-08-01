@@ -9,6 +9,7 @@
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -48,6 +49,7 @@ REQUIRED_FILES = [
     "docs/data/DATA-MODEL.md", "docs/data/RETENTION-MATRIX.md", "docs/data/DATA-CLASSIFICATION.md",
     "docs/security/THREAT-MODEL.md", "docs/security/PRIVACY-DATA-MAP.md",
     "docs/security/SECURITY-REQUIREMENTS.md",
+    "docs/operations/KEY-ROTATION-RUNBOOK.md",
     "docs/design/SCREEN-SPEC.md", "docs/design/DESIGN-SYSTEM.md", "docs/design/ACCESSIBILITY.md",
     "docs/testing/ACCEPTANCE-MATRIX.md", "docs/testing/TEST-STRATEGY.md",
     "docs/testing/RELEASE-CHECKLIST.md",
@@ -330,6 +332,7 @@ RESOURCE_NAME_PATHS = [
     ("temporal", "namespace"),
     ("observability", "otel_collector"),
     ("observability", "status_page"),
+    ("secrets", "kms_name"),
 ]
 
 
@@ -636,6 +639,50 @@ def check_observability() -> None:
                 fail(f"[观测] STATUS-PAGE.md 缺少关键词 {keyword}")
 
 
+# ---------- 9f. 密钥管理契约校验（TASK-006） ----------
+def check_key_mgmt() -> None:
+    import yaml
+    module_rel = "infra/modules/secret-ref/module.yaml"
+    p = ROOT / module_rel
+    if not p.exists():
+        fail(f"[密钥] 缺少模块清单 {module_rel}")
+        return
+    try:
+        data = yaml.safe_load(read(p))
+    except Exception as e:  # noqa: BLE001
+        fail(f"[密钥] 模块清单解析失败: {e}")
+        return
+    if data.get("kind") != "secrets":
+        fail("[密钥] 模块清单 kind 应为 secrets")
+    kms = data.get("kms", {})
+    if kms.get("per_region") is not True or kms.get("ref_only") is not True:
+        fail("[密钥] 模块清单 kms 必须 per_region=true 且 ref_only=true")
+    policy = data.get("policy", {})
+    if policy.get("display_masked") is not True or policy.get("zero_plaintext_in_repo") is not True:
+        fail("[密钥] 模块清单 policy 必须 display_masked=true 且 zero_plaintext_in_repo=true")
+    pkg = ROOT / "services/secretref/secretref.go"
+    if pkg.exists():
+        pkg_text = read(pkg)
+        for symbol in ["ValidateRefName", "ValidateEnvVarName", "ValidateRefs", "MaskSecret", "IsRefName"]:
+            if symbol not in pkg_text:
+                fail(f"[密钥] services/secretref 缺少 {symbol}")
+    test_file = ROOT / "services/secretref/secretref_test.go"
+    if test_file.exists():
+        test_text = read(test_file)
+        for symbol in ["TestValidateRefs", "TestMaskSecret", "TestRefNames"]:
+            if symbol not in test_text:
+                fail(f"[密钥] services/secretref 缺少测试 {symbol}")
+    drill = ROOT / "tools/secret-rotation/rotation_drill.py"
+    if not drill.exists():
+        fail("[密钥] 缺少轮换演练脚本 tools/secret-rotation/rotation_drill.py")
+    else:
+        result = subprocess.run(
+            [sys.executable, str(drill)], capture_output=True, text=True, cwd=ROOT, timeout=120,
+        )
+        if result.returncode != 0:
+            fail(f"[密钥] 轮换演练失败：{result.stdout.strip()} {result.stderr.strip()}")
+
+
 # ---------- 10. 真实密钥/敏感信息扫描 ----------
 SECRET_PATTERNS = [
     (r"sk-[A-Za-z0-9]{20,}", "疑似 OpenAI 风格密钥"),
@@ -672,6 +719,7 @@ SUITES = [
     ("data-platform", "数据平台", check_data_platform),
     ("temporal", "Temporal 契约", check_temporal),
     ("observability", "观测契约", check_observability),
+    ("key-mgmt", "密钥管理", check_key_mgmt),
     ("secrets", "密钥扫描", check_secrets),
 ]
 

@@ -40,6 +40,7 @@ topology:
     redaction: strict
     status_page: mgd-eu-prod-status
   secrets:
+    kms_name: mgd-eu-prod-kms
     refs:
       identity_signing_key: IDENTITY_SIGNING_KEY_REF
       field_encryption_key: DB_FIELD_ENCRYPTION_KEY_REF
