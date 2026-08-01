@@ -1,0 +1,12 @@
+# 密钥管理模块契约（TASK-006）
+# 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 6 节；SECURITY-REQUIREMENTS SEC-012、4.7
+kind: secrets
+kms:
+  per_region: true
+  ref_only: true
+  rotation_table: docs/security/SECURITY-REQUIREMENTS.md#47
+  drill_script: tools/secret-rotation/rotation_drill.py
+policy:
+  display_masked: true
+  zero_plaintext_in_repo: true
+  region_scoped: true

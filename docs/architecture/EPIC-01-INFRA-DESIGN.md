@@ -124,6 +124,14 @@ TASK-001 ~ TASK-008 的实施设计；不涉及 EPIC-02+ 的业务实现细节�
 > 校验套件（模块契约 + 合成敏感样本 `fixtures/synthetic/log-scan/` + 政策/状态页文档）并接入 CI 阶段 1；
 > 新增 `docs/observability/LOGGING-POLICY.md` 与 `docs/observability/STATUS-PAGE.md`（中英双语骨架）。
 | TASK-006 密钥 | 密钥管理系统接入；`*.example` 中 `*_REF` 变量模式落地；轮换流程与责任人按 SECURITY-REQUIREMENTS 4.7 | 轮换演练不中断服务 |
+
+> TASK-006 实施（2026-08-01）：新增 `services/secretref` 共享包（零外部依赖）：`*_REF` 引用命名契约
+> （`ValidateRefName`）、区域 `secrets.refs` 校验（值必须为合法环境变量名且不得内联真实密钥，
+> `ValidateRefs` fail-closed，SEC-012）、展示掩码 `MaskSecret`（只留末 4 位）；
+> 新增 `infra/modules/secret-ref` 模块契约（每区 KMS、ref_only、零明文）与三区×三环境 `kms_name`，
+> 纳入 `regions` 套件资源命名校验；新增 `key-mgmt` 校验套件（模块契约 + `tools/secret-rotation/rotation_drill.py`
+> 轮换演练）并接入 CI 阶段 1；新增 `docs/operations/KEY-ROTATION-RUNBOOK.md`（五步轮换、分类过渡方式、
+> 演练不中断服务）。
 | TASK-007 通知与身份通道 | 区域化邮件服务接入；身份提供商（邮箱验证码先行，Google/Apple/微信随区域开放） | 单区通道故障不影响他区 |
 | TASK-008 备份与恢复 | 每日完整 + 持续增量 + PITR；恢复脚本一键化；季度恢复演练模板 | 演练 RTO/RPO 达标（证据 RPO=0） |
 
