@@ -13,6 +13,8 @@
 - 基线迁移 `0001_ledger_baseline.sql` 落地四张追加式账本表
   （`evidence_items`、`score_versions`、`usage_ledger`、`access_audits`）及数据库层
   `REVOKE UPDATE, DELETE` 约束（ADR-0004）。
+- `0010_identity_accounts.sql` 落地 TASK-010 用户/身份、短期验证、会话轮换、身份冲突恢复与
+  幂等结果引用；强制区域内主体唯一且不保存邮箱、验证码、OAuth 授权码、证明或令牌明文。
 - `0012_resume_uploads.sql` 落地 TASK-012 的 `resume_uploads` / `upload_scan_attempts`，
   强制 10 MiB 上限、所属区域 uploads 桶、上传与扫描重试两级幂等唯一键。
 

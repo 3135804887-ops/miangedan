@@ -80,6 +80,12 @@ func (n *testNotifier) count() int {
 	return len(n.messages)
 }
 
+func (n *testNotifier) setFailure(value bool) {
+	n.mu.Lock()
+	n.fail = value
+	n.mu.Unlock()
+}
+
 type testOAuthAdapter struct {
 	mu       sync.Mutex
 	subjects map[string]string
@@ -233,6 +239,12 @@ func TestEmailLoginAndIdempotency(t *testing.T) {
 	if firstChallenge != secondChallenge || harness.notifier.count() != 1 || harness.store.Stats().Verifications != 1 {
 		t.Fatalf("challenge retry produced duplicate side effect: first=%+v second=%+v stats=%+v notifications=%d", firstChallenge, secondChallenge, harness.store.Stats(), harness.notifier.count())
 	}
+	_, err = harness.service.RequestEmailChallenge(ctx, RequestEmailChallengeInput{
+		Email: "synthetic.other-request@example.com", DataRegion: "intl",
+	}, "email-01-challenge")
+	if ErrorCodeOf(err) != CodeIdempotencyConflict || harness.notifier.count() != 1 || harness.store.Stats().Verifications != 1 {
+		t.Fatalf("same key with different request must fail without side effects: %v stats=%+v", err, harness.store.Stats())
+	}
 	verifyInput := VerifyEmailChallengeInput{
 		ChallengeID: firstChallenge.ChallengeID,
 		Code:        harness.notifier.codeFor("email-01-challenge"),
@@ -344,6 +356,21 @@ func TestEmailVerificationFailurePaths(t *testing.T) {
 			t.Fatalf("risk rejection must have zero side effects: %v %+v", err, harness.store.Stats())
 		}
 	})
+
+	t.Run("notification retry", func(t *testing.T) {
+		harness := newHarness(t, nil)
+		harness.notifier.setFailure(true)
+		input := RequestEmailChallengeInput{Email: "synthetic.notify-retry@example.com", DataRegion: "eu"}
+		_, err := harness.service.RequestEmailChallenge(context.Background(), input, "notify-retry")
+		if ErrorCodeOf(err) != CodeProviderUnavailable || harness.store.Stats().Verifications != 1 || harness.notifier.count() != 0 {
+			t.Fatalf("notification outage must retain exactly one retryable challenge: %v stats=%+v", err, harness.store.Stats())
+		}
+		harness.notifier.setFailure(false)
+		challenge, err := harness.service.RequestEmailChallenge(context.Background(), input, "notify-retry")
+		if err != nil || challenge.DeliveryStatus != "accepted" || harness.store.Stats().Verifications != 1 || harness.notifier.count() != 1 {
+			t.Fatalf("retry must deliver retained challenge once: %+v %v stats=%+v", challenge, err, harness.store.Stats())
+		}
+	})
 }
 
 // TC-FR-027-N01/A01: provider matrix is enforced and outages advertise email fallback.
@@ -360,6 +387,18 @@ func TestOAuthRegionMatrixAndFallback(t *testing.T) {
 	if err != nil || proof.Provider != ProviderGoogle {
 		t.Fatalf("Google intl verification should succeed: %+v %v", proof, err)
 	}
+	appleProof, err := harness.service.VerifyOAuth(context.Background(), VerifyOAuthInput{
+		Provider: ProviderApple, AuthorizationCode: "synthetic-apple-a", DataRegion: "eu",
+	}, "oauth-apple-eu")
+	if err != nil || appleProof.Provider != ProviderApple {
+		t.Fatalf("Apple eu verification should succeed: %+v %v", appleProof, err)
+	}
+	wechatProof, err := harness.service.VerifyOAuth(context.Background(), VerifyOAuthInput{
+		Provider: ProviderWeChat, AuthorizationCode: "synthetic-wechat-a", DataRegion: "cn",
+	}, "oauth-wechat-cn")
+	if err != nil || wechatProof.Provider != ProviderWeChat {
+		t.Fatalf("WeChat cn verification should succeed: %+v %v", wechatProof, err)
+	}
 	before := harness.google.callCount()
 	_, err = harness.service.VerifyOAuth(context.Background(), VerifyOAuthInput{
 		Provider: ProviderGoogle, AuthorizationCode: "synthetic-google-a", DataRegion: "cn",
@@ -374,6 +413,24 @@ func TestOAuthRegionMatrixAndFallback(t *testing.T) {
 	domain := AsDomainError(err)
 	if domain.Code != CodeProviderUnavailable || domain.Details["email_fallback_available"] != true {
 		t.Fatalf("outage must offer email fallback: %+v", domain)
+	}
+}
+
+// PRD age policy: under-16 users never create a User/Identity and remain in demo-only mode.
+func TestUnder16RegistrationDoesNotCreateAccount(t *testing.T) {
+	harness := newHarness(t, nil)
+	proof := verifiedEmailProof(t, harness, "synthetic.under16@example.com", "intl", "under16")
+	registration := syntheticRegistration(harness.clock.Now())
+	registration.AgeStatus = AgeStatus("under_16_demo_only")
+	_, err := harness.service.CreateSession(context.Background(), CreateSessionInput{
+		ProofToken: proof.ProofToken, DataRegion: "intl", Registration: registration,
+	}, "under16-session")
+	if ErrorCodeOf(err) != CodeConflict {
+		t.Fatalf("under-16 registration must be rejected before account creation: %v", err)
+	}
+	stats := harness.store.Stats()
+	if stats.Users != 0 || stats.Identities != 0 || stats.Sessions != 0 {
+		t.Fatalf("under-16 rejection created account state: %+v", stats)
 	}
 }
 

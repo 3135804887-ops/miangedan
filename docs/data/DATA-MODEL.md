@@ -13,7 +13,7 @@
 
 ## 2. 范围
 
-- 32 张核心业务表（含 TASK-012 的 `resume_uploads`、`upload_scan_attempts`）、追加式账本约束、索引与分区策略。
+- 36 张核心业务表（含 TASK-010 的 4 张身份支撑表及 TASK-012 的 2 张上传表）、追加式账本约束、索引与分区策略。
 - 对象存储桶划分、Redis 用途边界、区域事件流主题清单。
 
 ## 3. 非目标
@@ -37,11 +37,15 @@
 
 | 表 | 用途 | 关键字段 | 主要索引 |
 |---|---|---|---|
-| `users` | 用户主体 | user_id PK、data_region、ui_language、age_status、status、created_at | users(data_region, status) |
-| `identities` | 登录身份 | identity_id PK、user_id FK、provider、provider_subject、verified_at | identities(provider, provider_subject) UNIQUE；identities(user_id) |
+| `users` | 用户主体 | user_id PK、data_region、ui_language、age_status、status、条款/隐私/数据处理说明版本、registration_evidence_json、created_at | users(data_region, status) |
+| `identities` | 登录身份（不保存邮箱/第三方 subject 明文） | identity_id PK、user_id FK、provider、provider_subject_hash、verified_at、data_region | identities(data_region, provider, provider_subject_hash) UNIQUE；identities(user_id) |
+| `identity_verifications` | 邮箱/OAuth 短期验证与单次证明状态 | verification_id PK、provider、provider_subject_hash、code_hash、proof_hash、status、到期/消费时间、request_key、data_region | identity_verifications(data_region, provider, request_key) UNIQUE；主体限流与到期索引 |
+| `identity_sessions` | 业务会话与刷新令牌轮换 | session_id PK、user_id FK、refresh_token_hash、status、access/refresh_expires_at、rotated_to_session_id、data_region | identity_sessions(refresh_token_hash) UNIQUE；identity_sessions(user_id, status) |
+| `identity_conflicts` | 身份冲突恢复案件（绝不自动合并） | recovery_case_id PK、requesting/conflicting_user_id FK、provider、provider_subject_hash、status、data_region、created_at | identity_conflicts(requesting_user_id, created_at) |
+| `identity_idempotency` | 身份写操作幂等结果引用 | idempotency_id PK、operation、idempotency_key、request_hash、result_ref、status、data_region | identity_idempotency(data_region, operation, idempotency_key) UNIQUE |
 | `consent_grants` | 授权记录（版本化追加） | grant_id PK、user_id FK、consent_type、scope_json、status、granted_at、expires_at、withdrawn_at、evidence_json、version | consent_grants(user_id, consent_type, scope_hash, version)；consent_grants(status, expires_at)（到期任务） |
 
-约束：`identities` 同一 (provider, provider_subject) 全区唯一（防误合并）；`consent_grants` 追加式（撤回插入新版本行）。
+约束：`identities` 同一 `(data_region, provider, provider_subject_hash)` 唯一（防误合并）；验证/会话/幂等表禁止保存邮箱、验证码、OAuth 授权码、证明和令牌明文；`identity_conflicts` 对业务角色无删除能力；`consent_grants` 追加式（撤回插入新版本行）。
 
 ### 5.2 材料族
 
@@ -150,6 +154,7 @@
 
 1. 迁移脚本通过 CI：约束存在性检查（REVOKE、UNIQUE、CHECK、分区）。基线迁移位于
    `services/migrate/migrations/`（`schema_migrations` + SHA-256 校验和，TASK-003）；
+   `0010_identity_accounts.sql` 落地 TASK-010 用户、身份验证、会话、防误合并与幂等约束；
    `0012_resume_uploads.sql` 落地 TASK-012 上传与扫描幂等状态表。
 2. 服务层测试：尝试 UPDATE/DELETE 追加式表被拒；幂等键重复写入返回冲突或去重成功。
-3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（32 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。
+3. 与 `docs/domain/DOMAIN-MODEL.md` 实体覆盖核对（36 表 ↔ 全部实体）；与 `ai/schemas/` 内容字段命名抽样比对。

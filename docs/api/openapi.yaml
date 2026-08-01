@@ -1682,7 +1682,7 @@ components:
         user_id: { type: string, format: uuid }
         data_region: { $ref: '#/components/schemas/Region' }
         ui_language: { $ref: '#/components/schemas/Language' }
-        age_status: { enum: [adult, minor_guardian_verified, minor_pending, under_16_demo_only] }
+        age_status: { enum: [adult, minor_guardian_verified, minor_pending], description: 未满 16 岁在创建账户前即拒绝，仅可无登录样例演示 }
         status: { enum: [active, deletion_pending, deleted_anonymized] }
         display_name: { type: ['string', 'null'] }
         identities:

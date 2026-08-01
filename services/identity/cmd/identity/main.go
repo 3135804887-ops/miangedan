@@ -1,6 +1,5 @@
-// Command identity 是面个蛋控制面「身份与账户」服务的最小入口（TASK-001 工程骨架；
-// 区域自检在 TASK-002 升级为 DATA_REGION/INFRA_REGION 一致性校验）。
-// 追踪：IMPLEMENTATION_PLAN.md TASK-001、TASK-002；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 5 节；TASK-010。
+// Command identity 是面个蛋控制面「身份与账户」服务入口。
+// 追踪：TASK-002、TASK-010；US-05、FR-027；ADR-0005。
 package main
 
 import (
@@ -25,6 +24,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, "启动被拒绝:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("identity 服务骨架已启动（data_region=%s, service_env=%s）\n",
+	fmt.Printf("identity 服务区域配置检查通过（data_region=%s, service_env=%s）\n",
 		os.Getenv("DATA_REGION"), os.Getenv("SERVICE_ENV"))
 }
