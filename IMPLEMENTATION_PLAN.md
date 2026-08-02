@@ -331,6 +331,17 @@
 > pytest 15 用例（推进/追问边界/打断/工具白名单/恢复/非收敛保护）全绿，
 > ruff/mypy(strict) 通过。（TASK-032、FR-012、NFR-006）
 
+> **任务状态（2026-08-02 更新）**：TASK-033 已实现：计划生成链路（FR-009/FR-011，
+> US-02 场景 5）——`ai/services/orchestrator` 新增 `mgd_orchestrator.plan_generator`
+> （来源融合：可信来源引用/无来源回退通用模板并标记 AI 推导；轮次建议默认 3 轮、
+> 1-5 轮与 10-60 分钟边界、六维权重和 100；PII/注入安全过滤与重生成 ≤2 次；
+> 单轮失败只重试失败模块；输出对齐 interview-plan schema）；
+> `services/project` 新增 `PlanGenerator` 接口与合成 `StubPlanGenerator`、`CheckPlanSafety`
+> （PII/注入 fail-closed），`/v1/projects/{id}/plan:generate` 由 501 占位落地为
+> 材料确认后返回 201 草稿（进入 PLAN_REVIEW，Frozen=false），RoundConfig 增加
+> `question_coverage_plan` 结构。Go 服务/HTTP 正常、异常、幂等、安全过滤测试齐备；
+> Python 22 用例全绿，ruff/mypy(strict) 通过。（TASK-033、FR-009、FR-011、PROMPT-POLICY）
+
 ### EPIC-05 评分与复核
 
 目标：独立、可重复、可解释、版本冻结的评分与正式复核。

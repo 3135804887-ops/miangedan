@@ -66,6 +66,15 @@
     （预算内且不越出已确认覆盖点）、打断策略（avatar_stopped → 聆听）、工具白名单
     （拒绝后终止请求，无死循环）；图只产出建议不写业务状态；重放安全（NFR-006）。
   - pytest 15 用例、ruff、mypy(strict) 全绿。（TASK-032、FR-012、NFR-006）
+- TASK-033 计划生成链路（`task/TASK-033-plan-generation` 分支）：
+  - `ai/services/orchestrator` 新增 `plan_generator`：来源融合（可信来源/通用模板回退 +
+    AI 推导标记）、轮次建议（默认 3 轮、1-5 轮与 10-60 分钟边界、权重和 100）、
+    PII/注入安全过滤与重生成 ≤2 次、单轮失败只重试失败模块、interview-plan Schema 校验。
+  - `services/project` 新增 `PlanGenerator` 接口 + 合成实现与 `CheckPlanSafety`
+    （PII 复述/注入 fail-closed，不安全内容不进入房间）；`/v1/projects/{id}/plan:generate`
+    由 501 占位落地为 201 草稿（PLAN_REVIEW、Frozen=false）；RoundConfig 增加
+    `question_coverage_plan` 结构。Go 服务/HTTP 正常、异常、幂等、安全过滤测试齐备。
+    （TASK-033、FR-009、FR-011、US-02 场景 5）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

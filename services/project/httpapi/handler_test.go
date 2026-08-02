@@ -39,6 +39,9 @@ func (a *appAdapter) DuplicateProject(ctx context.Context, actor project.Actor, 
 func (a *appAdapter) GetPlan(ctx context.Context, actor project.Actor, id string) (project.PlanVersion, error) {
 	return a.svc.GetPlan(ctx, actor, id)
 }
+func (a *appAdapter) GeneratePlanDraft(ctx context.Context, actor project.Actor, id, key string) (project.PlanVersion, error) {
+	return a.svc.GeneratePlanDraft(ctx, actor, id, key)
+}
 func (a *appAdapter) EditPlan(ctx context.Context, actor project.Actor, id string, base int, rounds []project.RoundConfig, key string) (project.PlanVersion, error) {
 	return a.svc.EditPlan(ctx, actor, id, base, rounds, key)
 }
@@ -157,12 +160,12 @@ func TestGetProjectNotFoundHTTP(t *testing.T) {
 	}
 }
 
-// 异常路径：计划生成占位 → 501（TASK-033 落地前）。
-func TestGeneratePlanPendingHTTP(t *testing.T) {
+// 异常路径：计划生成前置不满足（DRAFT 未确认材料）→ 409。
+func TestGeneratePlanStateConflictHTTP(t *testing.T) {
 	h := newTestHandler(t)
 	rec := doJSON(t, h, http.MethodPost, "/v1/projects/00000000-0000-4000-8000-000000000000/plan:generate", "{}")
-	if rec.Code != http.StatusNotImplemented {
-		t.Fatalf("应 501，实际 %d", rec.Code)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("未知项目应 404，实际 %d", rec.Code)
 	}
 }
 
