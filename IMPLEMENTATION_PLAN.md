@@ -211,6 +211,14 @@
 > 迁移为 `0020_sessions.sql`；DOMAIN-MODEL §6.19（RoomToken）、DATA-MODEL sessions 同步；
 > 服务/HTTP 正常、异常、幂等、令牌一次性/吊销、重连窗口、设备转移测试齐备。
 
+> **任务状态（2026-08-02 更新）**：TASK-030 已实现：`services/provider` 共享 Go 包（仅依赖
+> `services/region`，零外部依赖）落地 PROVIDER-ADAPTERS §5~§9 治理骨架——五类能力（LLM/ASR/TTS/
+> Avatar/Search）枚举与 `Info` 注册条目（provider_id 形态 `{capability}_{region}_{role}`、版本固定）、
+> 按数据区隔离注册表（重复拒绝、紧急停用）、低频合成探针健康检查、每（区×供应商×能力）熔断器
+> （closed → open → half_open → closed，注入时钟可测）、新会话区域路由（主 open 切 secondary、
+> 主备不可用拒绝新会话、跨区不回退）、活跃正式面试会话钉扎（`Pin`/`Resolve`，被停用/版本变化返回
+> `ErrPinnedUnavailable`，不静默切换）。熔断/路由/钉扎/校验测试齐备；能力适配器实现随对应任务接入。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-030 供应商中立适配层（`task/TASK-030-provider-adapter-layer` 分支）：
+  - 新增 `services/provider` Go 共享包（仅依赖 services/region，零外部依赖），按
+    `docs/ai/PROVIDER-ADAPTERS.md` §5~§9 落地治理骨架：五类能力枚举、`Info` 注册条目
+    （provider_id 形态 `{capability}_{region}_{role}`、版本固定）、按数据区隔离注册表
+    （重复拒绝、紧急停用）、低频合成探针健康检查、每（区×供应商×能力）熔断器
+    （closed → open → half_open → closed，注入时钟）、新会话区域路由（主 open 切 secondary、
+    主备不可用拒绝新会话、跨区不回退）、活跃正式面试会话钉扎（被停用/版本变化返回
+    `ErrPinnedUnavailable`，不静默切换）。熔断/路由/钉扎/校验测试齐备。
+    （TASK-030、ADR-0003、FR-037 部分、NFR-007~NFR-012）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [adminapi, backup, billing, consent, identity, ingestion, migrate, notify, observability, org, project, region, room, secretref, source, temporal]
+        module: [adminapi, backup, billing, consent, identity, ingestion, migrate, notify, observability, org, project, provider, region, room, secretref, source, temporal]
     steps:
       - uses: actions/checkout@v4
       - name: golangci-lint（逐模块；根配置经 --config 显式指定）
