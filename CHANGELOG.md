@@ -24,6 +24,12 @@
     `/v1/sessions/{sessionId}/turns/{turnIndex}/freeze` 契约与 `Transcript` schema；
     迁移 `0023_session_transcripts.sql`；DOMAIN-MODEL §6.20、DATA-MODEL、realtime-events 同步；
     服务/HTTP 正常、异常、窗口竞态、幂等测试齐备。（TASK-023、FR-018、NFR-005）
+- TASK-024 岗位工具与工具事件证据（`task/TASK-024-job-tools` 分支）：
+  - `services/room` 扩展岗位工具（FR-019）：四类工具封闭枚举、激活校验（仅计划已配置工具，
+    正式房间不临时加载）、工具事件（edit/run/annotate/submit）以 `tool_event_id` 幂等入证据账本。
+  - openapi 新增 `/v1/sessions/{sessionId}/tools` 与工具激活/事件端点及 `ToolEvent` schema；
+    迁移 `0024_session_tool_events.sql`；DOMAIN-MODEL §6.21、DATA-MODEL、realtime-events 同步；
+    服务/HTTP 正常、异常、未配置拒绝、幂等测试齐备。（TASK-024、FR-019、NFR-005）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

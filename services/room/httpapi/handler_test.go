@@ -73,6 +73,15 @@ func (a *appAdapter) ListTranscripts(ctx context.Context, actor project.Actor, i
 func (a *appAdapter) GetTurn(ctx context.Context, actor project.Actor, id string, turn int) (room.TurnState, error) {
 	return a.svc.GetTurn(ctx, actor, id, turn)
 }
+func (a *appAdapter) ActivateTool(ctx context.Context, actor project.Actor, id string, in room.ActivateToolInput) (room.ToolActivation, error) {
+	return a.svc.ActivateTool(ctx, actor, id, in)
+}
+func (a *appAdapter) RecordToolEvent(ctx context.Context, actor project.Actor, id string, in room.ToolEvent, key string) (room.ToolEvent, error) {
+	return a.svc.RecordToolEvent(ctx, actor, id, in, key)
+}
+func (a *appAdapter) ListToolEvents(ctx context.Context, actor project.Actor, id string) ([]room.ToolEvent, error) {
+	return a.svc.ListToolEvents(ctx, actor, id)
+}
 
 func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()

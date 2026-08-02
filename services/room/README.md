@@ -23,6 +23,11 @@
   `revision_id` 幂等与冻结前持久化顺序保证（NFR-005）。端点：
   `/v1/sessions/{id}/transcripts`、`/v1/sessions/{id}/revisions`、
   `/v1/sessions/{id}/turns/{turnIndex}/freeze`。
+- **岗位工具**（TASK-024、FR-019）：四类工具封闭枚举（code_editor/whiteboard/
+  case_materials/portfolio），激活仅限计划已配置工具（正式房间不临时加载），
+  工具事件（edit/run/annotate/submit）以 `tool_event_id` 幂等入证据账本；
+  端点：`/v1/sessions/{id}/tools`、`/v1/sessions/{id}/tools/{toolKey}/activate`、
+  `/v1/sessions/{id}/tools/{toolKey}/events`。
 
 ## 用法
 

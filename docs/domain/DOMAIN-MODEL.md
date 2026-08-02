@@ -240,6 +240,14 @@ erDiagram
 
 规则：`partial` 不入证据账本；`final` 在 `turn.completed` 前完成持久化（NFR-005）；修订以 `revision_id` 幂等；同一 `utterance_id` 的修订在冻结时统一升级为 `accepted`。
 
+### 6.21 SessionToolEvent（岗位工具事件，TASK-024）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 会话内岗位工具（代码/白板/案例/作品集）的使用事件（`tool.event`），进入证据账本供报告与复核引用（FR-019） |
+| 关键字段 | `tool_event_id`、`tool_key`（封闭枚举）、`event_type`（edit/run/annotate/submit）、`content_ref`（对象存储引用，非内联大对象） |
+| 规则 | 仅计划中已配置工具可激活与产生事件（正式房间不临时加载）；`tool_event_id` 幂等；事件只追加不更新/删除 |
+
 | 要点 | 内容 |
 |---|---|
 | AccessAudit | 追加式敏感访问记录（谁、何时、何种角色、访问了什么、授权依据）；管理员不可删除；敏感访问通知用户 |

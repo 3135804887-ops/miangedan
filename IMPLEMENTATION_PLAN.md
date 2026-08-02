@@ -257,6 +257,15 @@
 > 迁移为 `0023_session_transcripts.sql`；DOMAIN-MODEL §6.20、DATA-MODEL、openapi、
 > realtime-events 同步；服务/HTTP 正常、异常、窗口竞态、幂等测试齐备。（TASK-023、FR-018、NFR-005）
 
+> **任务状态（2026-08-02 更新）**：TASK-024 已实现：`services/room` 扩展岗位工具
+> （FR-019）——四类工具（code_editor/whiteboard/case_materials/portfolio）封闭枚举、
+> 激活校验（仅计划中已配置工具，正式房间不临时加载）、工具事件（edit/run/annotate/submit）
+> 以 `tool_event_id` 幂等入证据账本（content_ref 对象存储引用，非内联大对象）。
+> API 为 `/v1/sessions/{id}/tools`、`/v1/sessions/{id}/tools/{toolKey}/activate`、
+> `/v1/sessions/{id}/tools/{toolKey}/events`；迁移为 `0024_session_tool_events.sql`；
+> DOMAIN-MODEL §6.21、DATA-MODEL、openapi、realtime-events 同步；
+> 服务/HTTP 正常、异常、未配置拒绝、幂等测试齐备。（TASK-024、FR-019、NFR-005）
+
 ### EPIC-04 AI 编排（供应商适配、提示词、面试官图、交接、安全）
 
 目标：概率性 AI 决策与确定性业务状态严格分离；LLM 无权直接改变业务状态。

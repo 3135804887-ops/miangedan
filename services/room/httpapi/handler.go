@@ -32,6 +32,10 @@ type Application interface {
 	FreezeTurn(context.Context, project.Actor, string, int, string) (room.FreezeTurnResult, error)
 	ListTranscripts(context.Context, project.Actor, string) ([]room.Transcript, error)
 	GetTurn(context.Context, project.Actor, string, int) (room.TurnState, error)
+	// TASK-024 岗位工具。
+	ActivateTool(context.Context, project.Actor, string, room.ActivateToolInput) (room.ToolActivation, error)
+	RecordToolEvent(context.Context, project.Actor, string, room.ToolEvent, string) (room.ToolEvent, error)
+	ListToolEvents(context.Context, project.Actor, string) ([]room.ToolEvent, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现。
@@ -56,6 +60,9 @@ func New(app Application, authenticator Authenticator, dataRegion string) (http.
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/revisions", h.submitRevision)
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/turns/{turnIndex}/freeze", h.freezeTurn)
 	mux.HandleFunc("GET /v1/sessions/{sessionId}/turns/{turnIndex}", h.getTurn)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/tools/{toolKey}/activate", h.activateTool)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/tools/{toolKey}/events", h.recordToolEvent)
+	mux.HandleFunc("GET /v1/sessions/{sessionId}/tools", h.listToolEvents)
 	return mux, nil
 }
 
@@ -118,6 +125,10 @@ func mapError(err error) (int, string, string) {
 		return http.StatusConflict, "revision_window_closed", err.Error()
 	case errors.Is(err, room.ErrTranscriptInvalid):
 		return http.StatusUnprocessableEntity, "invalid_input", err.Error()
+	case errors.Is(err, room.ErrToolInvalid):
+		return http.StatusUnprocessableEntity, "invalid_input", err.Error()
+	case errors.Is(err, room.ErrToolNotConfigured):
+		return http.StatusConflict, "tool_not_configured", err.Error()
 	case errors.Is(err, room.ErrEntitlementMissing):
 		return http.StatusPaymentRequired, "insufficient_entitlement", err.Error()
 	case errors.Is(err, room.ErrNotFound):
@@ -494,6 +505,98 @@ func (h *handler) getTurn(w http.ResponseWriter, r *http.Request) {
 	}
 	if turn.FrozenAt != nil {
 		out["frozen_at"] = turn.FrozenAt.UTC().Format(time.RFC3339)
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (h *handler) activateTool(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		PreconfigRef string `json:"preconfig_ref"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	act, err := h.app.ActivateTool(r.Context(), actor, r.PathValue("sessionId"), room.ActivateToolInput{
+		ToolKey: room.ToolKey(r.PathValue("toolKey")), PreconfigRef: req.PreconfigRef,
+	})
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"session_id":    act.SessionID,
+		"tool_key":      act.ToolKey,
+		"preconfig_ref": act.PreconfigRef,
+		"activated_at":  act.ActivatedAt.UTC().Format(time.RFC3339),
+	})
+}
+
+func (h *handler) recordToolEvent(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		ToolEventID string `json:"tool_event_id"`
+		EventType   string `json:"event_type"`
+		ContentRef  string `json:"content_ref"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	ev, err := h.app.RecordToolEvent(r.Context(), actor, r.PathValue("sessionId"), room.ToolEvent{
+		ToolKey: room.ToolKey(r.PathValue("toolKey")), ToolEventID: req.ToolEventID,
+		EventType: room.ToolEventType(req.EventType), ContentRef: req.ContentRef,
+	}, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"session_id":    ev.SessionID,
+		"tool_key":      ev.ToolKey,
+		"tool_event_id": ev.ToolEventID,
+		"event_type":    ev.EventType,
+		"content_ref":   ev.ContentRef,
+		"created_at":    ev.CreatedAt.UTC().Format(time.RFC3339),
+	})
+}
+
+func (h *handler) listToolEvents(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	items, err := h.app.ListToolEvents(r.Context(), actor, r.PathValue("sessionId"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	out := make([]map[string]any, 0, len(items))
+	for _, ev := range items {
+		out = append(out, map[string]any{
+			"session_id":    ev.SessionID,
+			"tool_key":      ev.ToolKey,
+			"tool_event_id": ev.ToolEventID,
+			"event_type":    ev.EventType,
+			"content_ref":   ev.ContentRef,
+			"created_at":    ev.CreatedAt.UTC().Format(time.RFC3339),
+		})
 	}
 	writeJSON(w, http.StatusOK, out)
 }

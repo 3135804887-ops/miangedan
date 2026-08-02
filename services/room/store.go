@@ -12,6 +12,9 @@ type Store interface {
 	ListTranscripts(dataRegion, sessionID string) ([]Transcript, error)
 	SaveTurn(TurnState) error
 	GetTurn(dataRegion, sessionID string, turnIndex int) (TurnState, error)
+	// TASK-024 工具事件存储。
+	SaveToolEvent(ToolEvent) error
+	ListToolEvents(dataRegion, sessionID string) ([]ToolEvent, error)
 }
 
 // IdempotencyStore 为写操作幂等键存储（NFR-006）。

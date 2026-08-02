@@ -63,7 +63,7 @@
 | FR-016 | 设备开关规则 | TC-FR-016-N01 关闭摄像头/麦克风面试继续，数字人音视频始终开启 | TC-FR-016-A01 数字人视频或音频中断立即进入故障流程 | e2e、integration | EPIC-03 / TASK-027 |
 | FR-017 | 打断与回合 | TC-FR-017-N01 语音打断/停止按钮至停止发声 P95 ≤500ms | TC-FR-017-A01 重叠说话场景检测并避免，无法判断时询问是否答完 | performance、e2e | EPIC-03 / TASK-022 |
 | FR-018 | 字幕与修订 | TC-FR-018-N01 双向字幕实时展示，窗口内修订确认为评分证据（TASK-023 服务/HTTP 测试） | TC-FR-018-A01 进入下一主问题后修订被拒（回合已冻结，window_closed） | e2e、contract、unit | EPIC-03 / TASK-023 |
-| FR-019 | 岗位工具 | TC-FR-019-N01 代码/白板/案例/作品集事件全量入证据账本 | TC-FR-019-A01 正式房间临时加载未配置工具被拒 | integration、contract | EPIC-03 / TASK-024 |
+| FR-019 | 岗位工具 | TC-FR-019-N01 代码/白板/案例/作品集事件全量入证据账本（TASK-024 服务/HTTP 测试） | TC-FR-019-A01 正式房间临时加载未配置工具被拒（tool_not_configured） | integration、contract、unit | EPIC-03 / TASK-024 |
 | FR-020 | 故障与降级 | TC-FR-020-N01 故障暂停计时、保存状态、自动重连成功恢复 | TC-FR-020-A01 重连无效询问降级：同意继续/拒绝评估未完成且返还 | integration、e2e | EPIC-03 / TASK-025 |
 | FR-021 | 双门槛审核 | TC-FR-021-N01 总分 ≥60 且关键维度 ≥60 判 PASS 并解锁 | TC-FR-021-A01 总分 80 但关键维度 59 判 FAIL 不解锁 | unit、ai_eval | EPIC-05 / TASK-040 |
 | FR-022 | 通过展示 | TC-FR-022-N01 首先展示祝贺文案+摘要+下一轮角色/重点/难度/时长 | TC-FR-022-A01 摘要不含后续轮次完整标准答案（人工审查） | e2e、manual_review | EPIC-06 / TASK-054 |

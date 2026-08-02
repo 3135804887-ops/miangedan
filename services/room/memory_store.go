@@ -18,6 +18,8 @@ type MemoryStore struct {
 	// TASK-023：字幕与回合冻结。
 	transcripts map[string]Transcript
 	turns       map[string]TurnState
+	// TASK-024：工具事件。
+	toolEvents map[string][]ToolEvent
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -30,6 +32,7 @@ func NewMemoryStore() *MemoryStore {
 		idem:        make(map[string][]byte),
 		transcripts: make(map[string]Transcript),
 		turns:       make(map[string]TurnState),
+		toolEvents:  make(map[string][]ToolEvent),
 	}
 }
 
@@ -43,6 +46,10 @@ func transcriptKey(dataRegion, sessionID, utteranceID string) string {
 
 func turnKey(dataRegion, sessionID string, turnIndex int) string {
 	return dataRegion + "|" + sessionID + "|" + strconv.Itoa(turnIndex)
+}
+
+func toolKey(dataRegion, sessionID string) string {
+	return dataRegion + "|" + sessionID
 }
 
 // SaveSession 保存会话。
@@ -141,6 +148,25 @@ func (m *MemoryStore) GetTurn(dataRegion, sessionID string, turnIndex int) (Turn
 		return TurnState{}, ErrNotFound
 	}
 	return t, nil
+}
+
+// SaveToolEvent 保存工具事件（幂等键由服务层去重）。
+func (m *MemoryStore) SaveToolEvent(ev ToolEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := toolKey(ev.DataRegion, ev.SessionID)
+	m.toolEvents[key] = append(m.toolEvents[key], ev)
+	return nil
+}
+
+// ListToolEvents 列出会话工具事件。
+func (m *MemoryStore) ListToolEvents(dataRegion, sessionID string) ([]ToolEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.toolEvents[toolKey(dataRegion, sessionID)]
+	out := make([]ToolEvent, len(items))
+	copy(out, items)
+	return out, nil
 }
 
 // RecordNonce 记录 nonce 所属会话（吊销定位用）。
