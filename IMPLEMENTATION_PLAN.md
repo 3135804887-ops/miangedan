@@ -202,6 +202,15 @@
 > frontend-batch-1 ~ 4 分别落地 SCR-01 ~ 07、SCR-08/09、SCR-10 ~ 15、SCR-16/17。
 > （frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
 
+> **任务状态（2026-08-02 更新）**：TASK-020 已实现：`services/room`（新 Go 模块，登记 go.work 与 CI 矩阵）
+> 提供会话房间创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*` 契约）：
+> 前置校验项目 READY + 本轮量表/覆盖方案就绪（FR-011）+ 单活动设备（TASK-018 ClaimDevice）；
+> 短期媒体令牌（HMAC-SHA256、分钟级 TTL、一次性 nonce、按 nonce 吊销，与业务令牌隔离，SEC-003）；
+> 3 分钟重连窗口（超窗 `reconnect_expired` → ENDED）、设备安全转移（原令牌立即失效）；
+> `Provider` 供应商中立房间适配桩（ADR-0003）；交接包（TASK-034）与额度预留（TASK-061）为后续挂接点。
+> 迁移为 `0020_sessions.sql`；DOMAIN-MODEL §6.19（RoomToken）、DATA-MODEL sessions 同步；
+> 服务/HTTP 正常、异常、幂等、令牌一次性/吊销、重连窗口、设备转移测试齐备。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

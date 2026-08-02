@@ -22,6 +22,15 @@
   Vitest/axe/隐私与幂等测试、阶段 6 的生产构建与 bundle 密钥扫描。
   语言前缀路由与 Storybook 等价测试按前端规格的两项偏离说明执行；媒体与业务页仍为后续批次
   的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+- TASK-020 WebRTC/SFU 会话房间与短期媒体令牌（`task/TASK-020-session-room-media-token` 分支）：
+  - 新增 `services/room` Go 模块：会话创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*`），
+    前置校验项目 READY、本轮量表与覆盖方案就绪（FR-011）、单活动设备（TASK-018）；
+    3 分钟重连窗口（超窗 `reconnect_expired`）、设备安全转移（原设备令牌立即失效）。
+  - 短期媒体令牌（SEC-003）：HMAC-SHA256、分钟级 TTL、一次性 nonce、按 nonce 吊销，
+    与业务令牌隔离（独立密钥经 `*_REF` 注入）；`Provider` 供应商中立房间适配桩（ADR-0003）。
+  - 迁移 `0020_sessions.sql`；DOMAIN-MODEL §6.19（RoomToken）、DATA-MODEL 同步；
+    服务/HTTP 正常、异常、幂等、令牌一次性/吊销、重连窗口、设备转移测试齐备。
+    （TASK-020、FR-013、NFR-007、SEC-003）
 - TASK-018 用户材料库、设备锁与语言独立配置（`task/TASK-018-user-library-device-language` 分支）：
   - `services/project` 新增材料库（简历库/岗位库引用 + company/job_title 筛选元数据，
     `/v1/library/resumes`、`/v1/library/jobs`，幂等保存/删除）、项目列表公司/岗位筛选（FR-029）、
