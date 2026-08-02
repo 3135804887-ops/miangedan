@@ -97,6 +97,12 @@ func (a *appAdapter) AcceptDowngrade(ctx context.Context, actor project.Actor, i
 func (a *appAdapter) DeclineDowngrade(ctx context.Context, actor project.Actor, id, prompt, key string) (room.Session, error) {
 	return a.svc.DeclineDowngrade(ctx, actor, id, prompt, key)
 }
+func (a *appAdapter) FreezePreCheck(ctx context.Context, actor project.Actor, id string, in room.FreezePreCheckInput, key string) (room.PreCheck, error) {
+	return a.svc.FreezePreCheck(ctx, actor, id, in, key)
+}
+func (a *appAdapter) GetPreCheck(ctx context.Context, actor project.Actor, id string) (room.PreCheck, error) {
+	return a.svc.GetPreCheck(ctx, actor, id)
+}
 
 func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()

@@ -286,6 +286,16 @@
 > DATA-MODEL、realtime-events 同步；正常/异常/幂等/只读红线测试齐备。
 > （TASK-026、NFR-005、NFR-006）
 
+> **任务状态（2026-08-02 更新）**：TASK-027 已实现：`services/room` 扩展会前检查
+> （FR-015、FR-016）——输入模式（voice/text/camera/job_tool 封闭枚举）与便利设置
+> （对齐 project.Accommodations 计划冻结枚举）会前冻结（`session.pre_check_passed` →
+> AVATAR_CONNECTING）；摄像头/麦克风可关不扣分、数字人音视频始终开启（无关闭选项）、
+> 冻结后不可修改（幂等键重放返回首次结果）；设备报告（camera/mic/网络评级）校验
+> fail-closed。API 为 `/v1/sessions/{id}/precheck/freeze`、`/v1/sessions/{id}/precheck`；
+> 迁移为 `0027_session_prechecks.sql`；DOMAIN-MODEL §6.24、DATA-MODEL、openapi、
+> SCREEN-SPEC 同步；服务/HTTP 正常、异常、重复冻结、幂等测试齐备。
+> （TASK-027、FR-015、FR-016）
+
 ### EPIC-04 AI 编排（供应商适配、提示词、面试官图、交接、安全）
 
 目标：概率性 AI 决策与确定性业务状态严格分离；LLM 无权直接改变业务状态。

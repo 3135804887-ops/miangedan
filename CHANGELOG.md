@@ -46,6 +46,14 @@
   - 迁移 `0026_evidence_events.sql`；DOMAIN-MODEL §6.23、DATA-MODEL、realtime-events 同步；
     CI golangci 矩阵登记 evidence；正常/异常/幂等/只读红线测试齐备。
     （TASK-026、NFR-005、NFR-006）
+- TASK-027 输入模式与便利设置会前冻结（`task/TASK-027-precheck-freeze` 分支）：
+  - `services/room` 扩展会前检查（FR-015/FR-016）：输入模式与便利设置会前冻结
+    （session.pre_check_passed → AVATAR_CONNECTING）；摄像头/麦克风可关不扣分；
+    数字人音视频始终开启；冻结后不可修改；设备报告校验 fail-closed。
+  - openapi 新增 `/v1/sessions/{sessionId}/precheck/freeze`、`/v1/sessions/{sessionId}/precheck`
+    端点及 `PreCheck` schema；迁移 `0027_session_prechecks.sql`；
+    DOMAIN-MODEL §6.24、DATA-MODEL、SCREEN-SPEC 同步；
+    服务/HTTP 正常、异常、重复冻结、幂等测试齐备。（TASK-027、FR-015、FR-016）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

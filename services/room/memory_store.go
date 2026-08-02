@@ -20,6 +20,8 @@ type MemoryStore struct {
 	turns       map[string]TurnState
 	// TASK-024：工具事件。
 	toolEvents map[string][]ToolEvent
+	// TASK-027：会前冻结。
+	prechecks map[string]PreCheck
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -33,6 +35,7 @@ func NewMemoryStore() *MemoryStore {
 		transcripts: make(map[string]Transcript),
 		turns:       make(map[string]TurnState),
 		toolEvents:  make(map[string][]ToolEvent),
+		prechecks:   make(map[string]PreCheck),
 	}
 }
 
@@ -167,6 +170,25 @@ func (m *MemoryStore) ListToolEvents(dataRegion, sessionID string) ([]ToolEvent,
 	out := make([]ToolEvent, len(items))
 	copy(out, items)
 	return out, nil
+}
+
+// SavePreCheck 保存会前冻结配置（同会话覆盖）。
+func (m *MemoryStore) SavePreCheck(pc PreCheck) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.prechecks[sessionKey(pc.DataRegion, pc.SessionID)] = pc
+	return nil
+}
+
+// GetPreCheck 读取会前冻结配置；不存在返回 ErrNotFound。
+func (m *MemoryStore) GetPreCheck(dataRegion, sessionID string) (PreCheck, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	pc, ok := m.prechecks[sessionKey(dataRegion, sessionID)]
+	if !ok {
+		return PreCheck{}, ErrNotFound
+	}
+	return pc, nil
 }
 
 // RecordNonce 记录 nonce 所属会话（吊销定位用）。

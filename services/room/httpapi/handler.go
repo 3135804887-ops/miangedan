@@ -42,6 +42,9 @@ type Application interface {
 	OfferDowngrade(context.Context, project.Actor, string, string) (string, error)
 	AcceptDowngrade(context.Context, project.Actor, string, string, string) (room.Session, error)
 	DeclineDowngrade(context.Context, project.Actor, string, string, string) (room.Session, error)
+	// TASK-027 会前冻结。
+	FreezePreCheck(context.Context, project.Actor, string, room.FreezePreCheckInput, string) (room.PreCheck, error)
+	GetPreCheck(context.Context, project.Actor, string) (room.PreCheck, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现。
@@ -74,6 +77,8 @@ func New(app Application, authenticator Authenticator, dataRegion string) (http.
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/downgrade/offer", h.offerDowngrade)
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/downgrade/accept", h.acceptDowngrade)
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/downgrade/decline", h.declineDowngrade)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/precheck/freeze", h.freezePreCheck)
+	mux.HandleFunc("GET /v1/sessions/{sessionId}/precheck", h.getPreCheck)
 	return mux, nil
 }
 
@@ -146,6 +151,10 @@ func mapError(err error) (int, string, string) {
 		return http.StatusUnprocessableEntity, "invalid_input", err.Error()
 	case errors.Is(err, room.ErrSessionEnded):
 		return http.StatusConflict, "session_ended", err.Error()
+	case errors.Is(err, room.ErrPreCheckInvalid):
+		return http.StatusUnprocessableEntity, "invalid_input", err.Error()
+	case errors.Is(err, room.ErrPreCheckFrozen):
+		return http.StatusConflict, "precheck_frozen", err.Error()
 	case errors.Is(err, room.ErrEntitlementMissing):
 		return http.StatusPaymentRequired, "insufficient_entitlement", err.Error()
 	case errors.Is(err, room.ErrNotFound):
@@ -754,4 +763,61 @@ func (h *handler) declineDowngrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toSessionJSONExtended(sess))
+}
+
+func toPreCheckJSON(pc room.PreCheck) map[string]any {
+	out := map[string]any{
+		"session_id":     pc.SessionID,
+		"input_modes":    pc.InputModes,
+		"accommodations": pc.Accommodations,
+		"device_report":  pc.DeviceReport,
+		"frozen":         pc.Frozen,
+	}
+	if pc.FrozenAt != nil {
+		out["frozen_at"] = pc.FrozenAt.UTC().Format(time.RFC3339)
+	}
+	return out
+}
+
+func (h *handler) freezePreCheck(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		InputModes     []room.InputMode  `json:"input_modes"`
+		Accommodations []string          `json:"accommodations"`
+		DeviceReport   room.DeviceReport `json:"device_report"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	pc, err := h.app.FreezePreCheck(r.Context(), actor, r.PathValue("sessionId"), room.FreezePreCheckInput{
+		InputModes: req.InputModes, Accommodations: req.Accommodations, DeviceReport: req.DeviceReport,
+	}, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, toPreCheckJSON(pc))
+}
+
+func (h *handler) getPreCheck(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	pc, err := h.app.GetPreCheck(r.Context(), actor, r.PathValue("sessionId"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, toPreCheckJSON(pc))
 }

@@ -1718,6 +1718,46 @@ paths:
       responses:
         '200': { description: 已结束（评估未完成）, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
         default: { $ref: '#/components/responses/Error' }
+  # ---- TASK-027 会前检查与输入模式冻结（FR-015/FR-016） ----
+  /v1/sessions/{sessionId}/precheck/freeze:
+    post:
+      tags: [sessions]
+      operationId: freezeSessionPreCheck
+      summary: 冻结会前配置（session.pre_check_passed；摄像头/麦克风可关，数字人音视频始终开启；冻结后不可修改）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input_modes, accommodations, device_report]
+              properties:
+                input_modes: { type: array, minItems: 1, items: { type: string, enum: [voice, text, camera, job_tool] } }
+                accommodations: { type: array, items: { type: string, enum: [text_only, mixed_input, slower_avatar_speech, repeat_questions, extended_time, silence_threshold_adjusted, no_proactive_interruption, reduced_motion, tool_keyboard_alternative] } }
+                device_report:
+                  type: object
+                  required: [camera_ok, mic_ok, network_rated]
+                  properties:
+                    camera_ok: { type: boolean }
+                    mic_ok: { type: boolean }
+                    network_rated: { type: string, enum: [good, fair, poor] }
+      responses:
+        '200': { description: 已冻结（会话进入 AVATAR_CONNECTING）, content: { application/json: { schema: { $ref: '#/components/schemas/PreCheck' } } } }
+        '409': { description: 已冻结或状态冲突（precheck_frozen/state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/precheck:
+    get:
+      tags: [sessions]
+      operationId: getSessionPreCheck
+      summary: 会前冻结配置（输入模式/便利设置/设备报告）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200': { description: 会前配置, content: { application/json: { schema: { $ref: '#/components/schemas/PreCheck' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
   # ============================== scores ==============================
   /v1/projects/{projectId}/rounds/{sequence}/result:
@@ -3010,6 +3050,22 @@ components:
         event_type: { type: string, enum: [edit, run, annotate, submit] }
         content_ref: { type: string }
         created_at: { type: string, format: date-time }
+    PreCheck:
+      type: object
+      required: [session_id, input_modes, accommodations, device_report, frozen]
+      properties:
+        session_id: { type: string, format: uuid }
+        input_modes: { type: array, items: { type: string, enum: [voice, text, camera, job_tool] } }
+        accommodations: { type: array, items: { type: string } }
+        device_report:
+          type: object
+          required: [camera_ok, mic_ok, network_rated]
+          properties:
+            camera_ok: { type: boolean }
+            mic_ok: { type: boolean }
+            network_rated: { type: string, enum: [good, fair, poor] }
+        frozen: { type: boolean }
+        frozen_at: { type: ['string', 'null'], format: date-time }
     ScoreResult:
       type: object
       required: [score_id, score_version, round_sequence, result_status, data_region]

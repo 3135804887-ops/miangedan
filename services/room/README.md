@@ -33,6 +33,10 @@
   不计数字人额度）、拒绝降级 → ENDED + 评估未完成（不是失败）+ 系统责任全额返还（TASK-061
   挂接点）；3 分钟重连窗口由 TASK-020 提供。端点：
   `/v1/sessions/{id}/timer/pause|resume`、`/v1/sessions/{id}/downgrade/offer|accept|decline`。
+- **会前冻结**（TASK-027、FR-015/016）：输入模式（voice/text/camera/job_tool）与便利设置
+  会前冻结（pre_check_passed → AVATAR_CONNECTING）；摄像头/麦克风可关不扣分；数字人音视频
+  始终开启；冻结后不可修改；端点：`/v1/sessions/{id}/precheck/freeze`、
+  `/v1/sessions/{id}/precheck`。
 
 ## 用法
 

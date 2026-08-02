@@ -264,6 +264,14 @@ erDiagram
 | 关键字段 | `evidence_id`、`kind`（question_played/answer/revision/tool_event）、`event_id`（幂等）、`payload_json`、`content_hash`（SHA-256） |
 | 规则 | 只追加不更新/删除（ADR-0004）；`event_id` 幂等去重；`content_hash` 与载荷一致性校验 fail-closed；下一主问题前完成上一有效回答持久化 |
 
+### 6.24 SessionPreCheck（会前检查冻结，TASK-027）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 会前输入模式（语音/文字/摄像头/工具）与便利设置的冻结确认（FR-015、FR-016） |
+| 关键字段 | `input_modes`（封闭枚举）、`accommodations`（计划冻结枚举）、`device_report`（摄像头/麦克风/网络评级）、`frozen` |
+| 规则 | 摄像头/麦克风可关不扣分；数字人音视频始终开启（无关闭选项）；确认后不可修改（会前冻结）；便利设置不视为评分弱点 |
+
 | 要点 | 内容 |
 |---|---|
 | AccessAudit | 追加式敏感访问记录（谁、何时、何种角色、访问了什么、授权依据）；管理员不可删除；敏感访问通知用户 |

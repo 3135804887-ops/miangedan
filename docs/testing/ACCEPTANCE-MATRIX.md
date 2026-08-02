@@ -59,8 +59,8 @@
 | FR-012 | 混合问题策略 | TC-FR-012-N01 预生成主线 + 会中按实际回答动态追问 | TC-FR-012-A01 追问越出已确认范围时被决策图拦截重选 | ai_eval | EPIC-04 / TASK-032 |
 | FR-013 | 数字人实时入会 | TC-FR-013-N01 数字人以 WebRTC 视频+音频参与者加入，建连达标 | TC-FR-013-A01 静态头像/预录视频/纯文字替代被验收检测判不合规 | e2e、performance | EPIC-03 / TASK-020、021 |
 | FR-014 | 角色库与人格 | TC-FR-014-N01 角色来自固定授权 2D 库，人格/背景/风格动态生成 | TC-FR-014-A01 每场生成新脸或未授权克隆请求被拒 | integration、security | EPIC-03 / TASK-021 |
-| FR-015 | 四类输入 | TC-FR-015-N01 语音/摄像头/文字/岗位工具四通道均可作答 | TC-FR-015-A01 单通道故障时其余通道可继续完成面试 | e2e、integration | EPIC-03 / TASK-027 |
-| FR-016 | 设备开关规则 | TC-FR-016-N01 关闭摄像头/麦克风面试继续，数字人音视频始终开启 | TC-FR-016-A01 数字人视频或音频中断立即进入故障流程 | e2e、integration | EPIC-03 / TASK-027 |
+| FR-015 | 四类输入 | TC-FR-015-N01 语音/摄像头/文字/岗位工具四通道均可作答（TASK-027 会前冻结测试） | TC-FR-015-A01 单通道故障时其余通道可继续完成面试（模式枚举校验 fail-closed） | e2e、integration、unit | EPIC-03 / TASK-027 |
+| FR-016 | 设备开关规则 | TC-FR-016-N01 关闭摄像头/麦克风面试继续，数字人音视频始终开启（TASK-027 冻结语义测试） | TC-FR-016-A01 数字人视频或音频中断立即进入故障流程（TASK-025 暂停/降级） | e2e、integration、unit | EPIC-03 / TASK-027 |
 | FR-017 | 打断与回合 | TC-FR-017-N01 语音打断/停止按钮至停止发声 P95 ≤500ms | TC-FR-017-A01 重叠说话场景检测并避免，无法判断时询问是否答完 | performance、e2e | EPIC-03 / TASK-022 |
 | FR-018 | 字幕与修订 | TC-FR-018-N01 双向字幕实时展示，窗口内修订确认为评分证据（TASK-023 服务/HTTP 测试） | TC-FR-018-A01 进入下一主问题后修订被拒（回合已冻结，window_closed） | e2e、contract、unit | EPIC-03 / TASK-023 |
 | FR-019 | 岗位工具 | TC-FR-019-N01 代码/白板/案例/作品集事件全量入证据账本（TASK-024 服务/HTTP 测试） | TC-FR-019-A01 正式房间临时加载未配置工具被拒（tool_not_configured） | integration、contract、unit | EPIC-03 / TASK-024 |

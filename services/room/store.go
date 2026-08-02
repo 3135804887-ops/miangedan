@@ -15,6 +15,9 @@ type Store interface {
 	// TASK-024 工具事件存储。
 	SaveToolEvent(ToolEvent) error
 	ListToolEvents(dataRegion, sessionID string) ([]ToolEvent, error)
+	// TASK-027 会前冻结存储。
+	SavePreCheck(PreCheck) error
+	GetPreCheck(dataRegion, sessionID string) (PreCheck, error)
 }
 
 // IdempotencyStore 为写操作幂等键存储（NFR-006）。
