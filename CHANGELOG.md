@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-023 双向字幕与转写修订（`task/TASK-023-captions-revision` 分支）：
+  - `services/room` 扩展字幕/转写能力（FR-018）：ASR 临时/最终文本追加（partial 仅展示，
+    不入证据账本）、修订状态机（none → submitted → accepted/rejected）、回合冻结边界
+    （`turn.completed` 后修订一律 `rejected(window_closed)`；原始 ASR 仅诊断、修订文本为评分证据）、
+    `revision_id` 幂等与冻结前持久化顺序保证（NFR-005）。
+  - openapi 新增 `/v1/sessions/{sessionId}/transcripts`、`/v1/sessions/{sessionId}/revisions`、
+    `/v1/sessions/{sessionId}/turns/{turnIndex}/freeze` 契约与 `Transcript` schema；
+    迁移 `0023_session_transcripts.sql`；DOMAIN-MODEL §6.20、DATA-MODEL、realtime-events 同步；
+    服务/HTTP 正常、异常、窗口竞态、幂等测试齐备。（TASK-023、FR-018、NFR-005）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

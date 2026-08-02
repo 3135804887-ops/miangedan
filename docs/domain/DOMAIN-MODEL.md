@@ -231,6 +231,15 @@ erDiagram
 | 职责 | 实时会话房间的媒体面准入凭证（SEC-003），与业务令牌相互隔离 |
 | 规则 | 分钟级 TTL、一次性（nonce 消费）、可吊销（按 nonce 粒度，重连/转移后新令牌不受旧吊销影响）；claims 仅含 session_id/device_id/data_region/nonce/exp，不含业务身份；签发密钥经 `*_REF` 独立注入；会话状态见 INTERVIEW-STATE-MACHINE 6.2 |
 
+### 6.20 Transcript / TurnState（双向字幕与回合冻结，TASK-023）
+
+| 实体 | 要点 |
+|---|---|
+| Transcript | 会话内单条字幕/转写：`kind`（`partial` 仅展示 / `final` 正式文本）、原始 ASR 文本与修订文本双版本；修订状态机 `none → submitted → accepted/rejected`；冻结后禁止改写（FR-018） |
+| TurnState | 回合冻结边界：进入下一主问题（`turn.completed`）后冻结，冻结后修订一律 `rejected(window_closed)`；原始 ASR 仅诊断，评分证据使用修订文本 |
+
+规则：`partial` 不入证据账本；`final` 在 `turn.completed` 前完成持久化（NFR-005）；修订以 `revision_id` 幂等；同一 `utterance_id` 的修订在冻结时统一升级为 `accepted`。
+
 | 要点 | 内容 |
 |---|---|
 | AccessAudit | 追加式敏感访问记录（谁、何时、何种角色、访问了什么、授权依据）；管理员不可删除；敏感访问通知用户 |

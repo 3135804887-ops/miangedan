@@ -248,6 +248,15 @@
 | TASK-026 | 追加式证据账本写入管道（问题实际播放内容、回答、修订、工具事件） | NFR-005 | TASK-003 | 下一主问题前完成上一有效回答持久化；无更新/删除路径 |
 | TASK-027 | 输入模式（语音/文字/摄像头/工具）与便利设置会前冻结 | FR-015、FR-016 | TASK-020 | 摄像头/麦克风可关，数字人音视频始终开启 |
 
+> **任务状态（2026-08-02 更新）**：TASK-023 已实现：`services/room` 扩展双向字幕与转写修订
+> （FR-018）——ASR 临时/最终文本追加（partial 仅展示不入证据；final 为正式文本）、修订状态机
+> （none → submitted → accepted/rejected）、回合冻结边界（`turn.completed` 后修订一律
+> `rejected(window_closed)`，原始 ASR 仅诊断、修订文本为评分证据）、按 `revision_id` 幂等与
+> 冻结前持久化顺序保证（NFR-005）。API 为 `/v1/sessions/{id}/transcripts`、
+> `/v1/sessions/{id}/revisions`、`/v1/sessions/{id}/turns/{turnIndex}/freeze`；
+> 迁移为 `0023_session_transcripts.sql`；DOMAIN-MODEL §6.20、DATA-MODEL、openapi、
+> realtime-events 同步；服务/HTTP 正常、异常、窗口竞态、幂等测试齐备。（TASK-023、FR-018、NFR-005）
+
 ### EPIC-04 AI 编排（供应商适配、提示词、面试官图、交接、安全）
 
 目标：概率性 AI 决策与确定性业务状态严格分离；LLM 无权直接改变业务状态。
