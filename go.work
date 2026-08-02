@@ -13,6 +13,7 @@ use (
 	./services/org
 	./services/project
 	./services/region
+	./services/room
 	./services/secretref
 	./services/source
 	./services/temporal
