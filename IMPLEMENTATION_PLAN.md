@@ -320,6 +320,17 @@
 > pytest 9 用例（加载/版本/分层/注入/输出校验正常与拒绝）全绿，ruff/mypy(strict) 通过。
 > （TASK-031、FR-038 部分、PROMPT-POLICY）
 
+> **任务状态（2026-08-02 更新）**：TASK-032 已实现：`ai/services/orchestrator` 新增
+> `mgd_orchestrator.interviewer_graph`（FR-012）——与 LangGraph StateGraph 语义对齐的
+> 确定性迷你图引擎（add_node/add_conditional_edges/compile/invoke，零外部依赖，
+> 生产可同构迁移 LangGraph）：覆盖点推进（按计划冻结范围顺序推进）、动态追问
+> （weak/partial 回答在预算内追问，question_id 不越出已确认覆盖点，预算用尽后推进）、
+> 打断策略（voice/button → avatar_stopped → 聆听，未播放内容不入证据）、工具使用
+> （白名单外拒绝并终止请求，杜绝死循环）、检查点快照/恢复（重放安全，NFR-006）；
+> 图节点只产出建议，不直接写业务状态（确定性状态由 Temporal 工作流控制）。
+> pytest 15 用例（推进/追问边界/打断/工具白名单/恢复/非收敛保护）全绿，
+> ruff/mypy(strict) 通过。（TASK-032、FR-012、NFR-006）
+
 ### EPIC-05 评分与复核
 
 目标：独立、可重复、可解释、版本冻结的评分与正式复核。

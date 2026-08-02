@@ -13,10 +13,13 @@
   - 从 `ai/prompts/*.md` 解析契约元数据（prompt_id/version/layer/schema/status）；
   - 四层组装（system/developer/session/data），data 层不可信边界包裹，注入命中即标记；
   - 输出 JSON Schema 校验（fail-closed）；版本固定（活跃正式会话不匹配即拒绝）。
+- **面试官决策图**（TASK-032）：`mgd_orchestrator.interviewer_graph`
+  - 与 LangGraph StateGraph 语义对齐的确定性迷你引擎（节点/条件边/编译/调用/检查点恢复）；
+  - 覆盖点推进、动态追问（预算内且不越出已确认覆盖点）、打断策略、工具白名单；
+  - 图只产出"建议"，不直接写业务状态；重放安全（NFR-006）。
 
 ## 规划（后续任务）
 
-- TASK-032 LangGraph 面试官决策图；
 - TASK-033 计划生成链路（来源融合、轮次建议、安全过滤、重新生成）；
 - TASK-034 跨轮交接包；TASK-035 注入防护与内容安全管道；TASK-036 AI 评测框架。
 

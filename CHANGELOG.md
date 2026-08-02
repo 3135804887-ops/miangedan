@@ -60,6 +60,12 @@
     注入模式检测（命中即标记不执行）；输出 JSON Schema 校验（fail-closed）；版本固定。
   - pyproject 登记 jsonschema 依赖；pytest 9 用例、ruff、mypy(strict) 全绿。
     （TASK-031、FR-038、PROMPT-POLICY）
+- TASK-032 面试官决策图（`task/TASK-032-interviewer-graph` 分支）：
+  - `ai/services/orchestrator` 新增 `interviewer_graph`（FR-012）：与 LangGraph StateGraph
+    语义对齐的确定性迷你引擎（节点/条件边/编译/调用/检查点恢复）；覆盖点推进、动态追问
+    （预算内且不越出已确认覆盖点）、打断策略（avatar_stopped → 聆听）、工具白名单
+    （拒绝后终止请求，无死循环）；图只产出建议不写业务状态；重放安全（NFR-006）。
+  - pytest 15 用例、ruff、mypy(strict) 全绿。（TASK-032、FR-012、NFR-006）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的
