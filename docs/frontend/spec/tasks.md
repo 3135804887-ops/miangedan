@@ -77,7 +77,7 @@
   - `tools/validate_docs.py` 最小加固：`check_fences` 与 JSONL 分支补 `node_modules` 排除（与既有套件一致）
   - 需求：B0-3（1 ~ 5）、G11（3、4） | 设计：13、12
 
-- [ ] FE-0.11 批次 0 合入
+- [x] FE-0.11 批次 0 合入
   - 先合并最新 `main`；提交标题 `feat(web-batch-0): 建立 Web 工作区、设计令牌与全局壳（SCR-01~17, FR-028）`
   - PR 正文：页面→FR 映射、偏离 1（语言前缀路由）与偏离 2（Storybook 等价物）披露、`validate_docs.py` 加固说明
   - `CHANGELOG.md` 的 `[Unreleased] / Added` 记录；`IMPLEMENTATION_PLAN.md` EPIC-02 补批次追踪行
