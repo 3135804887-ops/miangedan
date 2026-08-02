@@ -2,27 +2,27 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | **批次 0 开发中断**（kiro 未继续）：代码已写、未提交、未完成安装与 CI 接入 |
+| 状态 | **批次 0 收尾中**：安装、契约生成、共享包、CI 与 A+B 全局视觉基线已完成；全仓复验与 PR 待闭环 |
 | 规格 | `docs/frontend/spec/`（自 `.kiro/specs/frontend-global-pages/` 迁入并纳入版本控制；requirements.md / design.md / tasks.md） |
 | 追踪 | PRD US-01~08；SCREEN-SPEC SCR-01~17；FR-001~040；前端批次见 `spec/tasks.md` |
 
-## 一、审读结论（2026-08-01）
+## 一、续接进度（2026-08-02）
 
-批次 0（工作区与 `apps/web` 脚手架）的**代码主体已写出但未完成**：
+批次 0（工作区与 `apps/web` 脚手架）已从中断点恢复，当前事实如下：
 
-- 已写：根 pnpm 工作区（`package.json`/`pnpm-workspace.yaml`/`tsconfig.base.json`/`eslint.config.mjs`/
-  `vitest.config.ts`/`.npmrc`）；`apps/web` Next.js App Router 骨架（`[locale]` 路由、middleware、
-  `(app)` 布局与约 25 个页面路由、room 布局、i18n 三件、lib 四件、msw mock）；`packages/`
-  （design-tokens 令牌+生成器、domain-states 状态枚举+契约断言、eslint-plugin-mgd 状态字面量禁令、
-  i18n 运行时+文案、ui 基础层）；前端工具脚本 `tools/*.mjs`。
-- 缺口：
-  1. **无 `pnpm-lock.yaml`**，且 `node_modules` 仅剩 `.pnpm`（半装状态，顶层包与 `.bin` 缺失）——
-     `pnpm run` 因此挂起，**当前不可构建/不可测试**。
-  2. `contracts/ts` 只有 `package.json`，未运行 `pnpm api:generate` 生成 `openapi.d.ts`。
-  3. `tools/validate_docs.py` 仅加了 node_modules 跳过（jsonl/fences），批次 0 的 CI 接入（FE-0.10）未完成。
-  4. `spec/tasks.md` 复选框全部未勾选（进度未回写）。
-  5. `apps/admin` 仅 README（批次 4 待办）；axe 无障碍、`scan:bundle` 等门禁未验证。
-- 红线核对：实现为静态壳 + msw mock（合成数据），未接真实后端；未发现真实 PII/密钥入库。
+- 已在 `task/frontend-batch-0-web-scaffold` 合并最新 `main`；OpenAPI、PRD、默认流程与已接受 ADR
+  相对中断点无规格漂移，后端 TASK-020/021/022/030 的最新实现仅作为后续批次契约背景。
+- 已生成 pnpm 11.18.0 单一锁文件；`openapi-typescript@7.13.0` 与 TypeScript 5.9.3 的 peer 契约
+  已校验，`pnpm install --frozen-lockfile` 与 `pnpm peers check` 均通过。
+- `contracts/ts/openapi.d.ts` 与 `SOURCE.md` 已由只读 OpenAPI 契约生成，`api:check` 校验零漂移。
+- UI 缺失原语、axe/交互/状态/隐私/幂等测试、i18n 源码键解析与打包扫描已补齐；当前
+  17 个测试文件、91 个测试通过。
+- CI 保持原 job 与 `needs` 链不变，只在阶段 2/3/6 挂接前端静态检查、测试、构建与产物扫描。
+- 全部前端门禁、文档 17 套校验与 20 个 Go 模块构建已通过；FE-0.1 ~ FE-0.10 已据实回写。
+- 已按 `claude-design` 三向对比收敛为 A+B 视觉基线：纯文字品牌、编辑网格与工具型状态反馈；
+  1280px / 388px 浏览器检查无横向溢出，移动端最小可见交互目标 56px，控制台零警告/错误。
+- 待办仅剩：复跑全门禁并经 PR/CI 合入（FE-0.11）。
+- 红线核对：仍为静态壳 + MSW 合成 mock；未接真实后端或媒体供应商，未写入真实 PII、密钥或媒体。
 
 ## 二、文件地图
 
@@ -35,19 +35,15 @@ packages/domain-states/    # 项目/会话/便利设置状态枚举 + 契约断�
 packages/eslint-plugin-mgd/# 禁止状态字面量（防状态机漂移）
 packages/i18n/             # zh-CN/en-US 运行时与文案
 packages/ui/               # 基础组件层（primitive/pattern/a11y）
-contracts/ts/              # openapi.yaml 生成的只读类型（未生成，待补）
+contracts/ts/              # openapi.yaml 生成的只读类型 + SOURCE 来源标记
 tools/*.mjs                # api:generate/stamp/check、bundle 密钥扫描
 ```
 
-## 三、续接步骤（恢复批次 0）
+## 三、剩余步骤（完成批次 0）
 
-1. 修复安装：删除半装 `node_modules`，`pnpm install` 生成并**提交 `pnpm-lock.yaml`**。
-2. `pnpm api:generate` 生成 `contracts/ts/openapi.d.ts` 并提交。
-3. 跑 `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` / `pnpm scan:bundle` 全绿。
-4. 完成 FE-0.10：前端 lint/typecheck/test/build 接入 CI 阶段 2/6（ci.yml 预留挂接点）。
-5. 回写 `spec/tasks.md` 勾选进度；按批次 0 合入任务提交 PR（分支
-   `task/frontend-batch-0-web-scaffold`）。
-6. 批次 1~4 按 `spec/tasks.md` 顺序推进（SCR-01~17）。
+1. 复跑全门禁，同步 `CHANGELOG.md` 与 `IMPLEMENTATION_PLAN.md`。
+2. 推送分支、创建批次 0 PR，等待必需检查全绿后 squash 合入 `main`。
+3. 从最新 `main` 依次推进批次 1 ~ 4（SCR-01 ~ 17）。
 
 ## 四、红线
 

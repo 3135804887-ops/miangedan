@@ -5,3 +5,8 @@ packages:
   - apps/*
   - packages/*
   - contracts/ts
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  msw: false
+  sharp: true

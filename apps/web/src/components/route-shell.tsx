@@ -28,12 +28,30 @@ export function RouteShell({
     <section
       data-mgd-scr={scrId}
       data-mgd-route-shell="true"
-      className={fullWidth ? 'mgd-shell--full' : undefined}
+      className={['mgd-route-shell', fullWidth ? 'mgd-route-shell--full' : undefined]
+        .filter((value): value is string => value !== undefined)
+        .join(' ')}
     >
-      <h1>{title}</h1>
-      <p className="text-caption text-neutral-600">
-        <span data-mgd-scr-label>{scrId}</span> · {notice}
-      </p>
+      <header className="mgd-route-shell__header">
+        <div className="mgd-route-shell__index">
+          <p className="mgd-route-shell__eyebrow">
+            <span data-mgd-scr-label>{scrId}</span>
+          </p>
+          <div className="mgd-route-shell__rail" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+        <div className="mgd-route-shell__intro">
+          <h1>{title}</h1>
+          <div className="mgd-route-shell__notice">
+            <span aria-hidden="true" />
+            <p>{notice}</p>
+          </div>
+        </div>
+      </header>
       {children}
     </section>
   );

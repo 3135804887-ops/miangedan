@@ -1,6 +1,6 @@
 /**
  * 语言前缀路由（偏离 1：SCREEN-SPEC 第 5 节路由建议的扩展）。
- * 全部页面在 /{locale} 前缀下提供；无前缀路径由 middleware 重定向到带前缀等价路径。
+ * 全部页面在 /{locale} 前缀下提供；无前缀路径由 proxy 重定向到带前缀等价路径。
  */
 
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@mgd/i18n';

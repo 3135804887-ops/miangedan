@@ -11,6 +11,10 @@ export {
 } from './a11y/status-icons.tsx';
 
 export { Button, type ButtonProps, type ButtonVariant } from './primitives/button.tsx';
+export { IconButton, type IconButtonProps } from './primitives/icon-button.tsx';
+export { Switch, type SwitchProps } from './primitives/switch.tsx';
+export { Field, type FieldProps } from './primitives/field.tsx';
+export { AlertDialog, type AlertDialogProps } from './primitives/alert-dialog.tsx';
 export { Skeleton, type SkeletonProps } from './primitives/skeleton.tsx';
 export {
   assertDisabledReason,
@@ -28,6 +32,7 @@ export {
   type UserFacingErrorView,
 } from './patterns/error-panel.tsx';
 export { StatusBadge, type StatusBadgeProps } from './patterns/status-badge.tsx';
+export { DisclosureNote, type DisclosureNoteProps } from './patterns/disclosure-note.tsx';
 export {
   StateView,
   type AcquirePath,

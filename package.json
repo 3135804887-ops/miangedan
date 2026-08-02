@@ -2,6 +2,7 @@
   "name": "miangedan-frontend-workspace",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "面个蛋前端工作区：apps/web（求职者端）、apps/admin（运营后台）与共享包",
   "packageManager": "pnpm@11.18.0",
   "engines": {
@@ -10,6 +11,8 @@
   "scripts": {
     "tokens:build": "pnpm --filter @mgd/design-tokens run build",
     "tokens:check": "pnpm --filter @mgd/design-tokens run check",
+    "tokens:check-names": "pnpm --filter @mgd/design-tokens run check",
+    "tokens:check-contrast": "pnpm --filter @mgd/design-tokens run check",
     "api:generate": "openapi-typescript docs/api/openapi.yaml -o contracts/ts/openapi.d.ts && node tools/stamp-contract-source.mjs",
     "api:check": "node tools/check-contract-artifact.mjs",
     "i18n:check": "node packages/i18n/scripts/check-keys.mjs",
@@ -35,7 +38,7 @@
     "jsdom": "30.0.1",
     "msw": "2.15.0",
     "openapi-typescript": "7.13.0",
-    "typescript": "7.0.2",
+    "typescript": "5.9.3",
     "typescript-eslint": "8.65.0",
     "vitest": "4.1.10"
   }

@@ -1,7 +1,9 @@
 /**
- * 语言前缀中间件（需求 G3 第 1~3 条）。
+ * 语言前缀代理（需求 G3 第 1~3 条）。
  * - 无前缀路径重定向到带前缀等价路径
  * - 不支持的 locale 段按 en-US 回退渲染
+ *
+ * Next.js 16 使用 proxy.ts 取代已弃用的 middleware.ts 文件约定。
  */
 
 import createMiddleware from 'next-intl/middleware';

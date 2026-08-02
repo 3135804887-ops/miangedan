@@ -63,6 +63,7 @@ export function Button({
         data-mgd-control={controlId}
         data-mgd-state={inert ? (loading ? 'loading' : 'disabled') : 'default'}
         className={['mgd-button', VARIANT_CLASS[variant], TARGET_SIZE_CLASS[targetSize]].join(' ')}
+        disabled={inert}
         aria-disabled={inert ? true : undefined}
         aria-busy={loading ? true : undefined}
         aria-describedby={describedByIds.length > 0 ? describedByIds.join(' ') : undefined}

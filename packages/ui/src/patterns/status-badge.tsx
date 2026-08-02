@@ -6,7 +6,7 @@
  */
 
 import { projectStatusTone, type ProjectStatus, type ResultTone } from '@mgd/domain-states';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 import {
   FailIcon,
@@ -15,7 +15,7 @@ import {
   PassIcon,
 } from '../a11y/status-icons.tsx';
 
-const TONE_ICON: Readonly<Record<ResultTone, () => ReactNode>> = {
+const TONE_ICON: Readonly<Record<ResultTone, ComponentType<{ readonly className?: string }>>> = {
   pass: PassIcon,
   fail: FailIcon,
   incomplete: IncompleteIcon,

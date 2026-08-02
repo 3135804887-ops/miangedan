@@ -221,6 +221,16 @@ graph TD
 建议：调整 color.warning 的占位色值，或将该组合改为 large 文本用途。
 ```
 
+### 3.5 批次 0 视觉基线
+
+全局壳采用 `claude-design` 设计流程完成三向对比后收敛为 **A+B 融合**：A 取瑞士编辑系统的网格、编号、发丝线与留白，B 取训练仪器的状态可读性与实体控制感。该基线只规定信息秩序，不新增 PRD 未声明的功能或状态：
+
+- 品牌入口使用纯文字 `面个蛋 MianGeDan`；OD-04 未关闭前不伪造 Logo、插画、照片或品牌字体。
+- 导航使用稳定编号与无圆角分区；常规页面用「SCR 编号栏 + 页面简报」构图，房间页保留全宽能力。
+- 操作反馈优先使用边界、文字、图标和明确状态，不使用装饰性渐变、虚构读数或静态媒体冒充实时输出。
+- 颜色、字号、间距、焦点环与命中尺寸仍全部来自本节令牌；视觉收敛不得绕过 WCAG 2.2 AA。
+- 390px 移动端导航改为两列换行，不使用横向滚动条；桌面 1280px 与移动端 388px 实际浏览器检查均无横向溢出，移动端最小可见交互目标为 56px。
+
 ## 4. UI_Kit 组件清单与状态模型（满足 G5、G4、G2）
 
 ### 4.1 组件清单
@@ -377,7 +387,7 @@ i18n 键命名规范：`error.<code>.impact|dataRetained|retryAction|billing|sco
 - **资源组织**：`packages/i18n/messages/{locale}/<namespace>.json`，命名空间按页面组切分（`common`、`error`、`scr01-landing` … `scr17-admin`），减少批次间合并冲突。
 - **键命名**：`<namespace>.<block>.<element>`，全小写点分；固定文案红线单独收在 `common.redline.*`（`passCongrats`、`evaluationIncompleteNotFailure`、`practiceNoScoreChange`、`exportTrainingDisclaimer`）便于快照测试定位。
 - **ICU 用法**：复数用 `{count, plural, one {…} other {…}}`；日期用 `{at, date, medium}`；货币用 `{amount, number, ::currency/CNY}`，金额单位为最小货币单位（openapi `Money.amount` 为分），格式化前除以 100 由 `format.ts` 的 `formatMoney(money, locale)` 统一处理。
-- **路由与回退**：`middleware.ts` 使用 `packages/i18n/src/config.ts` 的 `SUPPORTED_LOCALES`、`DEFAULT_LOCALE = 'zh-CN'`、`FALLBACK_LOCALE = 'en-US'`；无前缀路径 308 重定向到带前缀等价路径；不支持的 locale 段按 `en-US` 渲染。根布局输出 `<html lang={locale}>`。
+- **路由与回退**：`proxy.ts`（Next.js 16 约定）使用 `packages/i18n/src/config.ts` 的 `SUPPORTED_LOCALES`、`DEFAULT_LOCALE = 'zh-CN'`、`FALLBACK_LOCALE = 'en-US'`；无前缀路径 308 重定向到带前缀等价路径；不支持的 locale 段按 `en-US` 渲染。根布局输出 `<html lang={locale}>`。
 - **缺失键检测**：`pnpm i18n:check` 做三件事——①两语言键集合求对称差，非空即失败；②用 `ts-morph` 提取源码中 `t('…')` 的字面量键，检查在 `zh-CN` 与 `en-US` 均存在；③检查 ICU 占位符集合在两语言一致。失败输出 `缺失键: scr10-result.pass.congrats@en-US`。
 - **界面语言与面试语言分离**：`interfaceLocale` 来自 URL 段，`interviewLanguage` 来自项目/账户数据（openapi `Language` 枚举），两者在 `settings` 页为两个独立控件，类型上不可互相赋值（`interviewLanguage` 使用品牌类型 `InterviewLanguage`）。
 - **中英文分别撰写**：`messages/en-US/**` 不是机翻产物，`pnpm i18n:check` 额外校验两语言同键值不得完全相同（除品牌名、数字与代码类值的白名单），命中即提示需要人工撰写英文文案。
@@ -631,7 +641,7 @@ export function reportEvent(e: TelemetryEvent): void;   // 唯一出口
 
 `.github/actions/setup-frontend/action.yml`（批次 0 新增）：`pnpm/action-setup@v4`（不传 `version`，从根 `package.json` 的 `packageManager` 字段读取 `pnpm@11.18.0`）+ `actions/setup-node@v4`（`node-version: 22`、`cache: pnpm`）+ `pnpm install --frozen-lockfile`。顺序上 pnpm 必须先于 `setup-node`，否则 `cache: pnpm` 找不到包管理器。三个 job 各自只增加 `- uses: ./.github/actions/setup-frontend` 与少量 `run` 步骤，把与其他窗口的文本冲突面压到最小。
 
-工具链版本（2026-08-01 实测锁定，全部精确固定，符合 AGENTS.md 第 3 节）：Node 22（CI）/ `engines.node >= 20.9`、pnpm 11.18.0、Next 16.2.12、React 19.2.8、TypeScript 7.0.2、ESLint 10.8.0、Tailwind 4.3.3、Vitest 4.1.10、MSW 2.15.0、next-intl 4.13.4、openapi-typescript 7.13.0、axe-core 4.12.1。
+工具链版本（批次 0 兼容性复核后锁定，全部精确固定，符合 AGENTS.md 第 3 节）：Node 22（CI）/ `engines.node >= 20.9`、pnpm 11.18.0、Next 16.2.12、React 19.2.8、TypeScript 5.9.3、ESLint 10.8.0、Tailwind 4.3.3、Vitest 4.1.10、MSW 2.15.0、next-intl 4.13.4、openapi-typescript 7.13.0、axe-core 4.12.1。`openapi-typescript@7.13.0` 的 peer 契约要求 TypeScript `^5.x`；使用 5.9.3 保证类型生成与 `tsc --noEmit` 共享同一受支持编译器，不降低 `strict: true` 基线。
 
 ### 13.2 各阶段新增步骤
 
@@ -672,7 +682,7 @@ export function reportEvent(e: TelemetryEvent): void;   // 唯一出口
 
 ### 15.1 偏离 1：语言前缀路由
 
-设计体现：`middleware.ts` 的 308 重定向 + `app/[locale]/` 目录结构 + `packages/i18n/src/config.ts` 的三个常量。SCREEN-SPEC 第 5 节的建议路径全部仍可访问（重定向到带前缀等价路径）。批次 0 PR 正文列出前缀规则与重定向行为。
+设计体现：`proxy.ts` 的 308 重定向 + `app/[locale]/` 目录结构 + `packages/i18n/src/config.ts` 的三个常量。SCREEN-SPEC 第 5 节的建议路径全部仍可访问（重定向到带前缀等价路径）。批次 0 PR 正文列出前缀规则与重定向行为。
 
 ### 15.2 偏离 2：以测试断言替代 Storybook
 

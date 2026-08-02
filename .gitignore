@@ -16,6 +16,7 @@ build/
 out/
 .next/
 coverage/
+*.tsbuildinfo
 __pycache__/
 *.py[cod]
 .venv/

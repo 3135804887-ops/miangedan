@@ -51,34 +51,42 @@ export default async function LocaleLayout({ children, params }: LayoutProps): P
             {t('nav.skipToContent')}
           </a>
 
-          <header>
-            <nav aria-label={t('nav.primaryLabel')}>
-              <span className="mgd-brand">{t('brand.name')}</span>
-              <ul>
+          <header className="mgd-site-header">
+            <nav className="mgd-global-nav mgd-shell" aria-label={t('nav.primaryLabel')}>
+              <Link className="mgd-brand" href="/" aria-label={t('brand.name')}>
+                <span className="mgd-brand__copy">
+                  <strong className="mgd-brand__name">{t('brand.name')}</strong>
+                  <small className="mgd-brand__tagline">{t('brand.tagline')}</small>
+                </span>
+              </Link>
+              <ul className="mgd-primary-links">
                 <li>
-                  <Link href="/">{t('nav.landing')}</Link>
+                  <Link href="/"><span aria-hidden="true">01</span>{t('nav.landing')}</Link>
                 </li>
                 <li>
-                  <Link href="/dashboard">{t('nav.dashboard')}</Link>
+                  <Link href="/dashboard"><span aria-hidden="true">02</span>{t('nav.dashboard')}</Link>
                 </li>
                 <li>
-                  <Link href="/library">{t('nav.library')}</Link>
+                  <Link href="/library"><span aria-hidden="true">03</span>{t('nav.library')}</Link>
                 </li>
                 <li>
-                  <Link href="/billing">{t('nav.billing')}</Link>
+                  <Link href="/billing"><span aria-hidden="true">04</span>{t('nav.billing')}</Link>
                 </li>
                 <li>
-                  <Link href="/settings">{t('nav.settings')}</Link>
+                  <Link href="/settings"><span aria-hidden="true">05</span>{t('nav.settings')}</Link>
                 </li>
               </ul>
             </nav>
           </header>
 
           {/* 宽度约束交给 (app) / (room) 路由组布局，房间页需要全宽 */}
-          <main id="main-content">{children}</main>
+          <main id="main-content" className="mgd-main">{children}</main>
 
-          <footer aria-label={t('nav.footerLabel')}>
-            <p>{t('brand.tagline')}</p>
+          <footer className="mgd-site-footer" aria-label={t('nav.footerLabel')}>
+            <div className="mgd-shell mgd-site-footer__inner">
+              <p><strong>{t('brand.name')}</strong></p>
+              <p>{t('brand.tagline')}</p>
+            </div>
           </footer>
         </NextIntlClientProvider>
       </body>
