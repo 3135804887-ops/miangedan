@@ -1,24 +1,30 @@
-/** SCR-06 路由壳（批次 0 建立，页面内容在后续批次落地）。 */
+/** SCR-06 面试计划。 */
 
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { PROJECT_STATUSES } from '@mgd/domain-states';
+import { setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { RouteShell } from '../../../../../../components/route-shell.tsx';
+import { PlanExperience } from '../../../../../../features/batch1/plan-experience.tsx';
+import { normalizePreviewState } from '../../../../../../lib/preview-state.ts';
+import { type PageSearchParams, readSearchParam } from '../../../../../../lib/search-params.ts';
 
 export default async function Scr06PlanPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; id: string }>;
+  searchParams: PageSearchParams;
 }): Promise<ReactNode> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('common');
-
+  const query = await searchParams;
+  const phase = readSearchParam(query, 'phase');
+  const projectStatus = phase === 'generating' ? PROJECT_STATUSES[4] : phase === 'failed' ? PROJECT_STATUSES[6] : phase === 'confirmed' ? PROJECT_STATUSES[7] : PROJECT_STATUSES[5];
   return (
-    <RouteShell
-      scrId="SCR-06"
-      title={t('pages.scr06Plan')}
-      notice={t('pages.shellNotice')}
+    <PlanExperience
+      mode={normalizePreviewState(readSearchParam(query, 'state'))}
+      projectStatus={projectStatus}
+      hasUnreadyRound={readSearchParam(query, 'round') === 'unready'}
     />
   );
 }

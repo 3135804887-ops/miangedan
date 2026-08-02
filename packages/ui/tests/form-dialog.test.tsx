@@ -81,7 +81,7 @@ describe('UI 基础组件无障碍状态', () => {
 
   it('DisclosureNote 是只读说明而不是编辑控件', () => {
     render(<DisclosureNote title="评分规则">60 分门槛在开始后冻结。</DisclosureNote>);
-    expect(screen.getByRole('region', { name: '评分规则' }).getAttribute('aria-readonly')).toBe('true');
+    expect(screen.getByRole('region', { name: '评分规则' }).getAttribute('data-mgd-readonly')).toBe('true');
     expect(screen.queryByRole('button')).toBeNull();
   });
 });

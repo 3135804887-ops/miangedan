@@ -202,6 +202,13 @@
 > frontend-batch-1 ~ 4 分别落地 SCR-01 ~ 07、SCR-08/09、SCR-10 ~ 15、SCR-16/17。
 > （frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
 
+> **前端交付追踪（frontend-global-pages / frontend-batch-1）**：SCR-01 ~ SCR-07 已落地双语、
+> 响应式与六视图（正常 + 空/加载/错误/权限不足/恢复）实现；覆盖无登录合成样例、四种登录入口与
+> 邮箱回退、15 项项目状态与 URL 筛选、双栏材料输入、三态解析校对、四态计划与 9 项独立便利设置、
+> 五项会前检查与额度阻止。所有页面只使用 synthetic Mock 和共享领域枚举；中英文 axe
+> serious/critical 为 0，异常与幂等路径纳入阶段 3 测试。（frontend-batch-1、SCR-01 ~ SCR-07、
+> FR-001 ~ FR-012、FR-015、FR-016、FR-027 ~ FR-031、NFR-007、NFR-015、NFR-016）
+
 > **任务状态（2026-08-02 更新）**：TASK-020 已实现：`services/room`（新 Go 模块，登记 go.work 与 CI 矩阵）
 > 提供会话房间创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*` 契约）：
 > 前置校验项目 READY + 本轮量表/覆盖方案就绪（FR-011）+ 单活动设备（TASK-018 ClaimDevice）；

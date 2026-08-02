@@ -68,6 +68,7 @@ export function Button({
         aria-describedby={describedByIds.length > 0 ? describedByIds.join(' ') : undefined}
         // disabled 态移出 Tab 序（DESIGN-SYSTEM 第 8 节：不可聚焦）
         tabIndex={inert ? -1 : rest.tabIndex}
+        onClick={inert ? undefined : rest.onClick}
       >
         {children}
         {loading && busyLabel !== undefined ? (

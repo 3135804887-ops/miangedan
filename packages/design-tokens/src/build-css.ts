@@ -65,8 +65,8 @@ function buildThemeCss(tokens: TokenSet): string {
   const lines: string[] = [
     HEADER,
     '',
-    '/* Tailwind v4 CSS-first 主题：只做「Tailwind 命名空间 → 令牌变量」的转发， */',
-    '/* 因此换肤时只需改 tokens/*.json 的 value，主题映射保持不变。 */',
+    '/* Tailwind v4 CSS-first 主题：常规值转发到 CSS 变量。 */',
+    '/* 断点必须在生成期内联：CSS 媒体查询不接受 var()，值仍来自 tokens/*.json。 */',
     '@theme inline {',
   ];
 
@@ -93,8 +93,8 @@ function buildThemeCss(tokens: TokenSet): string {
   }
 
   lines.push('');
-  for (const key of Object.keys(tokens.breakpoint)) {
-    lines.push(`  --breakpoint-${kebab(key)}: var(--mgd-breakpoint-${kebab(key)});`);
+  for (const [key, leaf] of Object.entries(tokens.breakpoint)) {
+    lines.push(`  --breakpoint-${kebab(key)}: ${leaf.value};`);
   }
 
   lines.push('}', '');

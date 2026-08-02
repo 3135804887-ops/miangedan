@@ -1,24 +1,21 @@
-/** SCR-02 路由壳（批次 0 建立，页面内容在后续批次落地）。 */
+/** SCR-02 登录与注册。 */
 
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { RouteShell } from '../../../../components/route-shell.tsx';
+import { AuthExperience } from '../../../../features/batch1/auth-experience.tsx';
+import { normalizePreviewState } from '../../../../lib/preview-state.ts';
+import { type PageSearchParams, readSearchParam } from '../../../../lib/search-params.ts';
 
 export default async function Scr02AuthPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: PageSearchParams;
 }): Promise<ReactNode> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('common');
-
-  return (
-    <RouteShell
-      scrId="SCR-02"
-      title={t('pages.scr02Auth')}
-      notice={t('pages.shellNotice')}
-    />
-  );
+  const query = await searchParams;
+  return <AuthExperience mode={normalizePreviewState(readSearchParam(query, 'state'))} />;
 }

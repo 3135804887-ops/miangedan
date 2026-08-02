@@ -1,24 +1,21 @@
-/** SCR-04 路由壳（批次 0 建立，页面内容在后续批次落地）。 */
+/** SCR-04 创建项目。 */
 
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { RouteShell } from '../../../../../components/route-shell.tsx';
+import { CreateProjectExperience } from '../../../../../features/batch1/create-project-experience.tsx';
+import { normalizePreviewState } from '../../../../../lib/preview-state.ts';
+import { type PageSearchParams, readSearchParam } from '../../../../../lib/search-params.ts';
 
 export default async function Scr04ProjectNewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: PageSearchParams;
 }): Promise<ReactNode> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('common');
-
-  return (
-    <RouteShell
-      scrId="SCR-04"
-      title={t('pages.scr04ProjectNew')}
-      notice={t('pages.shellNotice')}
-    />
-  );
+  const query = await searchParams;
+  return <CreateProjectExperience mode={normalizePreviewState(readSearchParam(query, 'state'))} />;
 }

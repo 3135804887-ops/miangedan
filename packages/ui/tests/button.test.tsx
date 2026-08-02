@@ -4,7 +4,8 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Button } from '../src/primitives/button.tsx';
 
@@ -19,8 +20,9 @@ describe('Button 七态', () => {
   });
 
   it('disabled：不可聚焦、aria-disabled 为 true，并渲染禁用原因', () => {
+    const onClick = vi.fn();
     render(
-      <Button controlId="start-round" disabled disabledReason="本轮量表未就绪">
+      <Button controlId="start-round" disabled disabledReason="本轮量表未就绪" onClick={onClick}>
         开始本轮
       </Button>,
     );
@@ -30,6 +32,8 @@ describe('Button 七态', () => {
     expect(button.tabIndex).toBe(-1);
     expect(screen.getByText('本轮量表未就绪')).toBeTruthy();
     expect(button.getAttribute('aria-describedby')).toContain('start-round-disabled-reason');
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   it('disabled 缺少原因时开发期抛错，避免静默违反 DESIGN-SYSTEM 第 8 节', () => {

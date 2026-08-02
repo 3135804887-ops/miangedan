@@ -1,24 +1,27 @@
-/** SCR-07 路由壳（批次 0 建立，页面内容在后续批次落地）。 */
+/** SCR-07 会前检查。 */
 
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { RouteShell } from '../../../../../../components/route-shell.tsx';
+import { PrecheckExperience } from '../../../../../../features/batch1/precheck-experience.tsx';
+import { normalizePreviewState } from '../../../../../../lib/preview-state.ts';
+import { type PageSearchParams, readSearchParam } from '../../../../../../lib/search-params.ts';
 
 export default async function Scr07PrecheckPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; id: string }>;
+  searchParams: PageSearchParams;
 }): Promise<ReactNode> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('common');
-
+  const query = await searchParams;
   return (
-    <RouteShell
-      scrId="SCR-07"
-      title={t('pages.scr07Precheck')}
-      notice={t('pages.shellNotice')}
+    <PrecheckExperience
+      mode={normalizePreviewState(readSearchParam(query, 'state'))}
+      insufficientQuota={readSearchParam(query, 'quota') === 'insufficient'}
+      otherDeviceActive={readSearchParam(query, 'device') === 'active'}
     />
   );
 }

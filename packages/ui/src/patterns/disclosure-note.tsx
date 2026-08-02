@@ -8,7 +8,7 @@ export interface DisclosureNoteProps {
 /** 评分门槛、冻结规则等不可编辑内容的只读说明区。 */
 export function DisclosureNote({ title, children }: DisclosureNoteProps): ReactNode {
   return (
-    <section className="mgd-disclosure-note" aria-readonly="true" aria-label={title}>
+    <section className="mgd-disclosure-note" data-mgd-readonly="true" aria-label={title}>
       <h2>{title}</h2>
       <div>{children}</div>
     </section>

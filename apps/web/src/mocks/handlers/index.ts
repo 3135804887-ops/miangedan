@@ -10,6 +10,7 @@ import { http, HttpResponse } from 'msw';
 import type { RequestHandler } from 'msw';
 
 import { API_BASE_PATH } from '../../lib/api-fetch.ts';
+import { batch1Handlers } from './batch1.ts';
 
 /** 合成错误信封，形状与 openapi components.schemas.Error 一致。 */
 export function errorEnvelope(code: string, traceId = 'synthetic-trace-0001') {
@@ -31,4 +32,4 @@ export const fallbackHandlers: RequestHandler[] = [
   ),
 ];
 
-export const handlers: RequestHandler[] = [...fallbackHandlers];
+export const handlers: RequestHandler[] = [...batch1Handlers, ...fallbackHandlers];

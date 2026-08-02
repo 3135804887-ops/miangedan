@@ -1,24 +1,24 @@
-/** SCR-05 路由壳（批次 0 建立，页面内容在后续批次落地）。 */
+/** SCR-05 解析校对。 */
 
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { PROJECT_STATUSES } from '@mgd/domain-states';
+import { setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { RouteShell } from '../../../../../../components/route-shell.tsx';
+import { ReviewExperience } from '../../../../../../features/batch1/review-experience.tsx';
+import { normalizePreviewState } from '../../../../../../lib/preview-state.ts';
+import { type PageSearchParams, readSearchParam } from '../../../../../../lib/search-params.ts';
 
 export default async function Scr05ReviewPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; id: string }>;
+  searchParams: PageSearchParams;
 }): Promise<ReactNode> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('common');
-
-  return (
-    <RouteShell
-      scrId="SCR-05"
-      title={t('pages.scr05Review')}
-      notice={t('pages.shellNotice')}
-    />
-  );
+  const query = await searchParams;
+  const phase = readSearchParam(query, 'phase');
+  const projectStatus = phase === 'parsing' ? PROJECT_STATUSES[1] : phase === 'failed' ? PROJECT_STATUSES[3] : PROJECT_STATUSES[2];
+  return <ReviewExperience mode={normalizePreviewState(readSearchParam(query, 'state'))} projectStatus={projectStatus} />;
 }

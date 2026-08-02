@@ -15,6 +15,13 @@
 
 ### Added
 
+- frontend-global-pages 批次 1：完整实现 SCR-01 ~ SCR-07 的落地/样例、登录注册、工作台、
+  创建项目、解析校对、面试计划与会前检查页面；七个页面组均支持正常、空、加载、错误、
+  权限不足与恢复视图，采用 `packages/domain-states` 的项目/便利设置枚举和 synthetic Mock。
+  新增双语页面命名空间、URL 筛选恢复、上传拒绝保留、材料缺失明确同意、计划冻结/只读规则、
+  额度阻止与单项检查幂等重试；中英文 axe serious/critical 为 0，并修复 RSC 状态解析边界与
+  Tailwind 断点生成的媒体查询兼容性。（frontend-batch-1、SCR-01 ~ SCR-07、FR-001 ~ FR-012、
+  FR-015、FR-016、FR-027 ~ FR-031、NFR-007、NFR-015、NFR-016）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

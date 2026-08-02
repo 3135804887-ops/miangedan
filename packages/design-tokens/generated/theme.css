@@ -2,8 +2,8 @@
 /* 令牌事实源：packages/design-tokens/tokens/*.json */
 /* 重新生成：pnpm tokens:build　校验：pnpm tokens:check */
 
-/* Tailwind v4 CSS-first 主题：只做「Tailwind 命名空间 → 令牌变量」的转发， */
-/* 因此换肤时只需改 tokens/*.json 的 value，主题映射保持不变。 */
+/* Tailwind v4 CSS-first 主题：常规值转发到 CSS 变量。 */
+/* 断点必须在生成期内联：CSS 媒体查询不接受 var()，值仍来自 tokens/*.json。 */
 @theme inline {
   --color-primary: var(--mgd-color-primary);
   --color-success: var(--mgd-color-success);
@@ -43,6 +43,6 @@
   --spacing-8: var(--mgd-space-8);
   --spacing-12: var(--mgd-space-12);
 
-  --breakpoint-tablet: var(--mgd-breakpoint-tablet);
-  --breakpoint-desktop: var(--mgd-breakpoint-desktop);
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
 }
