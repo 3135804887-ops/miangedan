@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 import { ErrorIcon } from '../a11y/status-icons.tsx';
 import {
@@ -28,11 +28,13 @@ export function Switch({
   errorMessage,
   onCheckedChange,
 }: SwitchProps): ReactNode {
-  assertDisabledReason(controlId, disabled, disabledReason);
+  const generatedId = useId().replaceAll(':', '');
+  const cid = controlId ?? `sw-${generatedId}`;
+  assertDisabledReason(cid, disabled, disabledReason);
   const inert = disabled || loading;
   const describedBy = [
-    disabled && disabledReason !== undefined ? `${controlId}-disabled-reason` : undefined,
-    errorMessage !== undefined ? `${controlId}-error` : undefined,
+    disabled && disabledReason !== undefined ? `${cid}-disabled-reason` : undefined,
+    errorMessage !== undefined ? `${cid}-error` : undefined,
   ].filter((id): id is string => id !== undefined);
 
   return (
@@ -46,7 +48,7 @@ export function Switch({
         aria-busy={loading ? true : undefined}
         aria-describedby={describedBy.length > 0 ? describedBy.join(' ') : undefined}
         tabIndex={inert ? -1 : undefined}
-        data-mgd-control={controlId}
+        data-mgd-control={cid}
         data-mgd-state={inert ? (loading ? 'loading' : 'disabled') : errorMessage === undefined ? 'default' : 'error'}
         className={['mgd-switch', TARGET_SIZE_CLASS.min].join(' ')}
         onClick={inert ? undefined : () => onCheckedChange?.(!checked)}
@@ -58,12 +60,12 @@ export function Switch({
         {loading && busyLabel !== undefined ? <span>{busyLabel}</span> : null}
       </button>
       {disabled && disabledReason !== undefined ? (
-        <span id={`${controlId}-disabled-reason`} className="text-caption text-neutral-600">
+        <span id={`${cid}-disabled-reason`} className="text-caption text-neutral-600">
           {disabledReason}
         </span>
       ) : null}
       {errorMessage !== undefined ? (
-        <span id={`${controlId}-error`} className="mgd-inline-error" data-mgd-error={controlId}>
+        <span id={`${cid}-error`} className="mgd-inline-error" data-mgd-error={cid}>
           <ErrorIcon />
           <span>{errorMessage}</span>
         </span>

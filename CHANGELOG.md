@@ -81,7 +81,20 @@
   `contracts/ts` 类型，接入阶段 2 的 lint/typecheck/i18n/令牌/API 漂移检查、阶段 3 的
   Vitest/axe/隐私与幂等测试、阶段 6 的生产构建与 bundle 密钥扫描。
   语言前缀路由与 Storybook 等价测试按前端规格的两项偏离说明执行；媒体与业务页仍为后续批次
-  的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+   的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+- frontend-batch-1~4 完全重构（`task/frontend-batch-1-4-full-pages` 分支）：
+  - 路由壳全部替换为真实业务页面（SCR-01~17）：落地页、邮箱验证码/第三方登录、工作台
+    （统计/筛选/状态机徽标/操作）、创建项目（双栏上传+JD+样例）、解析校对（低置信度/
+    敏感字段/降级同意）、计划（轮次编辑/冻结/报价）、会前检查（设备/便利设置）、实时房间
+    （字幕修订/工具/控制栏 + SCR-09 故障暂停/重连/降级覆盖层）、轮次结果三态、报告
+    （SVG 雷达+表格等价+逐题证据）、练习（不改分标识）、资产四分区、账户隐私（六类授权
+    中心/导出删除）、购买额度（报价/流水/订单/自动续费）、机构端 7 页、运营后台 7 分区。
+  - 设计系统升级：品牌渐变、分层表面/阴影/圆角/动效/打印样式；`@mgd/ui` 新增 34 图标与
+    Card/PageHeader/AppShell/Tabs/Toast/Progress/EmptyState/StatCard/DataTable/Avatar/Tint；
+    i18n 扩展至 626 键 × 2 语言；Mock_Layer 覆盖全部页面组（合成数据标注）。
+  - 前端 100 测试全绿（新增工作台筛选/房间红线/状态徽标用例）；ESLint、TypeScript strict、
+    i18n 键门禁、令牌门禁、生产构建全部通过；断点令牌改为字面值输出以兼容 Turbopack。
+    （frontend-batch-1~4、SCR-01~17、FR-028、NFR-006）
 - TASK-022 流式 ASR、回合检测与打断防重叠（`task/TASK-022-streaming-asr` 分支）：
   - 新增 `services/asr` Go 模块（FR-017）：双向流式识别契约 `Provider.OpenStream`
     （音频帧 → partial/final，合成桩）、回合检测 `TurnDetector`（静音窗口断点 → final，

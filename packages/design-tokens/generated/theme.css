@@ -43,6 +43,6 @@
   --spacing-8: var(--mgd-space-8);
   --spacing-12: var(--mgd-space-12);
 
-  --breakpoint-tablet: var(--mgd-breakpoint-tablet);
-  --breakpoint-desktop: var(--mgd-breakpoint-desktop);
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
 }

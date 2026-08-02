@@ -22,7 +22,7 @@ export interface InteractiveBaseProps {
    * 控件标识，渲染为 data-mgd-control。
    * 用途：控件清册扫描测试（「0 个改分控件」红线，需求 G9 第 1 条）。
    */
-  readonly controlId: string;
+  readonly controlId?: string;
   /** disabled 必须同时给出原因（DESIGN-SYSTEM 第 8 节 disabled 行）。 */
   readonly disabledReason?: string;
   readonly loading?: boolean;

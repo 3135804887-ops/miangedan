@@ -93,8 +93,10 @@ function buildThemeCss(tokens: TokenSet): string {
   }
 
   lines.push('');
-  for (const key of Object.keys(tokens.breakpoint)) {
-    lines.push(`  --breakpoint-${kebab(key)}: var(--mgd-breakpoint-${kebab(key)});`);
+  // 断点必须输出字面值：Tailwind v4 会把 @theme 变量内联进媒体查询，
+  // 媒体查询条件不支持 var()（Turbopack 解析会失败）。
+  for (const [key, leaf] of Object.entries(tokens.breakpoint)) {
+    lines.push(`  --breakpoint-${kebab(key)}: ${leaf.value};`);
   }
 
   lines.push('}', '');
