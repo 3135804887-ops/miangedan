@@ -16,7 +16,6 @@ build/
 out/
 .next/
 coverage/
-*.tsbuildinfo
 __pycache__/
 *.py[cod]
 .venv/
@@ -34,7 +33,6 @@ tmp/
 temp/
 .cache/
 .workbuddy/
-.kiro/
 
 # ---- 操作系统与编辑器 ----
 .DS_Store
