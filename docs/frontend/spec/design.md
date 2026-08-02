@@ -631,7 +631,7 @@ export function reportEvent(e: TelemetryEvent): void;   // 唯一出口
 
 `.github/actions/setup-frontend/action.yml`（批次 0 新增）：`pnpm/action-setup@v4`（不传 `version`，从根 `package.json` 的 `packageManager` 字段读取 `pnpm@11.18.0`）+ `actions/setup-node@v4`（`node-version: 22`、`cache: pnpm`）+ `pnpm install --frozen-lockfile`。顺序上 pnpm 必须先于 `setup-node`，否则 `cache: pnpm` 找不到包管理器。三个 job 各自只增加 `- uses: ./.github/actions/setup-frontend` 与少量 `run` 步骤，把与其他窗口的文本冲突面压到最小。
 
-工具链版本（2026-08-01 实测锁定，全部精确固定，符合 AGENTS.md 第 3 节）：Node 22（CI）/ `engines.node >= 20.9`、pnpm 11.18.0、Next 16.2.12、React 19.2.8、TypeScript 7.0.2、ESLint 10.8.0、Tailwind 4.3.3、Vitest 4.1.10、MSW 2.15.0、next-intl 4.13.4、openapi-typescript 7.13.0、axe-core 4.12.1。
+工具链版本（批次 0 兼容性复核后锁定，全部精确固定，符合 AGENTS.md 第 3 节）：Node 22（CI）/ `engines.node >= 20.9`、pnpm 11.18.0、Next 16.2.12、React 19.2.8、TypeScript 5.9.3、ESLint 10.8.0、Tailwind 4.3.3、Vitest 4.1.10、MSW 2.15.0、next-intl 4.13.4、openapi-typescript 7.13.0、axe-core 4.12.1。`openapi-typescript@7.13.0` 的 peer 契约要求 TypeScript `^5.x`；使用 5.9.3 保证类型生成与 `tsc --noEmit` 共享同一受支持编译器，不降低 `strict: true` 基线。
 
 ### 13.2 各阶段新增步骤
 

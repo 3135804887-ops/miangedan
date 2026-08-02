@@ -26,6 +26,96 @@
   pointer-events: none;
 }
 
+.mgd-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mgd-switch-wrapper,
+.mgd-field {
+  display: grid;
+  gap: var(--mgd-space-1);
+}
+
+.mgd-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mgd-space-2);
+  border: 1px solid var(--mgd-color-neutral-600);
+  background: var(--mgd-color-surface);
+  color: var(--mgd-color-neutral-900);
+}
+
+.mgd-switch[aria-disabled='true'] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.mgd-switch__track {
+  display: inline-flex;
+  inline-size: var(--mgd-space-8);
+  padding: var(--mgd-space-1);
+  border: 1px solid currentcolor;
+  border-radius: var(--mgd-space-4);
+}
+
+.mgd-switch__thumb {
+  inline-size: var(--mgd-space-3);
+  block-size: var(--mgd-space-3);
+  border-radius: 50%;
+  background: currentcolor;
+  transition: transform 120ms ease-out;
+}
+
+.mgd-switch[aria-checked='true'] .mgd-switch__thumb {
+  transform: translateX(var(--mgd-space-3));
+}
+
+.mgd-inline-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mgd-space-1);
+  color: var(--mgd-color-danger);
+}
+
+.mgd-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--mgd-space-4);
+  background: color-mix(in srgb, var(--mgd-color-neutral-900) 45%, transparent);
+  z-index: 1000;
+}
+
+.mgd-alert-dialog {
+  max-inline-size: var(--mgd-layout-content-max-width);
+  padding: var(--mgd-space-6);
+  border: 1px solid var(--mgd-color-neutral-600);
+  background: var(--mgd-color-surface);
+  color: var(--mgd-color-neutral-900);
+}
+
+.mgd-alert-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mgd-space-3);
+  margin-block-start: var(--mgd-space-4);
+}
+
+.mgd-disclosure-note {
+  padding: var(--mgd-space-4);
+  border-inline-start: var(--mgd-space-1) solid var(--mgd-color-info);
+  background: var(--mgd-color-surface);
+}
+
 /* 跳到主内容链接：默认视觉隐藏，获得焦点后可见 */
 .mgd-skip-link {
   position: absolute;
@@ -120,7 +210,8 @@
 /* 尊重减少动效偏好：关闭非必要装饰动效（数字人视频不属装饰动效） */
 @media (prefers-reduced-motion: reduce) {
   .mgd-skeleton__bar,
-  .mgd-skip-link {
+  .mgd-skip-link,
+  .mgd-switch__thumb {
     animation: none;
     transition: none;
   }

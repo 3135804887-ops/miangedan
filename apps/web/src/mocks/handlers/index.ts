@@ -14,6 +14,7 @@ import { API_BASE_PATH } from '../../lib/api-fetch.ts';
 /** 合成错误信封，形状与 openapi components.schemas.Error 一致。 */
 export function errorEnvelope(code: string, traceId = 'synthetic-trace-0001') {
   return {
+    synthetic: true,
     error: {
       code,
       message: '合成数据：用于驱动五态测试，不含任何真实个人信息。',

@@ -62,7 +62,11 @@ jobs:
           for d in ai/services/*/; do
             (cd "$d" && mypy src tests) || exit 1
           done
-      # TypeScript eslint/tsc 随 EPIC-02 首个前端任务接入（apps/ 落地 package.json 后）
+      - uses: ./.github/actions/setup-frontend
+      - name: 前端 ESLint 与 TypeScript strict 检查
+        run: pnpm lint && pnpm typecheck
+      - name: 前端 i18n、令牌与 API 生成物检查
+        run: pnpm i18n:check && pnpm tokens:check && pnpm api:check
 
   stage2-golangci:
     name: "阶段2 golangci-lint（含 gosec SAST 基线）"
@@ -120,6 +124,9 @@ jobs:
           for d in ai/services/*/; do
             (cd "$d" && pytest) || exit 1
           done
+      - uses: ./.github/actions/setup-frontend
+      - name: 前端单元、组件、axe 与幂等测试
+        run: pnpm test
       # 评分边界案例 SC-EC-01~24 回归由 TASK-040 / TASK-045 接入本阶段
 
   stage4-contract-tests:
@@ -208,7 +215,9 @@ jobs:
           for d in ai/services/*/; do
             pip install "$d" || exit 1
           done
-      # 前端构建（apps/web、apps/admin）随 EPIC-02 / EPIC-09 首个前端任务接入本阶段
+      - uses: ./.github/actions/setup-frontend
+      - name: 前端生产构建与打包产物密钥扫描
+        run: pnpm build && pnpm scan:bundle
 
   # 主分支追加（EPIC-01-INFRA-DESIGN 第 4.3 节）：
   # 集成测试挂接 TASK-004；评测集回归挂接 TASK-036；dev 环境部署挂接 TASK-002。

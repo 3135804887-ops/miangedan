@@ -150,12 +150,30 @@ function checkSourceKeys(loaded) {
 
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
-    for (const match of text.matchAll(/\bt\(\s*'([^']+)'\s*[),]/g)) {
-      const key = match[1];
+    const translators = new Map();
+    const bindingPatterns = [
+      /const\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+getTranslations\(\s*'([^']+)'\s*\)/g,
+      /const\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+getTranslations\(\s*\{[^}]*namespace:\s*'([^']+)'[^}]*\}\s*\)/g,
+      /const\s+([A-Za-z_$][\w$]*)\s*=\s*useTranslations\(\s*'([^']+)'\s*\)/g,
+    ];
+    for (const pattern of bindingPatterns) {
+      for (const match of text.matchAll(pattern)) translators.set(match[1], match[2]);
+    }
+    for (const match of text.matchAll(/const\s+([A-Za-z_$][\w$]*)\s*=\s*useTranslations\(\s*\)/g)) {
+      translators.set(match[1], '');
+    }
+
+    for (const match of text.matchAll(/\b([A-Za-z_$][\w$]*)\(\s*'([^']+)'\s*[),]/g)) {
+      const [, translator, key] = match;
+      if (!translators.has(translator)) continue;
       if (!key.includes('.')) continue;
-      if (!known.has(key)) {
+      const namespace = translators.get(translator);
+      const qualifiedKey = namespace === '' ? key : `${namespace}.${key}`;
+      if (!known.has(qualifiedKey)) {
         const line = text.slice(0, match.index).split('\n').length;
-        fail(`[源码引用了不存在的翻译键] ${relative(REPO_ROOT, file)}:${line} → ${key}`);
+        fail(
+          `[源码引用了不存在的翻译键] ${relative(REPO_ROOT, file)}:${line} → ${qualifiedKey}`,
+        );
       }
     }
   }

@@ -16,54 +16,54 @@
 
 分支 `task/frontend-batch-0-web-scaffold`。出口：`pnpm install` 后 lint、typecheck、test、build 全绿；语言前缀路由壳与全局错误页可访问；CI 三处接入生效。
 
-- [ ] FE-0.1 建立 pnpm 工作区骨架
+- [x] FE-0.1 建立 pnpm 工作区骨架
   - 根 `package.json`（`private: true`，脚本 `lint`/`typecheck`/`test`/`build`/`api:generate`/`api:check`/`i18n:check`/`tokens:check-names`/`tokens:check-contrast`/`scan:bundle`）、`pnpm-workspace.yaml`（`apps/*`、`packages/*`、`contracts/ts`）、`tsconfig.base.json`（strict 基线与路径别名）
   - 全部依赖写精确版本；生成并提交 `pnpm-lock.yaml`
   - 需求：B0-1（1、3、4、7） | 设计：2.1
 
-- [ ] FE-0.2 生成 `contracts/ts` 只读类型包
+- [x] FE-0.2 生成 `contracts/ts` 只读类型包
   - `openapi-typescript` 生成 `contracts/ts/openapi.d.ts`；`contracts/ts/package.json` 暴露为 `@mgd/api-types`；`tools/stamp-contract-source.mjs` 写 `contracts/ts/SOURCE.md`（记录 `docs/api/openapi.yaml` 的 commit hash）
   - `pnpm api:check` 实现重新生成后 diff 校验与失败文案
   - 需求：G6（1、2） | 设计：8.1
 
-- [ ] FE-0.3 实现 `packages/design-tokens`
+- [x] FE-0.3 实现 `packages/design-tokens`
   - `tokens/{color,typography,space,breakpoint}.json` 采用 DESIGN-SYSTEM 第 5 ~ 7 节中性占位值；`src/build-css.ts` 输出 `dist/tokens.css`；`tailwind-preset.ts` 全量指向 CSS 变量
   - `tokens/NAMES.lock` 与 `pnpm tokens:check-names`；`tokens/contrast-pairs.json` 与 `pnpm tokens:check-contrast`
   - 单元测试：对比度算法（已知色对期望值）、名称集合 diff 失败路径
   - 需求：G5（1、2、3、9）、G4（4） | 设计：3
 
-- [ ] FE-0.4 实现 `packages/domain-states` 与契约断言
+- [x] FE-0.4 实现 `packages/domain-states` 与契约断言
   - `PROJECT_STATUSES`（15）、`SESSION_STATUSES`（10）、`ACCOMMODATION_KEYS`（9）、`org.ts` 的机构可见性投影常量
   - `assert-contract.ts` 编译期类型等价断言（`components['schemas']['ProjectStatus']`、`components['schemas']['Session']['room_status']`）
   - 测试：读 `ai/schemas/turn-evidence.schema.json` 断言便利设置集合；解析 `docs/domain/INTERVIEW-STATE-MACHINE.md` 5.1/6.2 表格断言两组状态集合
   - 需求：G1（1、3） | 设计：5.1 ~ 5.3
 
-- [ ] FE-0.5 实现状态名字面量禁令
+- [x] FE-0.5 实现状态名字面量禁令
   - `packages/eslint-plugin-mgd` 的 `no-domain-state-literal` 规则（含白名单与报错文案）
   - `tests/no-invented-states.test.ts` 源码扫描兜底，失败输出 `文件:行 命中值`
   - 规则自身的正例/反例单测
   - 需求：G1（3） | 设计：5.4
 
-- [ ] FE-0.6 实现 `packages/i18n`
+- [x] FE-0.6 实现 `packages/i18n`
   - `config.ts`（`SUPPORTED_LOCALES`、`DEFAULT_LOCALE`、`FALLBACK_LOCALE`）、`request.ts`、`format.ts`（`formatMoney` 处理最小货币单位）、`nfr-expectations.ts`
   - `messages/{zh-CN,en-US}/{common,error}.json`；`common.redline.*` 四条固定文案双语
   - `pnpm i18n:check`：键对称差、源码键存在性、ICU 占位符一致性、两语言同值检测
   - 需求：G3（1、3、4、5、6、8）、G10（1 ~ 4） | 设计：7
 
-- [ ] FE-0.7 实现 `packages/ui` 基础层
+- [x] FE-0.7 实现 `packages/ui` 基础层
   - primitives：`Button`/`IconButton`/`Switch`/`Field`/`Skeleton`/`AlertDialog`；patterns：`StateView`/`ErrorPanel`/`StatusBadge`/`DisclosureNote`
   - `state-contract.ts` 七态 props 契约；`a11y/focus-trap.ts`、`a11y/target-size.css`；`testing/control-registry.ts`（`data-mgd-control`）
   - 组件测试：每个交互组件七态断言（含 `disabled` 不可聚焦且有原因、`loading` 的 `aria-busy`、`error` 的图标+文字、焦点环不可移除）
   - 需求：G5（4 ~ 8）、G4（1、2、3、6）、G1（4、5） | 设计：4
 
-- [ ] FE-0.8 搭建 `apps/web` 应用壳
+- [x] FE-0.8 搭建 `apps/web` 应用壳
   - `next.config.ts`、`tsconfig.json`、`eslint.config.mjs`（含 import zone 与硬编码色值/字号禁令）、`vitest.config.ts`、`tailwind.config.ts`（`presets: [mgdPreset]`）
   - `middleware.ts` 语言前缀重定向与不支持 locale 回退；根布局输出 `<html lang>`、skip-link、导航与页脚
   - `app/[locale]/` 下 SCR-01 ~ SCR-16 路由壳（`(app)` 与 `(room)` 两个路由组）
   - `app/{error,not-found,loading}.tsx` 全局边界
   - 需求：B0-1（2、4、5、6）、B0-2（1 ~ 6）、G3（1、2、7）、G7（1、5） | 设计：2.1、2.3、16
 
-- [ ] FE-0.9 搭建数据层与安全封装
+- [x] FE-0.9 搭建数据层与安全封装
   - `src/lib/api-fetch.ts`（写操作幂等键类型约束、`Error` 信封解析）、`src/lib/error-presenter.ts`（21 项 `ErrorCode` → 五要素映射）
   - `src/lib/telemetry.ts` 白名单出口 + ESLint 禁止直接 `console.error` 上报
   - `src/lib/region-context.ts` 只读数据区
@@ -71,13 +71,13 @@
   - 测试：`presentError` 逐码覆盖、遥测脱敏、`NEXT_PUBLIC_*` 键白名单
   - 需求：G6（3、4、5）、G2（4）、G8（1 ~ 4） | 设计：6.2、8.2、8.3、11
 
-- [ ] FE-0.10 接入 CI 并加固文档校验脚本
-  - `.github/actions/setup-frontend/action.yml`（node 22 + pnpm 10 + 缓存 + `--frozen-lockfile`）
+- [x] FE-0.10 接入 CI 并加固文档校验脚本
+  - `.github/actions/setup-frontend/action.yml`（node 22 + pnpm 11.18.0 + 缓存 + `--frozen-lockfile`）
   - `ci.yml` 三处追加：`stage2-lint`（lint、typecheck、i18n:check、tokens:check-names、tokens:check-contrast、api:check）、`stage3-unit-tests`（`pnpm test --run`）、`stage6-build`（`pnpm build`、`scan:bundle`）；不新增 job、不改 `needs`
   - `tools/validate_docs.py` 最小加固：`check_fences` 与 JSONL 分支补 `node_modules` 排除（与既有套件一致）
   - 需求：B0-3（1 ~ 5）、G11（3、4） | 设计：13、12
 
-- [ ] FE-0.11 批次 0 合入
+- [x] FE-0.11 批次 0 合入
   - 先合并最新 `main`；提交标题 `feat(web-batch-0): 建立 Web 工作区、设计令牌与全局壳（SCR-01~17, FR-028）`
   - PR 正文：页面→FR 映射、偏离 1（语言前缀路由）与偏离 2（Storybook 等价物）披露、`validate_docs.py` 加固说明
   - `CHANGELOG.md` 的 `[Unreleased] / Added` 记录；`IMPLEMENTATION_PLAN.md` EPIC-02 补批次追踪行
