@@ -24,6 +24,13 @@
     主备不可用拒绝新会话、跨区不回退）、活跃正式面试会话钉扎（被停用/版本变化返回
     `ErrPinnedUnavailable`，不静默切换）。熔断/路由/钉扎/校验测试齐备。
     （TASK-030、ADR-0003、FR-037 部分、NFR-007~NFR-012）
+- frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
+  `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
+  双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的
+  `contracts/ts` 类型，接入阶段 2 的 lint/typecheck/i18n/令牌/API 漂移检查、阶段 3 的
+  Vitest/axe/隐私与幂等测试、阶段 6 的生产构建与 bundle 密钥扫描。
+  语言前缀路由与 Storybook 等价测试按前端规格的两项偏离说明执行；媒体与业务页仍为后续批次
+  的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
 - TASK-020 WebRTC/SFU 会话房间与短期媒体令牌（`task/TASK-020-session-room-media-token` 分支）：
   - 新增 `services/room` Go 模块：会话创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*`），
     前置校验项目 READY、本轮量表与覆盖方案就绪（FR-011）、单活动设备（TASK-018）；

@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+
+/* 设计令牌 CSS 变量（JSON 令牌生成物） */
+@import '@mgd/design-tokens/generated/tokens.css';
+
+/* Tailwind v4 主题映射：把 Tailwind 命名空间指向令牌变量 */
+@import '@mgd/design-tokens/generated/theme.css';
+
+/* UI_Kit 基础样式：焦点环、目标尺寸、强制颜色模式与减少动效兜底 */
+@import '@mgd/ui/styles/base.css';
+
+/* 中英文混排：中文正文行高由令牌保证 ≥1.6，数字与英文回退到英文字族 */
+:root {
+  font-family: var(--mgd-font-family-zh);
+}
+
+body {
+  margin: 0;
+  background-color: var(--mgd-color-neutral-100);
+  color: var(--mgd-color-neutral-900);
+  font-size: var(--mgd-font-body-size);
+  line-height: var(--mgd-font-body-line-height);
+}
+
+:lang(en) {
+  font-family: var(--mgd-font-family-en);
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--mgd-font-family-mono);
+}
