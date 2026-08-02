@@ -1,6 +1,8 @@
 go 1.26
 
 use (
+	./services/asr
+	./services/avatar
 	./services/backup
 	./services/adminapi
 	./services/billing
@@ -12,7 +14,9 @@ use (
 	./services/observability
 	./services/org
 	./services/project
+	./services/provider
 	./services/region
+	./services/room
 	./services/secretref
 	./services/source
 	./services/temporal

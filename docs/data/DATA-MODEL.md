@@ -76,7 +76,7 @@
 |---|---|---|---|
 | `interview_projects` | 面试项目聚合根 | project_id PK、user_id FK、data_region、interview_language、degraded_mode、status、current_round_sequence、assignment_id NULL、active_device_id NULL、created_at | interview_projects(user_id, status)；interview_projects(assignment_id) |
 | `plan_versions` | 计划版本（冻结） | (project_id, plan_version) PK、plan_json（符合 interview-plan schema）、rubric_version、frozen、created_at | — |
-| `sessions` | 实时会话 | session_id PK、project_id FK、round_sequence、attempt_id、kind（formal/formal_retry/practice）、status、room_provider_ref、active_device_id、billable_seconds、created_at | sessions(project_id, round_sequence, kind)；sessions(status, updated_at)（运营监控，仅匿名指标） |
+| `sessions` | 实时会话 | session_id PK、project_id FK、round_sequence、attempt_id、kind（formal/formal_retry/practice）、status、room_provider_ref、active_device_id、billable_seconds、created_at、updated_at | sessions(project_id, round_sequence, kind)；sessions(status, updated_at)（运营监控，仅匿名指标） |
 | `turns` | 回合 | (session_id, turn_index) PK、project_id FK、status、question_id、frozen、created_at | turns(project_id, session_id) |
 | `evidence_items` | **追加式证据账本** | evidence_id PK、session_id FK、turn_index、project_id FK、round_sequence、attempt_id、evidence_json（符合 turn-evidence schema）、content_hash、recorded_at | evidence_items(session_id, turn_index) UNIQUE；evidence_items(project_id, attempt_id)；分区(data_region, 月份) |
 | `score_versions` | **追加式评分版本** | score_id PK、project_id FK、round_sequence、attempt_id、score_version、result_json（符合 scoring-result schema）、evidence_snapshot_hash、supersedes_score_id NULL、computed_at | score_versions(project_id, attempt_id, score_version)；score_versions(idempotency_key) UNIQUE |

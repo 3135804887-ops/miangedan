@@ -187,3 +187,25 @@ open → 冷却结束 → half_open（放行探针流量）→ 达标 → closed
 3. 混沌演练：供应商断连、慢响应、半开恢复；验证切换暂停计时与状态恢复。
 4. 凭证扫描：仓库与日志中供应商密钥检出为 0。
 5. 压测：每区 2 倍预计峰值下延迟预算达标（NFR-007~NFR-012）。
+
+---
+
+> **TASK-030 实施（2026-08-02）**：新增 `services/provider` 共享 Go 包实现本规范 §5~§9 的治理骨架：
+> 五类能力枚举与 `Info` 注册条目（provider_id 形态 `{capability}_{region}_{role}`、版本固定）、
+> 按数据区隔离的注册表（重复拒绝、紧急停用 `SetStatus(disabled)`）、低频合成探针健康检查、
+> 每（区×供应商×能力）熔断器（closed → open → half_open → closed，注入时钟）、
+> 新会话区域路由（主 open 切 secondary、主备不可用拒绝新会话、跨区不回退）、
+> 活跃正式面试会话钉扎（`Pin`/`Resolve`，被停用/版本变化返回 `ErrPinnedUnavailable`，不静默切换）。
+> 各能力的具体适配器实现（LLM/ASR/TTS/Avatar/Search/解析）随对应实时/AI 任务接入本层契约。
+
+> **TASK-021 实施（2026-08-02）**：`services/avatar` 落地 §4.4 Avatar 能力接入骨架——固定授权写实 2D
+> 角色库（`CharacterLibrary`，角色 ID + 授权凭证引用；未知角色拒绝，禁止每场生成新脸）、动态面试官人格
+> （`Persona` style_parameters 封闭枚举，越界拒绝，无自由文本杜绝候选保护属性）、驱动契约
+> `Driver.Start/Drive/Stop` 与口型预算 200ms（NFR-011）、默认 720p/24fps 视频档位（NFR-012）、
+> 合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表（版本固定，主备路由+熔断）。
+
+> **TASK-022 实施（2026-08-02）**：`services/asr` 落地 §4.2 ASR 能力接入骨架——双向流式契约
+> `Provider.OpenStream`（音频帧 → `partial`/`final`，合成桩）、回合检测 `TurnDetector`
+> （静音窗口断点 → final，断点→final 预算 1s，NFR-010）、单说话方闸门 `TurnGate`
+> （用户说话时数字人不得输出避免重叠，FR-017；打断→停止预算 500ms，NFR-009）；
+> `RegisterProvider` 注册 `asr_{region}_{role}` 至 TASK-030 注册表（版本固定，主备路由+熔断）。

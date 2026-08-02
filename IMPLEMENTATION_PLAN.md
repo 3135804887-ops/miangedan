@@ -195,6 +195,37 @@
 > `interview_language_preference` 列）；openapi 契约、DOMAIN-MODEL §6.18、DATA-MODEL 材料族同步；
 > 服务/HTTP 层正常、异常、幂等、设备锁测试齐备。
 
+> **任务状态（2026-08-02 更新）**：TASK-020 已实现：`services/room`（新 Go 模块，登记 go.work 与 CI 矩阵）
+> 提供会话房间创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*` 契约）：
+> 前置校验项目 READY + 本轮量表/覆盖方案就绪（FR-011）+ 单活动设备（TASK-018 ClaimDevice）；
+> 短期媒体令牌（HMAC-SHA256、分钟级 TTL、一次性 nonce、按 nonce 吊销，与业务令牌隔离，SEC-003）；
+> 3 分钟重连窗口（超窗 `reconnect_expired` → ENDED）、设备安全转移（原令牌立即失效）；
+> `Provider` 供应商中立房间适配桩（ADR-0003）；交接包（TASK-034）与额度预留（TASK-061）为后续挂接点。
+> 迁移为 `0020_sessions.sql`；DOMAIN-MODEL §6.19（RoomToken）、DATA-MODEL sessions 同步；
+> 服务/HTTP 正常、异常、幂等、令牌一次性/吊销、重连窗口、设备转移测试齐备。
+
+> **任务状态（2026-08-02 更新）**：TASK-030 已实现：`services/provider` 共享 Go 包（仅依赖
+> `services/region`，零外部依赖）落地 PROVIDER-ADAPTERS §5~§9 治理骨架——五类能力（LLM/ASR/TTS/
+> Avatar/Search）枚举与 `Info` 注册条目（provider_id 形态 `{capability}_{region}_{role}`、版本固定）、
+> 按数据区隔离注册表（重复拒绝、紧急停用）、低频合成探针健康检查、每（区×供应商×能力）熔断器
+> （closed → open → half_open → closed，注入时钟可测）、新会话区域路由（主 open 切 secondary、
+> 主备不可用拒绝新会话、跨区不回退）、活跃正式面试会话钉扎（`Pin`/`Resolve`，被停用/版本变化返回
+> `ErrPinnedUnavailable`，不静默切换）。熔断/路由/钉扎/校验测试齐备；能力适配器实现随对应任务接入。
+
+> **任务状态（2026-08-02 更新）**：TASK-021 已实现：`services/avatar` 落地数字人驱动接入骨架
+> （FR-014）——固定授权写实 2D 角色库（`CharacterLibrary`，授权凭证引用；未知角色拒绝，
+> 禁止每场生成新脸）、动态面试官人格（`Persona` style_parameters 封闭枚举，越界拒绝）、
+> 驱动契约 `Driver.Start/Drive/Stop`（口型预算 200ms，NFR-011；默认 720p/24fps，NFR-012）、
+> 合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表（版本固定，
+> 主备路由 + 熔断）。角色库/人格/口型预算/注册路由测试齐备；真实媒体驱动随供应商选型接入。
+
+> **任务状态（2026-08-02 更新）**：TASK-022 已实现：`services/asr` 落地流式语音识别接入骨架
+> （FR-017、NFR-008~NFR-010）——双向流式契约 `Provider.OpenStream`（音频帧 → partial/final，
+> 合成桩；语言/静音断点 fail-closed）、回合检测 `TurnDetector`（静音窗口断点 → final，
+> 断点→final 预算 1s）、单说话方闸门 `TurnGate`（避免重叠说话；语音/按钮打断，
+> 打断→停止预算 500ms）；`RegisterProvider` 注册 `asr_{region}_{role}` 至 TASK-030 注册表
+> （版本固定、主备路由 + 熔断）。回合/打断/预算/注册路由测试齐备；真实 ASR 随供应商选型接入。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

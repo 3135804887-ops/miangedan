@@ -15,6 +15,38 @@
 
 ### Added
 
+- TASK-022 流式 ASR、回合检测与打断防重叠（`task/TASK-022-streaming-asr` 分支）：
+  - 新增 `services/asr` Go 模块（FR-017）：双向流式识别契约 `Provider.OpenStream`
+    （音频帧 → partial/final，合成桩）、回合检测 `TurnDetector`（静音窗口断点 → final，
+    断点→final 预算 1s NFR-010）、单说话方闸门 `TurnGate`（避免重叠说话；语音 VAD/停止按钮
+    打断，打断→停止预算 500ms NFR-009）；`RegisterProvider` 注册 `asr_{region}_{role}`
+    至 TASK-030 注册表（版本固定、主备路由+熔断）。回合/打断/预算/注册路由测试齐备。
+    （TASK-022、FR-017、NFR-008、NFR-009、NFR-010）
+- TASK-021 数字人驱动接入（`task/TASK-021-avatar-driver` 分支）：
+  - 新增 `services/avatar` Go 模块（FR-014）：固定授权写实 2D 角色库（未知角色拒绝、
+    禁止每场生成新脸）、动态面试官人格（style_parameters 封闭枚举，越界拒绝）、
+    驱动契约 Driver.Start/Drive/Stop（口型预算 200ms NFR-011、默认 720p/24fps NFR-012）、
+    合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表
+    （版本固定、主备路由+熔断）。角色库/人格/口型预算/注册路由测试齐备。
+    （TASK-021、FR-013、FR-014、NFR-011、NFR-012、SEC-014）
+- TASK-030 供应商中立适配层（`task/TASK-030-provider-adapter-layer` 分支）：
+  - 新增 `services/provider` Go 共享包（仅依赖 services/region，零外部依赖），按
+    `docs/ai/PROVIDER-ADAPTERS.md` §5~§9 落地治理骨架：五类能力枚举、`Info` 注册条目
+    （provider_id 形态 `{capability}_{region}_{role}`、版本固定）、按数据区隔离注册表
+    （重复拒绝、紧急停用）、低频合成探针健康检查、每（区×供应商×能力）熔断器
+    （closed → open → half_open → closed，注入时钟）、新会话区域路由（主 open 切 secondary、
+    主备不可用拒绝新会话、跨区不回退）、活跃正式面试会话钉扎（被停用/版本变化返回
+    `ErrPinnedUnavailable`，不静默切换）。熔断/路由/钉扎/校验测试齐备。
+    （TASK-030、ADR-0003、FR-037 部分、NFR-007~NFR-012）
+- TASK-020 WebRTC/SFU 会话房间与短期媒体令牌（`task/TASK-020-session-room-media-token` 分支）：
+  - 新增 `services/room` Go 模块：会话创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*`），
+    前置校验项目 READY、本轮量表与覆盖方案就绪（FR-011）、单活动设备（TASK-018）；
+    3 分钟重连窗口（超窗 `reconnect_expired`）、设备安全转移（原设备令牌立即失效）。
+  - 短期媒体令牌（SEC-003）：HMAC-SHA256、分钟级 TTL、一次性 nonce、按 nonce 吊销，
+    与业务令牌隔离（独立密钥经 `*_REF` 注入）；`Provider` 供应商中立房间适配桩（ADR-0003）。
+  - 迁移 `0020_sessions.sql`；DOMAIN-MODEL §6.19（RoomToken）、DATA-MODEL 同步；
+    服务/HTTP 正常、异常、幂等、令牌一次性/吊销、重连窗口、设备转移测试齐备。
+    （TASK-020、FR-013、NFR-007、SEC-003）
 - TASK-018 用户材料库、设备锁与语言独立配置（`task/TASK-018-user-library-device-language` 分支）：
   - `services/project` 新增材料库（简历库/岗位库引用 + company/job_title 筛选元数据，
     `/v1/library/resumes`、`/v1/library/jobs`，幂等保存/删除）、项目列表公司/岗位筛选（FR-029）、
