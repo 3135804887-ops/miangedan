@@ -46,9 +46,17 @@ type Session struct {
 	RoomStatus      Status
 	RoomProviderRef string
 	ActiveDeviceID  string
-	LastActivityAt  time.Time
-	BillableSeconds int
-	CreatedAt       time.Time
+	// TASK-025 故障控制：暂停计时、重连截止、降级状态、结束原因。
+	PausedAt          *time.Time
+	PausedSeconds     int
+	DowngradeStatus   DowngradeStatus
+	DowngradePromptID string
+	TextDegradedAt    *time.Time
+	EndReason         EndReason
+	EndedAt           *time.Time
+	LastActivityAt    time.Time
+	BillableSeconds   int
+	CreatedAt         time.Time
 }
 
 // SessionCreated 为建连响应（openapi SessionCreated）。

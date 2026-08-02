@@ -28,6 +28,11 @@
   工具事件（edit/run/annotate/submit）以 `tool_event_id` 幂等入证据账本；
   端点：`/v1/sessions/{id}/tools`、`/v1/sessions/{id}/tools/{toolKey}/activate`、
   `/v1/sessions/{id}/tools/{toolKey}/events`。
+- **故障控制**（TASK-025、FR-020）：暂停/恢复计时（暂停段不计费不判失败，paused_seconds
+  只增不减）、数字人持续故障降级询问（prompt_id 幂等）、接受降级 → TEXT_DEGRADED（故障点起
+  不计数字人额度）、拒绝降级 → ENDED + 评估未完成（不是失败）+ 系统责任全额返还（TASK-061
+  挂接点）；3 分钟重连窗口由 TASK-020 提供。端点：
+  `/v1/sessions/{id}/timer/pause|resume`、`/v1/sessions/{id}/downgrade/offer|accept|decline`。
 
 ## 用法
 

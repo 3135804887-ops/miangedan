@@ -266,6 +266,17 @@
 > DOMAIN-MODEL §6.21、DATA-MODEL、openapi、realtime-events 同步；
 > 服务/HTTP 正常、异常、未配置拒绝、幂等测试齐备。（TASK-024、FR-019、NFR-005）
 
+> **任务状态（2026-08-02 更新）**：TASK-025 已实现：`services/room` 扩展故障控制
+> （FR-020）——暂停计时（`timer.paused/resumed`，LIVE → PAUSED_SYSTEM/AUTH_PAUSED/RECONNECTING，
+> 暂停段不计费不判失败，`paused_seconds` 只增不减）、数字人持续故障降级询问
+> （`avatar.downgrade_prompted` → prompt_id 幂等）、接受降级（TEXT_DEGRADED，故障点起不计
+> 数字人额度——TASK-061 挂接点）、拒绝降级（ENDED + EVALUATION_INCOMPLETE 语义 +
+> 系统责任全额返还挂接 + 设备释放）。3 分钟重连窗口由 TASK-020 提供。API 为
+> `/v1/sessions/{id}/timer/*`、`/v1/sessions/{id}/downgrade/*`；迁移为
+> `0025_session_fault_controls.sql`；DOMAIN-MODEL §6.22、DATA-MODEL、openapi、
+> INTERVIEW-STATE-MACHINE 同步；服务/HTTP 正常、异常、幂等测试齐备。
+> （TASK-025、FR-020、NFR-005）
+
 ### EPIC-04 AI 编排（供应商适配、提示词、面试官图、交接、安全）
 
 目标：概率性 AI 决策与确定性业务状态严格分离；LLM 无权直接改变业务状态。

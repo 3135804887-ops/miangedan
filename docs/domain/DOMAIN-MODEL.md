@@ -248,6 +248,14 @@ erDiagram
 | 关键字段 | `tool_event_id`、`tool_key`（封闭枚举）、`event_type`（edit/run/annotate/submit）、`content_ref`（对象存储引用，非内联大对象） |
 | 规则 | 仅计划中已配置工具可激活与产生事件（正式房间不临时加载）；`tool_event_id` 幂等；事件只追加不更新/删除 |
 
+### 6.22 SessionFaultControls（故障暂停与文字降级，TASK-025）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 系统故障暂停计时、3 分钟重连窗口、数字人持续故障时的文字降级询问（FR-020） |
+| 关键字段 | `paused_at`/`paused_seconds`（暂停只增不减）、`downgrade_status`（none/prompted/accepted/rejected）、`downgrade_prompt_id`、`text_degraded_at`、`end_reason` |
+| 规则 | 暂停段不计费不判失败；接受降级 → TEXT_DEGRADED（故障点起不计数字人额度）；拒绝降级 → ENDED + EVALUATION_INCOMPLETE（不是失败）+ 系统责任全额返还（TASK-061 挂接）；所有操作幂等 |
+
 | 要点 | 内容 |
 |---|---|
 | AccessAudit | 追加式敏感访问记录（谁、何时、何种角色、访问了什么、授权依据）；管理员不可删除；敏感访问通知用户 |

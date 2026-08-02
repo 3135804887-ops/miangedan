@@ -1625,6 +1625,99 @@ paths:
         '200': { description: 事件已入库, content: { application/json: { schema: { $ref: '#/components/schemas/ToolEvent' } } } }
         '409': { description: 未配置工具或会话状态冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
+  # ---- TASK-025 故障暂停与文字降级（FR-020） ----
+  /v1/sessions/{sessionId}/timer/pause:
+    post:
+      tags: [sessions]
+      operationId: pauseSessionTimer
+      summary: 暂停计时（timer.paused；系统故障/重连/令牌暂停；暂停段不计费不影响评分）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, enum: [system_fault, reconnect, auth_paused] }
+      responses:
+        '200': { description: 已暂停, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '409': { description: 状态冲突或会话已结束, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/timer/resume:
+    post:
+      tags: [sessions]
+      operationId: resumeSessionTimer
+      summary: 恢复计时（timer.resumed；累计暂停秒数；恢复 LIVE）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 已恢复, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '409': { description: 未处于暂停态（timer_not_paused）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/downgrade/offer:
+    post:
+      tags: [sessions]
+      operationId: offerTextDowngrade
+      summary: 数字人持续故障时询问是否降级文字面试（avatar.downgrade_prompted；幂等返回同一 prompt_id）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 已发起询问
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [prompt_id]
+                properties:
+                  prompt_id: { type: string, format: uuid }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/downgrade/accept:
+    post:
+      tags: [sessions]
+      operationId: acceptTextDowngrade
+      summary: 同意降级（TEXT_DEGRADED；故障点起不计数字人额度；口语项按文字模式规则）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt_id]
+              properties:
+                prompt_id: { type: string, format: uuid }
+      responses:
+        '200': { description: 已降级, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/downgrade/decline:
+    post:
+      tags: [sessions]
+      operationId: declineTextDowngrade
+      summary: 拒绝降级（ENDED；项目 EVALUATION_INCOMPLETE 不是失败；系统责任全额返还预留额度）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt_id]
+              properties:
+                prompt_id: { type: string, format: uuid }
+      responses:
+        '200': { description: 已结束（评估未完成）, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
   # ============================== scores ==============================
   /v1/projects/{projectId}/rounds/{sequence}/result:
@@ -2879,6 +2972,12 @@ components:
         room_status: { enum: [ROOM_CREATED, PRE_CHECK, AVATAR_CONNECTING, LIVE, PAUSED_SYSTEM, RECONNECTING, DOWNGRADE_PROMPTED, TEXT_DEGRADED, AUTH_PAUSED, ENDED] }
         elapsed_seconds: { type: integer, minimum: 0, description: 正式计时（暂停与重连不计） }
         billable_seconds: { type: integer, minimum: 0, description: 计费秒数（仅数字人已连接且 LIVE） }
+        paused_seconds: { type: integer, minimum: 0, description: 累计暂停秒数（不计费不判失败） }
+        downgrade_status: { type: string, enum: [none, prompted, accepted, rejected] }
+        downgrade_prompt_id: { type: ['string', 'null'], format: uuid }
+        text_degraded_at: { type: ['string', 'null'], format: date-time }
+        end_reason: { type: ['string', 'null'], enum: [completed, user_exit, unrecoverable, downgrade_rejected] }
+        ended_at: { type: ['string', 'null'], format: date-time }
         current_turn_index: { type: ['integer', 'null'], minimum: 0 }
         input_modes_used: { type: array, items: { enum: [voice, text, camera, job_tool] } }
         reconnect_deadline_at: { type: ['string', 'null'], format: date-time, description: 3 分钟重连窗口截止 }

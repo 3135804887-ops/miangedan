@@ -76,7 +76,7 @@
 |---|---|---|---|
 | `interview_projects` | 面试项目聚合根 | project_id PK、user_id FK、data_region、interview_language、degraded_mode、status、current_round_sequence、assignment_id NULL、active_device_id NULL、created_at | interview_projects(user_id, status)；interview_projects(assignment_id) |
 | `plan_versions` | 计划版本（冻结） | (project_id, plan_version) PK、plan_json（符合 interview-plan schema）、rubric_version、frozen、created_at | — |
-| `sessions` | 实时会话 | session_id PK、project_id FK、round_sequence、attempt_id、kind（formal/formal_retry/practice）、status、room_provider_ref、active_device_id、billable_seconds、created_at、updated_at | sessions(project_id, round_sequence, kind)；sessions(status, updated_at)（运营监控，仅匿名指标） |
+| `sessions` | 实时会话 | session_id PK、project_id FK、round_sequence、attempt_id、kind（formal/formal_retry/practice）、status、room_provider_ref、active_device_id、billable_seconds、paused_at、paused_seconds、downgrade_status（none/prompted/accepted/rejected）、downgrade_prompt_id、text_degraded_at、end_reason、ended_at、created_at、updated_at | sessions(project_id, round_sequence, kind)；sessions(status, updated_at)（运营监控，仅匿名指标）；sessions(downgrade_status) |
 | `turns` | 回合 | (session_id, turn_index) PK、project_id FK、status、question_id、frozen、created_at | turns(project_id, session_id) |
 | `session_transcripts` | 双向字幕/转写（TASK-023） | transcript_id PK、session_id FK、turn_index、utterance_id、kind（partial/final）、text、language、confidence、revised_text、revision_id、revision_state（none/submitted/accepted/rejected）、revision_rejected_reason、frozen、created_at、updated_at | session_transcripts(session_id, utterance_id) UNIQUE；session_transcripts(session_id, turn_index, created_at) |
 | `session_turns` | 回合冻结边界（TASK-023） | (session_id, turn_index) PK、frozen、frozen_at | — |

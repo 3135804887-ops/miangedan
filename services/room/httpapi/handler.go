@@ -36,6 +36,12 @@ type Application interface {
 	ActivateTool(context.Context, project.Actor, string, room.ActivateToolInput) (room.ToolActivation, error)
 	RecordToolEvent(context.Context, project.Actor, string, room.ToolEvent, string) (room.ToolEvent, error)
 	ListToolEvents(context.Context, project.Actor, string) ([]room.ToolEvent, error)
+	// TASK-025 故障控制。
+	PauseTimer(context.Context, project.Actor, string, room.TimerPauseReason, string) (room.Session, error)
+	ResumeTimer(context.Context, project.Actor, string, string) (room.Session, error)
+	OfferDowngrade(context.Context, project.Actor, string, string) (string, error)
+	AcceptDowngrade(context.Context, project.Actor, string, string, string) (room.Session, error)
+	DeclineDowngrade(context.Context, project.Actor, string, string, string) (room.Session, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现。
@@ -63,6 +69,11 @@ func New(app Application, authenticator Authenticator, dataRegion string) (http.
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/tools/{toolKey}/activate", h.activateTool)
 	mux.HandleFunc("POST /v1/sessions/{sessionId}/tools/{toolKey}/events", h.recordToolEvent)
 	mux.HandleFunc("GET /v1/sessions/{sessionId}/tools", h.listToolEvents)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/timer/pause", h.pauseTimer)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/timer/resume", h.resumeTimer)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/downgrade/offer", h.offerDowngrade)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/downgrade/accept", h.acceptDowngrade)
+	mux.HandleFunc("POST /v1/sessions/{sessionId}/downgrade/decline", h.declineDowngrade)
 	return mux, nil
 }
 
@@ -129,6 +140,12 @@ func mapError(err error) (int, string, string) {
 		return http.StatusUnprocessableEntity, "invalid_input", err.Error()
 	case errors.Is(err, room.ErrToolNotConfigured):
 		return http.StatusConflict, "tool_not_configured", err.Error()
+	case errors.Is(err, room.ErrTimerNotPaused):
+		return http.StatusConflict, "timer_not_paused", err.Error()
+	case errors.Is(err, room.ErrDowngradeInvalid):
+		return http.StatusUnprocessableEntity, "invalid_input", err.Error()
+	case errors.Is(err, room.ErrSessionEnded):
+		return http.StatusConflict, "session_ended", err.Error()
 	case errors.Is(err, room.ErrEntitlementMissing):
 		return http.StatusPaymentRequired, "insufficient_entitlement", err.Error()
 	case errors.Is(err, room.ErrNotFound):
@@ -599,4 +616,142 @@ func (h *handler) listToolEvents(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+func toSessionJSONExtended(s room.Session) map[string]any {
+	out := map[string]any{
+		"session_id":       s.SessionID,
+		"project_id":       s.ProjectID,
+		"round_sequence":   s.RoundSequence,
+		"kind":             string(s.Kind),
+		"room_status":      string(s.RoomStatus),
+		"paused_seconds":   s.PausedSeconds,
+		"billable_seconds": s.BillableSeconds,
+		"downgrade_status": string(s.DowngradeStatus),
+		"data_region":      s.DataRegion,
+		"created_at":       s.CreatedAt.UTC().Format(time.RFC3339),
+	}
+	if s.AttemptID != "" {
+		out["attempt_id"] = s.AttemptID
+	}
+	if s.ActiveDeviceID != "" {
+		out["active_device_id"] = s.ActiveDeviceID
+	}
+	if s.PausedAt != nil {
+		out["paused_at"] = s.PausedAt.UTC().Format(time.RFC3339)
+	}
+	if s.DowngradePromptID != "" {
+		out["downgrade_prompt_id"] = s.DowngradePromptID
+	}
+	if s.TextDegradedAt != nil {
+		out["text_degraded_at"] = s.TextDegradedAt.UTC().Format(time.RFC3339)
+	}
+	if s.EndedAt != nil {
+		out["ended_at"] = s.EndedAt.UTC().Format(time.RFC3339)
+	}
+	if s.EndReason != "" {
+		out["end_reason"] = string(s.EndReason)
+	}
+	return out
+}
+
+func (h *handler) pauseTimer(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		Reason room.TimerPauseReason `json:"reason"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	sess, err := h.app.PauseTimer(r.Context(), actor, r.PathValue("sessionId"), req.Reason, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, toSessionJSONExtended(sess))
+}
+
+func (h *handler) resumeTimer(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	sess, err := h.app.ResumeTimer(r.Context(), actor, r.PathValue("sessionId"), r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, toSessionJSONExtended(sess))
+}
+
+func (h *handler) offerDowngrade(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	promptID, err := h.app.OfferDowngrade(r.Context(), actor, r.PathValue("sessionId"), r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"prompt_id": promptID})
+}
+
+func (h *handler) acceptDowngrade(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		PromptID string `json:"prompt_id"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	sess, err := h.app.AcceptDowngrade(r.Context(), actor, r.PathValue("sessionId"), req.PromptID, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, toSessionJSONExtended(sess))
+}
+
+func (h *handler) declineDowngrade(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	var req struct {
+		PromptID string `json:"prompt_id"`
+	}
+	if err := h.decode(r, &req); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "invalid_input", err.Error())
+		return
+	}
+	sess, err := h.app.DeclineDowngrade(r.Context(), actor, r.PathValue("sessionId"), req.PromptID, r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, toSessionJSONExtended(sess))
 }

@@ -82,6 +82,21 @@ func (a *appAdapter) RecordToolEvent(ctx context.Context, actor project.Actor, i
 func (a *appAdapter) ListToolEvents(ctx context.Context, actor project.Actor, id string) ([]room.ToolEvent, error) {
 	return a.svc.ListToolEvents(ctx, actor, id)
 }
+func (a *appAdapter) PauseTimer(ctx context.Context, actor project.Actor, id string, reason room.TimerPauseReason, key string) (room.Session, error) {
+	return a.svc.PauseTimer(ctx, actor, id, reason, key)
+}
+func (a *appAdapter) ResumeTimer(ctx context.Context, actor project.Actor, id, key string) (room.Session, error) {
+	return a.svc.ResumeTimer(ctx, actor, id, key)
+}
+func (a *appAdapter) OfferDowngrade(ctx context.Context, actor project.Actor, id, key string) (string, error) {
+	return a.svc.OfferDowngrade(ctx, actor, id, key)
+}
+func (a *appAdapter) AcceptDowngrade(ctx context.Context, actor project.Actor, id, prompt, key string) (room.Session, error) {
+	return a.svc.AcceptDowngrade(ctx, actor, id, prompt, key)
+}
+func (a *appAdapter) DeclineDowngrade(ctx context.Context, actor project.Actor, id, prompt, key string) (room.Session, error) {
+	return a.svc.DeclineDowngrade(ctx, actor, id, prompt, key)
+}
 
 func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()

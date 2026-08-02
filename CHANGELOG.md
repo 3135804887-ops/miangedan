@@ -30,6 +30,15 @@
   - openapi 新增 `/v1/sessions/{sessionId}/tools` 与工具激活/事件端点及 `ToolEvent` schema；
     迁移 `0024_session_tool_events.sql`；DOMAIN-MODEL §6.21、DATA-MODEL、realtime-events 同步；
     服务/HTTP 正常、异常、未配置拒绝、幂等测试齐备。（TASK-024、FR-019、NFR-005）
+- TASK-025 故障暂停计时与文字降级（`task/TASK-025-fault-downgrade` 分支）：
+  - `services/room` 扩展故障控制（FR-020）：暂停计时（timer.paused/resumed；暂停段不计费
+    不判失败，paused_seconds 只增不减）、降级询问（avatar.downgrade_prompted，prompt_id 幂等）、
+    接受降级（TEXT_DEGRADED；故障点起不计数字人额度，TASK-061 挂接）、拒绝降级
+    （ENDED + EVALUATION_INCOMPLETE 不是失败；系统责任全额返还挂接；设备释放）。
+  - openapi 新增 `/v1/sessions/{sessionId}/timer/*`、`/v1/sessions/{sessionId}/downgrade/*`
+    端点并扩展 Session schema；迁移 `0025_session_fault_controls.sql`；
+    DOMAIN-MODEL §6.22、DATA-MODEL、INTERVIEW-STATE-MACHINE 同步；
+    服务/HTTP 正常、异常、幂等测试齐备。（TASK-025、FR-020、NFR-005）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的
