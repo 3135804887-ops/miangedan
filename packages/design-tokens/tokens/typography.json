@@ -1,0 +1,16 @@
+{
+  "_source": "docs/design/DESIGN-SYSTEM.md 第 6 节与第 9 节（中文正文行高 ≥1.6）",
+  "font": {
+    "display": { "size": "32px", "lineHeight": "40px", "usage": "落地页主标题" },
+    "h1": { "size": "28px", "lineHeight": "36px", "usage": "页面标题" },
+    "h2": { "size": "22px", "lineHeight": "30px", "usage": "区块标题" },
+    "h3": { "size": "18px", "lineHeight": "26px", "usage": "卡片标题" },
+    "body": { "size": "16px", "lineHeight": "26px", "usage": "正文，行高 1.625 满足中文可读性" },
+    "caption": { "size": "13px", "lineHeight": "20px", "usage": "辅助说明、状态标签" }
+  },
+  "fontFamily": {
+    "zh": { "value": "\"PingFang SC\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif" },
+    "en": { "value": "\"Inter\", \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif" },
+    "mono": { "value": "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, monospace" }
+  }
+}

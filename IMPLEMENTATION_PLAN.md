@@ -195,6 +195,13 @@
 > `interview_language_preference` 列）；openapi 契约、DOMAIN-MODEL §6.18、DATA-MODEL 材料族同步；
 > 服务/HTTP 层正常、异常、幂等、设备锁测试齐备。
 
+> **前端交付追踪（frontend-global-pages / frontend-batch-0）**：已建立 `apps/web` 与共享前端
+> 工作区基线，提供 SCR-01 ~ SCR-16 的 `/{locale}` 路由壳、SCR-17 后台路由契约占位、
+> FR-028 双语 URL 路由、项目/会话状态枚举契约断言、合成 Mock_Layer、WCAG 2.2 AA 自动化
+> 基线以及阶段 2/3/6 前端 CI 门禁。批次 0 不实现真实业务服务、媒体链路或评分逻辑；后续
+> frontend-batch-1 ~ 4 分别落地 SCR-01 ~ 07、SCR-08/09、SCR-10 ~ 15、SCR-16/17。
+> （frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+
 > **任务状态（2026-08-02 更新）**：TASK-020 已实现：`services/room`（新 Go 模块，登记 go.work 与 CI 矩阵）
 > 提供会话房间创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*` 契约）：
 > 前置校验项目 READY + 本轮量表/覆盖方案就绪（FR-011）+ 单活动设备（TASK-018 ClaimDevice）；

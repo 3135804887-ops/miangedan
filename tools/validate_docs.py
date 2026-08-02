@@ -101,6 +101,8 @@ def check_json() -> None:
         except Exception as e:  # noqa: BLE001
             fail(f"[JSON 解析失败] {p.relative_to(ROOT)}: {e}")
     for p in sorted(ROOT.rglob("*.jsonl")):
+        if "node_modules" in p.parts:
+            continue
         for i, line in enumerate(read(p).splitlines(), 1):
             if not line.strip():
                 continue
@@ -144,6 +146,8 @@ def check_openapi() -> None:
 # ---------- 6. Mermaid / 代码块闭合 ----------
 def check_fences() -> None:
     for p in sorted(ROOT.rglob("*.md")):
+        if "node_modules" in p.parts:
+            continue
         text = read(p)
         fences = re.findall(r"^```", text, flags=re.M)
         if len(fences) % 2 != 0:
