@@ -203,3 +203,9 @@ open → 冷却结束 → half_open（放行探针流量）→ 达标 → closed
 > （`Persona` style_parameters 封闭枚举，越界拒绝，无自由文本杜绝候选保护属性）、驱动契约
 > `Driver.Start/Drive/Stop` 与口型预算 200ms（NFR-011）、默认 720p/24fps 视频档位（NFR-012）、
 > 合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表（版本固定，主备路由+熔断）。
+
+> **TASK-022 实施（2026-08-02）**：`services/asr` 落地 §4.2 ASR 能力接入骨架——双向流式契约
+> `Provider.OpenStream`（音频帧 → `partial`/`final`，合成桩）、回合检测 `TurnDetector`
+> （静音窗口断点 → final，断点→final 预算 1s，NFR-010）、单说话方闸门 `TurnGate`
+> （用户说话时数字人不得输出避免重叠，FR-017；打断→停止预算 500ms，NFR-009）；
+> `RegisterProvider` 注册 `asr_{region}_{role}` 至 TASK-030 注册表（版本固定，主备路由+熔断）。
