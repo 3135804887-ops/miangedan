@@ -197,3 +197,9 @@ open → 冷却结束 → half_open（放行探针流量）→ 达标 → closed
 > 新会话区域路由（主 open 切 secondary、主备不可用拒绝新会话、跨区不回退）、
 > 活跃正式面试会话钉扎（`Pin`/`Resolve`，被停用/版本变化返回 `ErrPinnedUnavailable`，不静默切换）。
 > 各能力的具体适配器实现（LLM/ASR/TTS/Avatar/Search/解析）随对应实时/AI 任务接入本层契约。
+
+> **TASK-021 实施（2026-08-02）**：`services/avatar` 落地 §4.4 Avatar 能力接入骨架——固定授权写实 2D
+> 角色库（`CharacterLibrary`，角色 ID + 授权凭证引用；未知角色拒绝，禁止每场生成新脸）、动态面试官人格
+> （`Persona` style_parameters 封闭枚举，越界拒绝，无自由文本杜绝候选保护属性）、驱动契约
+> `Driver.Start/Drive/Stop` 与口型预算 200ms（NFR-011）、默认 720p/24fps 视频档位（NFR-012）、
+> 合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表（版本固定，主备路由+熔断）。
