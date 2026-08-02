@@ -15,6 +15,13 @@
 
 ### Added
 
+- TASK-021 数字人驱动接入（`task/TASK-021-avatar-driver` 分支）：
+  - 新增 `services/avatar` Go 模块（FR-014）：固定授权写实 2D 角色库（未知角色拒绝、
+    禁止每场生成新脸）、动态面试官人格（style_parameters 封闭枚举，越界拒绝）、
+    驱动契约 Driver.Start/Drive/Stop（口型预算 200ms NFR-011、默认 720p/24fps NFR-012）、
+    合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表
+    （版本固定、主备路由+熔断）。角色库/人格/口型预算/注册路由测试齐备。
+    （TASK-021、FR-013、FR-014、NFR-011、NFR-012、SEC-014）
 - TASK-030 供应商中立适配层（`task/TASK-030-provider-adapter-layer` 分支）：
   - 新增 `services/provider` Go 共享包（仅依赖 services/region，零外部依赖），按
     `docs/ai/PROVIDER-ADAPTERS.md` §5~§9 落地治理骨架：五类能力枚举、`Info` 注册条目
