@@ -226,6 +226,13 @@
 > 打断→停止预算 500ms）；`RegisterProvider` 注册 `asr_{region}_{role}` 至 TASK-030 注册表
 > （版本固定、主备路由 + 熔断）。回合/打断/预算/注册路由测试齐备；真实 ASR 随供应商选型接入。
 
+> **前端交付追踪（frontend-global-pages / frontend-batch-0）**：已建立 `apps/web` 与共享前端
+> 工作区基线，提供 SCR-01 ~ SCR-16 的 `/{locale}` 路由壳、SCR-17 后台路由契约占位、
+> FR-028 双语 URL 路由、项目/会话状态枚举契约断言、合成 Mock_Layer、WCAG 2.2 AA 自动化
+> 基线以及阶段 2/3/6 前端 CI 门禁。批次 0 不实现真实业务服务、媒体链路或评分逻辑；后续
+> frontend-batch-1 ~ 4 分别落地 SCR-01 ~ 07、SCR-08/09、SCR-10 ~ 15、SCR-16/17。
+> （frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

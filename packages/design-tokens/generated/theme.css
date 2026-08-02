@@ -1,0 +1,48 @@
+/* 本文件由 packages/design-tokens/src/build-css.ts 生成，禁止手工编辑。 */
+/* 令牌事实源：packages/design-tokens/tokens/*.json */
+/* 重新生成：pnpm tokens:build　校验：pnpm tokens:check */
+
+/* Tailwind v4 CSS-first 主题：只做「Tailwind 命名空间 → 令牌变量」的转发， */
+/* 因此换肤时只需改 tokens/*.json 的 value，主题映射保持不变。 */
+@theme inline {
+  --color-primary: var(--mgd-color-primary);
+  --color-success: var(--mgd-color-success);
+  --color-success-text: var(--mgd-color-success-text);
+  --color-warning: var(--mgd-color-warning);
+  --color-warning-text: var(--mgd-color-warning-text);
+  --color-danger: var(--mgd-color-danger);
+  --color-info: var(--mgd-color-info);
+  --color-neutral-900: var(--mgd-color-neutral-900);
+  --color-neutral-600: var(--mgd-color-neutral-600);
+  --color-neutral-100: var(--mgd-color-neutral-100);
+  --color-surface: var(--mgd-color-surface);
+  --color-focus: var(--mgd-color-focus);
+
+  --text-display: var(--mgd-font-display-size);
+  --text-display--line-height: var(--mgd-font-display-line-height);
+  --text-h-1: var(--mgd-font-h-1-size);
+  --text-h-1--line-height: var(--mgd-font-h-1-line-height);
+  --text-h-2: var(--mgd-font-h-2-size);
+  --text-h-2--line-height: var(--mgd-font-h-2-line-height);
+  --text-h-3: var(--mgd-font-h-3-size);
+  --text-h-3--line-height: var(--mgd-font-h-3-line-height);
+  --text-body: var(--mgd-font-body-size);
+  --text-body--line-height: var(--mgd-font-body-line-height);
+  --text-caption: var(--mgd-font-caption-size);
+  --text-caption--line-height: var(--mgd-font-caption-line-height);
+
+  --font-zh: var(--mgd-font-family-zh);
+  --font-en: var(--mgd-font-family-en);
+  --font-mono: var(--mgd-font-family-mono);
+
+  --spacing-1: var(--mgd-space-1);
+  --spacing-2: var(--mgd-space-2);
+  --spacing-3: var(--mgd-space-3);
+  --spacing-4: var(--mgd-space-4);
+  --spacing-6: var(--mgd-space-6);
+  --spacing-8: var(--mgd-space-8);
+  --spacing-12: var(--mgd-space-12);
+
+  --breakpoint-tablet: var(--mgd-breakpoint-tablet);
+  --breakpoint-desktop: var(--mgd-breakpoint-desktop);
+}

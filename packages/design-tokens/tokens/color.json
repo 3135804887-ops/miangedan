@@ -1,0 +1,18 @@
+{
+  "_note": "语义映射是稳定契约，色值为工程中性占位；品牌视觉属 OD-04 未决（Owner = 品牌与法务负责人）。换肤只允许改 value，语义名称集合变更将使 CI 失败（DESIGN-SYSTEM 第 10 节第 1 条）。",
+  "_source": "docs/design/DESIGN-SYSTEM.md 第 5 节",
+  "color": {
+    "primary": { "value": "#2B5CE6", "usage": "主操作、链接、品牌强调" },
+    "success": { "value": "#1F9D66", "usage": "通过态 ROUND_PASSED 的图标、边框与大文本（正文用 successText）" },
+    "successText": { "value": "#16794E", "usage": "通过态正文文字：success 基础色在白底为 3.46:1，不满足正文 4.5:1" },
+    "warning": { "value": "#B7791F", "usage": "弱项、待处理、降级提示的图标、边框与大文本（正文用 warningText）" },
+    "warningText": { "value": "#8A5A12", "usage": "警示正文文字：warning 基础色在白底为 3.64:1，不满足正文 4.5:1" },
+    "danger": { "value": "#C53030", "usage": "未通过态 ROUND_FAILED、破坏性操作" },
+    "info": { "value": "#2B6CB0", "usage": "评估未完成 EVALUATION_INCOMPLETE、中性提示" },
+    "neutral900": { "value": "#1A202C", "usage": "主文本" },
+    "neutral600": { "value": "#4A5568", "usage": "次级文本" },
+    "neutral100": { "value": "#EDF2F7", "usage": "分隔线与浅背景" },
+    "surface": { "value": "#FFFFFF", "usage": "卡片与页面表面" },
+    "focus": { "value": "#805AD5", "usage": "focus-visible 焦点环，必须可见" }
+  }
+}

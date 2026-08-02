@@ -15,6 +15,13 @@
 
 ### Added
 
+- frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
+  `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
+  双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的
+  `contracts/ts` 类型，接入阶段 2 的 lint/typecheck/i18n/令牌/API 漂移检查、阶段 3 的
+  Vitest/axe/隐私与幂等测试、阶段 6 的生产构建与 bundle 密钥扫描。
+  语言前缀路由与 Storybook 等价测试按前端规格的两项偏离说明执行；媒体与业务页仍为后续批次
+  的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
 - TASK-022 流式 ASR、回合检测与打断防重叠（`task/TASK-022-streaming-asr` 分支）：
   - 新增 `services/asr` Go 模块（FR-017）：双向流式识别契约 `Provider.OpenStream`
     （音频帧 → partial/final，合成桩）、回合检测 `TurnDetector`（静音窗口断点 → final，

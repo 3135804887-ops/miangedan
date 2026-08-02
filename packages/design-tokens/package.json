@@ -1,0 +1,22 @@
+{
+  "name": "@mgd/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "面个蛋设计令牌（DESIGN-SYSTEM 第 5~7 节）：JSON 令牌为源，生成 CSS 变量与 Tailwind v4 主题",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./generated/tokens.css": "./generated/tokens.css",
+    "./generated/theme.css": "./generated/theme.css"
+  },
+  "files": [
+    "src",
+    "tokens",
+    "generated"
+  ],
+  "scripts": {
+    "build": "node src/build-css.ts",
+    "check": "node src/check.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}
