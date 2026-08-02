@@ -54,6 +54,12 @@
     端点及 `PreCheck` schema；迁移 `0027_session_prechecks.sql`；
     DOMAIN-MODEL §6.24、DATA-MODEL、SCREEN-SPEC 同步；
     服务/HTTP 正常、异常、重复冻结、幂等测试齐备。（TASK-027、FR-015、FR-016）
+- TASK-031 提示词注册表（`task/TASK-031-prompt-registry` 分支）：
+  - `ai/services/orchestrator` 新增 `prompt_registry`（FR-038 部分）：解析 `ai/prompts/*.md`
+    契约元数据；四层组装（system/developer/session/data）与不可信数据边界；
+    注入模式检测（命中即标记不执行）；输出 JSON Schema 校验（fail-closed）；版本固定。
+  - pyproject 登记 jsonschema 依赖；pytest 9 用例、ruff、mypy(strict) 全绿。
+    （TASK-031、FR-038、PROMPT-POLICY）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的

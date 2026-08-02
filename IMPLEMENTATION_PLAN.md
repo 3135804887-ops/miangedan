@@ -310,6 +310,16 @@
 | TASK-035 | 提示注入防护与内容安全管道（简历/JD/网页均视为不可信数据） | P0 风险（注入） | TASK-030 | 红队注入用例全部阻断；模型无密钥访问 |
 | TASK-036 | AI 评测框架：黄金集、回归门槛、公平性切分 | 评分硬门槛 | TASK-031 | `ai/evals/` 数据集可重复运行并产出报告 |
 
+> **任务状态（2026-08-02 更新）**：TASK-031 已实现：`ai/services/orchestrator` 新增
+> `mgd_orchestrator.prompt_registry`（FR-038 部分）——从 `ai/prompts/*.md` 解析全部契约
+> 元数据（prompt_id/version/layer/output_schema/safety_policy/status），四层组装
+> （system/developer/session/data，data 层以 `<<<UNTRUSTED_DATA>>>` 边界包裹，
+> 下层永不覆盖上层指令）、注入模式检测（中文/英文基线，命中即标记不执行）、输出 JSON Schema
+> 校验（引用 `ai/schemas/*.json`，fail-closed，不通过不可进入房间）、版本固定
+> （活跃正式会话固定开始版本，不匹配拒绝）。依赖 `jsonschema` 登记于 pyproject；
+> pytest 9 用例（加载/版本/分层/注入/输出校验正常与拒绝）全绿，ruff/mypy(strict) 通过。
+> （TASK-031、FR-038 部分、PROMPT-POLICY）
+
 ### EPIC-05 评分与复核
 
 目标：独立、可重复、可解释、版本冻结的评分与正式复核。
