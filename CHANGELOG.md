@@ -15,6 +15,13 @@
 
 ### Added
 
+- TASK-022 流式 ASR、回合检测与打断防重叠（`task/TASK-022-streaming-asr` 分支）：
+  - 新增 `services/asr` Go 模块（FR-017）：双向流式识别契约 `Provider.OpenStream`
+    （音频帧 → partial/final，合成桩）、回合检测 `TurnDetector`（静音窗口断点 → final，
+    断点→final 预算 1s NFR-010）、单说话方闸门 `TurnGate`（避免重叠说话；语音 VAD/停止按钮
+    打断，打断→停止预算 500ms NFR-009）；`RegisterProvider` 注册 `asr_{region}_{role}`
+    至 TASK-030 注册表（版本固定、主备路由+熔断）。回合/打断/预算/注册路由测试齐备。
+    （TASK-022、FR-017、NFR-008、NFR-009、NFR-010）
 - TASK-021 数字人驱动接入（`task/TASK-021-avatar-driver` 分支）：
   - 新增 `services/avatar` Go 模块（FR-014）：固定授权写实 2D 角色库（未知角色拒绝、
     禁止每场生成新脸）、动态面试官人格（style_parameters 封闭枚举，越界拒绝）、

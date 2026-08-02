@@ -226,6 +226,13 @@
 > 合成桩驱动；`RegisterDriver` 注册 `avatar_{region}_{role}` 至 TASK-030 注册表（版本固定，
 > 主备路由 + 熔断）。角色库/人格/口型预算/注册路由测试齐备；真实媒体驱动随供应商选型接入。
 
+> **任务状态（2026-08-02 更新）**：TASK-022 已实现：`services/asr` 落地流式语音识别接入骨架
+> （FR-017、NFR-008~NFR-010）——双向流式契约 `Provider.OpenStream`（音频帧 → partial/final，
+> 合成桩；语言/静音断点 fail-closed）、回合检测 `TurnDetector`（静音窗口断点 → final，
+> 断点→final 预算 1s）、单说话方闸门 `TurnGate`（避免重叠说话；语音/按钮打断，
+> 打断→停止预算 500ms）；`RegisterProvider` 注册 `asr_{region}_{role}` 至 TASK-030 注册表
+> （版本固定、主备路由 + 熔断）。回合/打断/预算/注册路由测试齐备；真实 ASR 随供应商选型接入。
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。

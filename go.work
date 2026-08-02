@@ -1,6 +1,7 @@
 go 1.26
 
 use (
+	./services/asr
 	./services/avatar
 	./services/backup
 	./services/adminapi
