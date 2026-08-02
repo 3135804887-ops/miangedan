@@ -256,6 +256,14 @@ erDiagram
 | 关键字段 | `paused_at`/`paused_seconds`（暂停只增不减）、`downgrade_status`（none/prompted/accepted/rejected）、`downgrade_prompt_id`、`text_degraded_at`、`end_reason` |
 | 规则 | 暂停段不计费不判失败；接受降级 → TEXT_DEGRADED（故障点起不计数字人额度）；拒绝降级 → ENDED + EVALUATION_INCOMPLETE（不是失败）+ 系统责任全额返还（TASK-061 挂接）；所有操作幂等 |
 
+### 6.23 EvidenceEvent（证据事件流水，TASK-026）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 问题实际播放内容、回答、修订、工具事件四类证据的细粒度追加式流水（NFR-005），供评分/复核/报告引用 |
+| 关键字段 | `evidence_id`、`kind`（question_played/answer/revision/tool_event）、`event_id`（幂等）、`payload_json`、`content_hash`（SHA-256） |
+| 规则 | 只追加不更新/删除（ADR-0004）；`event_id` 幂等去重；`content_hash` 与载荷一致性校验 fail-closed；下一主问题前完成上一有效回答持久化 |
+
 | 要点 | 内容 |
 |---|---|
 | AccessAudit | 追加式敏感访问记录（谁、何时、何种角色、访问了什么、授权依据）；管理员不可删除；敏感访问通知用户 |

@@ -277,6 +277,15 @@
 > INTERVIEW-STATE-MACHINE 同步；服务/HTTP 正常、异常、幂等测试齐备。
 > （TASK-025、FR-020、NFR-005）
 
+> **任务状态（2026-08-02 更新）**：TASK-026 已实现：`services/evidence` 新 Go 模块
+> （仅依赖 services/region，登记 go.work 与 CI golangci 矩阵）提供追加式证据账本写入管道
+> （NFR-005）——问题实际播放内容/回答/修订/工具事件四类证据（kind 封闭枚举）、`event_id`
+> 幂等去重（NFR-006）、`content_hash` 与载荷一致性校验（fail-closed）、无更新/删除路径
+> （ADR-0004）、列表只读副本；`turn.completed` 前完成上一有效回答持久化的顺序保证由
+> TASK-023 冻结边界消费。迁移为 `0026_evidence_events.sql`；DOMAIN-MODEL §6.23、
+> DATA-MODEL、realtime-events 同步；正常/异常/幂等/只读红线测试齐备。
+> （TASK-026、NFR-005、NFR-006）
+
 ### EPIC-04 AI 编排（供应商适配、提示词、面试官图、交接、安全）
 
 目标：概率性 AI 决策与确定性业务状态严格分离；LLM 无权直接改变业务状态。

@@ -39,6 +39,13 @@
     端点并扩展 Session schema；迁移 `0025_session_fault_controls.sql`；
     DOMAIN-MODEL §6.22、DATA-MODEL、INTERVIEW-STATE-MACHINE 同步；
     服务/HTTP 正常、异常、幂等测试齐备。（TASK-025、FR-020、NFR-005）
+- TASK-026 追加式证据账本写入管道（`task/TASK-026-evidence-pipeline` 分支）：
+  - 新 Go 模块 `services/evidence`（仅依赖 region）：问题实际播放/回答/修订/工具事件四类证据
+    只追加写入；`event_id` 幂等去重（NFR-006）、`content_hash` 一致性校验 fail-closed、
+    无更新/删除路径（ADR-0004）、列表只读副本。
+  - 迁移 `0026_evidence_events.sql`；DOMAIN-MODEL §6.23、DATA-MODEL、realtime-events 同步；
+    CI golangci 矩阵登记 evidence；正常/异常/幂等/只读红线测试齐备。
+    （TASK-026、NFR-005、NFR-006）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的
