@@ -12,6 +12,7 @@ use (
 	./services/observability
 	./services/org
 	./services/project
+	./services/provider
 	./services/region
 	./services/room
 	./services/secretref

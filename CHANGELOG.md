@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-030 供应商中立适配层（`task/TASK-030-provider-adapter-layer` 分支）：
+  - 新增 `services/provider` Go 共享包（仅依赖 services/region，零外部依赖），按
+    `docs/ai/PROVIDER-ADAPTERS.md` §5~§9 落地治理骨架：五类能力枚举、`Info` 注册条目
+    （provider_id 形态 `{capability}_{region}_{role}`、版本固定）、按数据区隔离注册表
+    （重复拒绝、紧急停用）、低频合成探针健康检查、每（区×供应商×能力）熔断器
+    （closed → open → half_open → closed，注入时钟）、新会话区域路由（主 open 切 secondary、
+    主备不可用拒绝新会话、跨区不回退）、活跃正式面试会话钉扎（被停用/版本变化返回
+    `ErrPinnedUnavailable`，不静默切换）。熔断/路由/钉扎/校验测试齐备。
+    （TASK-030、ADR-0003、FR-037 部分、NFR-007~NFR-012）
 - TASK-020 WebRTC/SFU 会话房间与短期媒体令牌（`task/TASK-020-session-room-media-token` 分支）：
   - 新增 `services/room` Go 模块：会话创建/查询/结束/重连/设备转移（openapi `/v1/sessions/*`），
     前置校验项目 READY、本轮量表与覆盖方案就绪（FR-011）、单活动设备（TASK-018）；
