@@ -2109,6 +2109,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 区域监控（在线房间/排队/容量/供应商健康/SLO/错误预算；默认匿名技术指标） */
+        get: operations["listRegionOpsStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/regions/{region}/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 区域房间列表（仅匿名会话编号与技术状态；无姓名/简历/回答/媒体） */
+        get: operations["listAnonymousRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/providers/{providerId}/status": {
         parameters: {
             query?: never;
@@ -3423,6 +3457,37 @@ export interface components {
             } | null;
             /** @constant */
             note?: "密钥由独立密钥系统管理，本接口永不返回完整值";
+        };
+        ProviderHealth: {
+            provider_id: string;
+            /** @enum {unknown} */
+            capability: "llm" | "asr" | "tts" | "avatar" | "search";
+            /** @enum {unknown} */
+            status: "active" | "ramping" | "disabled";
+            latency_p95_ms: number;
+            error_rate: number;
+            /** @enum {unknown} */
+            circuit_breaker: "closed" | "open" | "half_open";
+        };
+        AnonymousRoom: {
+            /** @description 匿名会话编号（不含身份） */
+            anonymous_session_id: string;
+            state: string;
+            duration_seconds?: number;
+            fault_code?: string | null;
+        };
+        RegionOpsStatus: {
+            data_region: components["schemas"]["Region"];
+            online_rooms: number;
+            queued_sessions: number;
+            capacity: number;
+            provider_health?: components["schemas"]["ProviderHealth"][];
+            slo?: {
+                [key: string]: number;
+            };
+            error_budget_burn?: number;
+            /** Format: date-time */
+            updated_at?: string;
         };
         AuditLog: {
             /** Format: uuid */
@@ -7826,6 +7891,55 @@ export interface operations {
                     "application/json": {
                         data_region?: components["schemas"]["Region"];
                         items?: components["schemas"]["ProviderInfo"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRegionOpsStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 区域状态列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: components["schemas"]["RegionOpsStatus"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAnonymousRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                region: components["schemas"]["Region"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 匿名房间列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data_region?: components["schemas"]["Region"];
+                        items?: components["schemas"]["AnonymousRoom"][];
                     };
                 };
             };
