@@ -167,7 +167,7 @@ func (s *Service) OfferDowngrade(_ context.Context, actor project.Actor, session
 
 // AcceptDowngrade 同意文字降级（avatar.downgrade_accepted）：DOWNGRADE_PROMPTED → TEXT_DEGRADED。
 // 故障点起不再消耗数字人额度（TASK-061 额度联动挂接点）；口语项按文字模式规则处理。
-func (s *Service) AcceptDowngrade(ctx context.Context, actor project.Actor, sessionID, promptID string, idemKey string) (Session, error) {
+func (s *Service) AcceptDowngrade(_ context.Context, actor project.Actor, sessionID, promptID string, idemKey string) (Session, error) {
 	if err := s.validateActor(actor); err != nil {
 		return Session{}, err
 	}

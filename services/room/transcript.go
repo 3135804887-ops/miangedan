@@ -1,3 +1,4 @@
+// Package room 提供实时会话房间、字幕、岗位工具与故障控制能力。
 // TASK-023 双向字幕与转写修订（FR-018）。
 // 追踪：docs/api/realtime-events.md 7.3（caption/asr/transcript.revision/turn.completed）；
 // NFR-005（证据持久化边界）；INTERVIEW-STATE-MACHINE（回合冻结）。

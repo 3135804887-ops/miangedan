@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
-import jsonschema
+import jsonschema  # type: ignore[import-untyped]
 import pytest
 
 from mgd_orchestrator.prompt_registry import PromptRegistry
@@ -118,6 +119,7 @@ def test_validate_output_ok_and_reject(registry: PromptRegistry) -> None:
     }
     registry.validate_output(spec, valid)
     invalid = dict(valid)
-    invalid["rounds"][0]["duration_minutes"] = 999
+    invalid_rounds = cast(list[dict[str, Any]], invalid["rounds"])
+    invalid_rounds[0]["duration_minutes"] = 999
     with pytest.raises(jsonschema.ValidationError):
         registry.validate_output(spec, invalid)

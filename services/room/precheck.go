@@ -1,3 +1,4 @@
+// Package room 提供实时会话房间、字幕、岗位工具与故障控制能力。
 // TASK-027 输入模式与便利设置会前冻结（FR-015、FR-016）。
 // 追踪：SCREEN-SPEC SCR-07（会前检查页）；realtime-events 7.1（session.pre_check_passed）；
 // INTERVIEW-STATE-MACHINE（PRE_CHECK → AVATAR_CONNECTING）；SCORING-SPEC（便利设置不视为弱点）。
@@ -80,7 +81,7 @@ func normalizeModes(modes []InputMode) ([]InputMode, error) {
 
 // FreezePreCheck 冻结会前配置（session.pre_check_passed）：PRE_CHECK/ROOM_CREATED →
 // AVATAR_CONNECTING。数字人音视频始终开启（无关闭选项）；便利设置来自计划冻结范围。
-func (s *Service) FreezePreCheck(ctx context.Context, actor project.Actor, sessionID string, in FreezePreCheckInput, idemKey string) (PreCheck, error) {
+func (s *Service) FreezePreCheck(_ context.Context, actor project.Actor, sessionID string, in FreezePreCheckInput, idemKey string) (PreCheck, error) {
 	if err := s.validateActor(actor); err != nil {
 		return PreCheck{}, err
 	}

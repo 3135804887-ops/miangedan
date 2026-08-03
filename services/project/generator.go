@@ -1,3 +1,4 @@
+// Package project 提供面试项目、计划与轮次服务。
 // TASK-033 计划生成链路（FR-009/FR-011；US-02 场景 5）。
 // 追踪：IMPLEMENTATION_PLAN.md TASK-033；ai/prompts/plan-generation.md；
 // ai/schemas/interview-plan.schema.json；PROMPT-POLICY（PII/注入安全过滤）。

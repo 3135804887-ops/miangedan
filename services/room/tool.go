@@ -1,3 +1,4 @@
+// Package room 提供实时会话房间、字幕、岗位工具与故障控制能力。
 // TASK-024 岗位工具（FR-019）。
 // 追踪：docs/api/realtime-events.md 7.5（tool.activated / tool.event / tool.snapshot）；
 // SCREEN-SPEC SCR-08（未配置工具禁止临时加载）；NFR-005（工具事件入证据账本）。
