@@ -49,6 +49,7 @@ type AudioFrame struct {
 	Duration time.Duration
 	RmsLevel float64
 	Speech   bool
+	PCM      []byte // 16k 单声道 PCM16 音频载荷（自建 ASR 回合级转写输入）
 }
 
 // 服务错误。

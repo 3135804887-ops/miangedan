@@ -90,6 +90,9 @@ export function RoomView({
   const [frozen, setFrozen] = useState(false);
   const [status, setStatus] = useState<'live' | 'paused' | 'reconnecting' | 'text'>('live');
   const [apiUnavailable, setApiUnavailable] = useState(false);
+  const [candidateText, setCandidateText] = useState(
+    '峰值 QPS 我们预估约 8k，通过全链路压测发现数据库连接池是瓶颈，随后引入了读写分离与本地缓存……',
+  );
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   async function playGreeting(): Promise<void> {
@@ -116,6 +119,45 @@ export function RoomView({
     } catch {
       toast.push({
         title: locale === 'zh-CN' ? '自建语音服务未就绪' : 'Self-hosted TTS unavailable',
+        tone: 'danger',
+      });
+    }
+  }
+
+  async function runAsrDemo(): Promise<void> {
+    try {
+      const ttsResponse = await fetch(`${selfhostTtsUrl}/v1/tts/synthesize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          text:
+            locale === 'zh-CN'
+              ? '峰值 QPS 我们预估约八千，通过全链路压测发现数据库连接池是瓶颈，随后引入读写分离与本地缓存。'
+              : 'Peak QPS was around eight thousand; load testing showed the database connection pool was the bottleneck, so we added read-write splitting and local caching.',
+        }),
+      });
+      if (!ttsResponse.ok) {
+        throw new Error(`tts http ${ttsResponse.status}`);
+      }
+      const audioBlob = await ttsResponse.blob();
+      const form = new FormData();
+      form.append('file', audioBlob, 'demo.wav');
+      const asrResponse = await fetch(`${selfhostTtsUrl}/v1/asr/transcribe`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!asrResponse.ok) {
+        throw new Error(`asr http ${asrResponse.status}`);
+      }
+      const result = (await asrResponse.json()) as { text?: string };
+      setCandidateText(
+        result.text?.trim() ||
+          (locale === 'zh-CN' ? '（识别结果为空）' : '(empty transcript)'),
+      );
+      setSubtitles(true);
+    } catch {
+      toast.push({
+        title: locale === 'zh-CN' ? '自建语音服务未就绪' : 'Self-hosted ASR unavailable',
         tone: 'danger',
       });
     }
@@ -331,7 +373,7 @@ export function RoomView({
                     {frozen ? <Tint tone="info">{labels.frozen}</Tint> : <Tint tone="warning">{labels.revise}</Tint>}
                   </div>
                   <p aria-live="polite" className="mb-0 rounded-xl border border-neutral-100 bg-surface-muted/60 p-4 text-sm leading-6 text-neutral-800">
-                    峰值 QPS 我们预估约 8k，通过全链路压测发现数据库连接池是瓶颈，随后引入了读写分离与本地缓存……
+                    {candidateText}
                   </p>
                   <p className="mt-2 mb-0 text-xs text-neutral-500">{labels.revisionHint}</p>
                 </div>
@@ -420,13 +462,22 @@ export function RoomView({
             <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-400" />
             REC
           </span>
-          <button
-            type="button"
-            onClick={() => void playGreeting()}
-            className="absolute bottom-3 right-3 rounded-lg bg-white/15 px-2.5 py-1 text-xs text-white backdrop-blur transition-colors hover:bg-white/25"
-          >
-            {locale === 'zh-CN' ? '播放问候语' : 'Play greeting'}
-          </button>
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void runAsrDemo()}
+              className="rounded-lg bg-black/30 px-2.5 py-1 text-xs text-white backdrop-blur transition-colors hover:bg-black/40"
+            >
+              {locale === 'zh-CN' ? '转写演示' : 'ASR demo'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void playGreeting()}
+              className="rounded-lg bg-black/30 px-2.5 py-1 text-xs text-white backdrop-blur transition-colors hover:bg-black/40"
+            >
+              {locale === 'zh-CN' ? '播放问候语' : 'Play greeting'}
+            </button>
+          </div>
         </div>
         <div
           role="img"
