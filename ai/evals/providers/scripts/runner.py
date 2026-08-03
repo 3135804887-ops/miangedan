@@ -50,12 +50,14 @@ DIMENSION_WEIGHTS = {
 # Vendor -> region-scoped env vars, aligned with .env.example.
 VENDOR_ENV_MAP: dict[str, dict[str, tuple[str, ...]]] = {
     "cn": {
-        "agora": ("WEBRTC_SFU_URL", "WEBRTC_API_KEY", "WEBRTC_API_SECRET"),
+        # 2026-08-03 项目负责人初步选定：TRTC / 讯飞 ASR / 讯飞 TTS /
+        # DeepSeek / 腾讯数智人 为主供应商，其余为备选。
         "trtc": ("WEBRTC_SFU_URL", "WEBRTC_API_KEY", "WEBRTC_API_SECRET"),
-        "aliyun_asr": ("ASR_PRIMARY_BASE_URL", "ASR_PRIMARY_API_KEY"),
+        "agora": ("WEBRTC_SFU_URL", "WEBRTC_API_KEY", "WEBRTC_API_SECRET"),
         "iflytek_asr": ("ASR_PRIMARY_BASE_URL", "ASR_PRIMARY_API_KEY"),
-        "volcano_tts": ("TTS_PRIMARY_BASE_URL", "TTS_PRIMARY_API_KEY"),
+        "aliyun_asr": ("ASR_SECONDARY_BASE_URL", "ASR_SECONDARY_API_KEY"),
         "iflytek_tts": ("TTS_PRIMARY_BASE_URL", "TTS_PRIMARY_API_KEY"),
+        "volcano_tts": ("TTS_SECONDARY_BASE_URL", "TTS_SECONDARY_API_KEY"),
         "deepseek": ("LLM_PRIMARY_BASE_URL", "LLM_PRIMARY_API_KEY", "LLM_MODEL_PINNED_VERSION"),
         "qwen": ("LLM_SECONDARY_BASE_URL", "LLM_SECONDARY_API_KEY"),
         "tencent_avatar": (
@@ -64,8 +66,8 @@ VENDOR_ENV_MAP: dict[str, dict[str, tuple[str, ...]]] = {
             "AVATAR_CHARACTER_LICENSE_REF",
         ),
         "silicon_avatar": (
-            "AVATAR_PRIMARY_BASE_URL",
-            "AVATAR_PRIMARY_API_KEY",
+            "AVATAR_SECONDARY_BASE_URL",
+            "AVATAR_SECONDARY_API_KEY",
             "AVATAR_CHARACTER_LICENSE_REF",
         ),
     },

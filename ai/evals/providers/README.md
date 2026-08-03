@@ -10,6 +10,16 @@
 - 主力：**cn 区**。本轮 Phase 0 实测与供应商选型全部在 cn 区执行。
 - 待开发：eu/intl 区候选名单保留（LiveKit/100ms、Deepgram/Azure、ElevenLabs/Azure、Azure OpenAI/Claude、HeyGen/Synthesia），不进入本轮实测与评分；runner 中的 eu/intl 配置位保留供后续窗口使用。
 
+## 已选主供应商（cn 区，2026-08-03 项目负责人初步选定，待实测确认）
+
+- WebRTC/SFU：腾讯云 TRTC（备选：声网 Agora）
+- ASR：讯飞实时语音转写（备选：阿里云智能语音）
+- TTS：讯飞在线语音合成（备选：火山豆包语音）
+- LLM：DeepSeek（备选：阿里云百炼 Qwen）
+- 数字人：腾讯云智能数智人（备选：硅基智能）
+
+本轮只需注册主供应商；备选厂商待实测评估需要时再注册。凭据按主供应商优先注入，`runner.py check-config --region cn` 会直接核对主供应商密钥是否齐全。
+
 ## 目的
 
 把 OD-01 第 6 节清单变成可执行、可复核的沙箱实测流程：生成合成会话素材，按厂商/区域记录原始样本，计算分位数并对照 NFR 门槛，最终组装六维评分卡供三方签字。
