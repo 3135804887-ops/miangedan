@@ -109,9 +109,14 @@ func buildWAV16kMono(pcm []byte) ([]byte, error) {
 	if len(pcm)%2 != 0 {
 		return nil, errors.New("pcm 必须为 16 位对齐")
 	}
+	const maxWavData = uint64(1<<32 - 1)
+	if uint64(len(pcm)) > maxWavData {
+		return nil, errors.New("pcm 超过 WAV 尺寸上限")
+	}
+	dataLen := uint32(len(pcm))
 	var buf bytes.Buffer
 	buf.WriteString("RIFF")
-	if err := binary.Write(&buf, binary.LittleEndian, uint32(36+len(pcm))); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, uint32(36)+dataLen); err != nil {
 		return nil, err
 	}
 	buf.WriteString("WAVE")
@@ -138,7 +143,7 @@ func buildWAV16kMono(pcm []byte) ([]byte, error) {
 		return nil, err
 	}
 	buf.WriteString("data")
-	if err := binary.Write(&buf, binary.LittleEndian, uint32(len(pcm))); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, dataLen); err != nil {
 		return nil, err
 	}
 	buf.Write(pcm)
