@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-036 AI 评测框架（`task/TASK-036-eval-framework` 分支）：
+  - 新 Python 包 `ai/services/evals`（`mgd_evals`）：黄金集可重复运行并产出
+    JSON 报告（`ai/evals/reports/<stem>.eval.json`）；数据集与预期结果对齐校验；
+    内置评测器按场景自动分发（handoff/safety/generic），未支持场景如实标记
+    skipped；报告含 totals/metrics/thresholds/cases，确定性可复现；
+  - `validate_stability_report()`：TASK-045 稳定性门槛校验握手
+    （维度差 ≤3 比例 ≥95%、及格一致率 ≥98%）；
+  - zh-core/en-core 已支持用例 6/6 全过，报告提交入库；pytest 7 用例全绿，
+    ruff、mypy(strict) 通过。（TASK-036、PROMPT-POLICY 13、SCORING-SPEC 10）
 - TASK-044 量表/权重版本化与公平性监控（`task/TASK-044-rubric-fairness` 分支）：
   - `services/scoring` 新增 `RubricRegistry`（FR-038 部分）：加载
     `config/rubrics/v1/default.yaml`（六维权重/锚点/覆盖率阈值），版本唯一
