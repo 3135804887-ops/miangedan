@@ -15,6 +15,17 @@
 
 ### Added
 
+- TASK-064 Pro 订阅生命周期（`task/TASK-064-pro-subscription` 分支）：
+  - `services/billing` 订阅（FR-033，US-06 场景 5）：自动续费单独勾选并记录同意
+    条款（价格/权益变化须重新同意）；扣款前提醒（PrepareRenewal）+ 7 天窗口
+    ChargeRenewal（超窗拒绝）；续费结转 ≤1 账期、总余额 ≤2×月额度；
+  - 取消续费权益保留至账期结束；到期 SUB_EXPIRED 且历史保留；进行中的正式轮次
+    到期仍可正常结束（余额校验只在轮次开始前）。
+  - 迁移 `0063_pro_renewals.sql`（renewal_events + 订阅同意条款列）；openapi
+    增加 auto-renew/renewals/charge 端点与 RenewalRecord schema。
+  - 服务正常、异常、幂等、条款变化、提醒窗口、到期轮次完成测试齐备（新增 6 用例），
+    gofmt/vet 通过。
+    （TASK-064、FR-033、BILLING-STATE-MACHINE §5.5）
 - TASK-063 退款与补偿（`task/TASK-063-refunds` 分支）：
   - `services/billing` 退款流程（FR-033，US-06 场景 3）：小额用户退款自动执行、
     大额（≥¥500 等值）与人工补偿双人审批（同一审批人去重、不可自批）、

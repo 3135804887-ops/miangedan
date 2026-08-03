@@ -113,15 +113,18 @@ type Freeze struct {
 
 // ProSubscription 为 Pro 订阅（结转规则：≤1 账期；余额 ≤ 2×月额度）。
 type ProSubscription struct {
-	SubscriptionID   string
-	UserID           string
-	Status           string
-	MonthlySeconds   int
-	PeriodStart      time.Time
-	PeriodEnd        time.Time
-	CarryoverSeconds int
-	AutoRenew        bool
-	DataRegion       string
+	SubscriptionID        string
+	UserID                string
+	Status                string
+	MonthlySeconds        int
+	PeriodStart           time.Time
+	PeriodEnd             time.Time
+	CarryoverSeconds      int
+	AutoRenew             bool
+	ConsentMonthlySeconds int
+	ConsentPriceCents     int
+	IdempotencyKey        string
+	DataRegion            string
 }
 
 // 账本条目类型（usage_ledger.entry_type 对齐；追加式，冲正以 reversal 实现）。

@@ -2099,6 +2099,52 @@ paths:
       responses:
         '200': { description: 已取消续费, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/subscription/auto-renew:
+    put:
+      tags: [billing]
+      operationId: setAutoRenew
+      summary: 自动续费单独勾选（必须明确同意；记录同意时的月额度与价格条款；条款变化须重新同意）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+                consent_granted: { type: boolean, description: 开启时必须为 true }
+                consent_monthly_seconds: { type: ['integer', 'null'], minimum: 1 }
+                consent_price_cents: { type: ['integer', 'null'], minimum: 0 }
+      responses:
+        '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/subscription/renewals:
+    post:
+      tags: [billing]
+      operationId: prepareRenewal
+      summary: 续费扣款前提醒（自动续费已勾选且条款未变化；同一账期只生成一条提醒）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: 提醒已生成, content: { application/json: { schema: { $ref: '#/components/schemas/RenewalRecord' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/subscription/renewals/{renewalId}/charge:
+    post:
+      tags: [billing]
+      operationId: chargeRenewal
+      summary: 执行续费扣款（提醒后 7 天窗口内；结转 ≤1 账期；总余额 ≤2×月额度）
+      parameters:
+        - name: renewalId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 续费成功, content: { application/json: { schema: { $ref: '#/components/schemas/Subscription' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/payments/callback/{provider}:
     post:
       tags: [billing]
@@ -3316,6 +3362,22 @@ components:
         carryover_cap_note: { type: string, description: 未使用时长最多结转一个账期 }
         current_period_end: { type: string, format: date-time }
         auto_renew: { type: boolean }
+        consent_monthly_seconds: { type: ['integer', 'null'], minimum: 1, description: 同意时月额度（条款变化须重新同意） }
+        consent_price_cents: { type: ['integer', 'null'], minimum: 0, description: 同意时月度价格（分） }
+        data_region: { $ref: '#/components/schemas/Region' }
+    RenewalRecord:
+      type: object
+      required: [renewal_id, subscription_id, status, period_start, period_end, monthly_seconds, price_cents]
+      properties:
+        renewal_id: { type: string, format: uuid }
+        subscription_id: { type: string, format: uuid }
+        status: { enum: [reminded, charged, failed] }
+        period_start: { type: string, format: date-time }
+        period_end: { type: string, format: date-time }
+        monthly_seconds: { type: integer, minimum: 1 }
+        price_cents: { type: integer, minimum: 0 }
+        reminded_at: { type: ['string', 'null'], format: date-time, description: 扣款前提醒时间 }
+        charged_at: { type: ['string', 'null'], format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
     Organization:
       type: object

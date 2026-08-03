@@ -8,50 +8,58 @@ import (
 
 // MemoryStore 为内存版存储（开发/测试；生产 PostgreSQL）。
 type MemoryStore struct {
-	mu            sync.RWMutex
-	entitlements  map[string]Entitlement
-	entitlementID map[string]Entitlement
-	quotes        map[string]Quote
-	quoteID       map[string]Quote
-	quotesByProj  map[string][]Quote
-	freezes       map[string]Freeze
-	subscriptions map[string]ProSubscription
-	ledger        map[string][]LedgerEntry
-	ledgerIDem    map[string]LedgerEntry
-	meters        map[string]Meter
-	orders        map[string]Order
-	orderIDem     map[string]Order
-	ordersByUser  map[string][]Order
-	paymentEvents map[string]PaymentEvent
-	incidents     map[string][]Incident
-	refunds       map[string]Refund
-	refundIDem    map[string]Refund
-	refundsByOrd  map[string][]Refund
-	refundsByUser map[string][]Refund
+	mu               sync.RWMutex
+	entitlements     map[string]Entitlement
+	entitlementID    map[string]Entitlement
+	quotes           map[string]Quote
+	quoteID          map[string]Quote
+	quotesByProj     map[string][]Quote
+	freezes          map[string]Freeze
+	subscriptions    map[string]ProSubscription
+	ledger           map[string][]LedgerEntry
+	ledgerIDem       map[string]LedgerEntry
+	meters           map[string]Meter
+	orders           map[string]Order
+	orderIDem        map[string]Order
+	ordersByUser     map[string][]Order
+	paymentEvents    map[string]PaymentEvent
+	incidents        map[string][]Incident
+	refunds          map[string]Refund
+	refundIDem       map[string]Refund
+	refundsByOrd     map[string][]Refund
+	refundsByUser    map[string][]Refund
+	subscriptionIDem map[string]ProSubscription
+	renewals         map[string]RenewalRecord
+	renewalIDem      map[string]RenewalRecord
+	renewalsBySub    map[string][]RenewalRecord
 }
 
 // NewMemoryStore 创建空内存存储。
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		entitlements:  make(map[string]Entitlement),
-		entitlementID: make(map[string]Entitlement),
-		quotes:        make(map[string]Quote),
-		quoteID:       make(map[string]Quote),
-		quotesByProj:  make(map[string][]Quote),
-		freezes:       make(map[string]Freeze),
-		subscriptions: make(map[string]ProSubscription),
-		ledger:        make(map[string][]LedgerEntry),
-		ledgerIDem:    make(map[string]LedgerEntry),
-		meters:        make(map[string]Meter),
-		orders:        make(map[string]Order),
-		orderIDem:     make(map[string]Order),
-		ordersByUser:  make(map[string][]Order),
-		paymentEvents: make(map[string]PaymentEvent),
-		incidents:     make(map[string][]Incident),
-		refunds:       make(map[string]Refund),
-		refundIDem:    make(map[string]Refund),
-		refundsByOrd:  make(map[string][]Refund),
-		refundsByUser: make(map[string][]Refund),
+		entitlements:     make(map[string]Entitlement),
+		entitlementID:    make(map[string]Entitlement),
+		quotes:           make(map[string]Quote),
+		quoteID:          make(map[string]Quote),
+		quotesByProj:     make(map[string][]Quote),
+		freezes:          make(map[string]Freeze),
+		subscriptions:    make(map[string]ProSubscription),
+		ledger:           make(map[string][]LedgerEntry),
+		ledgerIDem:       make(map[string]LedgerEntry),
+		meters:           make(map[string]Meter),
+		orders:           make(map[string]Order),
+		orderIDem:        make(map[string]Order),
+		ordersByUser:     make(map[string][]Order),
+		paymentEvents:    make(map[string]PaymentEvent),
+		incidents:        make(map[string][]Incident),
+		refunds:          make(map[string]Refund),
+		refundIDem:       make(map[string]Refund),
+		refundsByOrd:     make(map[string][]Refund),
+		refundsByUser:    make(map[string][]Refund),
+		subscriptionIDem: make(map[string]ProSubscription),
+		renewals:         make(map[string]RenewalRecord),
+		renewalIDem:      make(map[string]RenewalRecord),
+		renewalsBySub:    make(map[string][]RenewalRecord),
 	}
 }
 
@@ -175,10 +183,13 @@ func (m *MemoryStore) GetFreeze(dataRegion, projectID string) (Freeze, error) {
 }
 
 // SaveSubscription 保存订阅。
-func (m *MemoryStore) SaveSubscription(s ProSubscription, _ string) error {
+func (m *MemoryStore) SaveSubscription(s ProSubscription, idemKey string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.subscriptions[s.DataRegion+"|"+s.UserID] = s
+	if idemKey != "" {
+		m.subscriptionIDem[s.DataRegion+"|"+idemKey] = s
+	}
 	return nil
 }
 
@@ -191,6 +202,94 @@ func (m *MemoryStore) GetSubscription(dataRegion, userID string) (ProSubscriptio
 		return ProSubscription{}, ErrNotFound
 	}
 	return s, nil
+}
+
+// UpdateSubscription 更新订阅（自动续费条款/状态）。
+func (m *MemoryStore) UpdateSubscription(s ProSubscription) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.subscriptions[s.DataRegion+"|"+s.UserID] = s
+	if s.IdempotencyKey != "" {
+		m.subscriptionIDem[s.DataRegion+"|"+s.IdempotencyKey] = s
+	}
+	return nil
+}
+
+// GetSubscriptionByIdempotencyKey 幂等键查询订阅操作结果。
+func (m *MemoryStore) GetSubscriptionByIdempotencyKey(dataRegion, key string) (ProSubscription, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	s, ok := m.subscriptionIDem[dataRegion+"|"+key]
+	if !ok {
+		return ProSubscription{}, ErrNotFound
+	}
+	return s, nil
+}
+
+// ListSubscriptions 列出区域全部订阅（到期扫描任务使用）。
+func (m *MemoryStore) ListSubscriptions(dataRegion string) ([]ProSubscription, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]ProSubscription, 0)
+	for _, s := range m.subscriptions {
+		if s.DataRegion == dataRegion {
+			out = append(out, s)
+		}
+	}
+	return out, nil
+}
+
+// SaveRenewalRecord 保存续费事件。
+func (m *MemoryStore) SaveRenewalRecord(r RenewalRecord, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.renewals[r.DataRegion+"|"+r.RenewalID] = r
+	if idemKey != "" {
+		m.renewalIDem[r.DataRegion+"|"+idemKey] = r
+	}
+	m.renewalsBySub[r.DataRegion+"|"+r.SubscriptionID] =
+		append(m.renewalsBySub[r.DataRegion+"|"+r.SubscriptionID], r)
+	return nil
+}
+
+// GetRenewalByIdempotencyKey 幂等键查询续费事件。
+func (m *MemoryStore) GetRenewalByIdempotencyKey(dataRegion, key string) (RenewalRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r, ok := m.renewalIDem[dataRegion+"|"+key]
+	if !ok {
+		return RenewalRecord{}, ErrNotFound
+	}
+	return r, nil
+}
+
+// GetRenewalByID 按续费事件 ID 查询。
+func (m *MemoryStore) GetRenewalByID(dataRegion, renewalID string) (RenewalRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r, ok := m.renewals[dataRegion+"|"+renewalID]
+	if !ok {
+		return RenewalRecord{}, ErrNotFound
+	}
+	return r, nil
+}
+
+// UpdateRenewalRecord 更新续费事件状态。
+func (m *MemoryStore) UpdateRenewalRecord(r RenewalRecord) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.renewals[r.DataRegion+"|"+r.RenewalID] = r
+	return nil
+}
+
+// ListRenewalsBySubscription 列出订阅的全部续费事件。
+func (m *MemoryStore) ListRenewalsBySubscription(dataRegion, subscriptionID string) ([]RenewalRecord, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.renewalsBySub[dataRegion+"|"+subscriptionID]
+	out := make([]RenewalRecord, len(items))
+	copy(out, items)
+	return out, nil
 }
 
 // AppendLedger 追加账本条目（幂等键唯一由服务层保证）。

@@ -100,7 +100,8 @@
 | `orders` | 订单（TASK-062） | order_id PK、user_id FK、quote_id、idempotency_key UNIQUE、status、amount、currency、provider、provider_txn_id NULL、refunded_cents、progress_note、paid_at、created_at | orders(user_id, status)；orders(provider, provider_txn_id)（部分唯一） |
 | `payment_events` | 支付回调去重 | payment_event_id PK、provider、order_id FK、payload_hash、processed_at | payment_events(provider, payment_event_id) UNIQUE |
 | `refunds` | 退款（TASK-062/063） | refund_id PK、order_id FK、amount、reason、kind（user_request/system_fault/compensation/duplicate_charge）、status、approver_pair_json NULL、reject_reason、refunded_at、created_at | refunds(order_id)；refunds(status, created_at)（审批队列） |
-| `subscriptions` | 订阅 | subscription_id PK、user_id FK、plan_code、status、period_start、period_end、auto_renew、carryover_seconds | subscriptions(user_id, status)；subscriptions(period_end, status)（到期任务） |
+| `subscriptions` | 订阅（TASK-064） | subscription_id PK、user_id FK、plan_code、status、period_start、period_end、auto_renew、carryover_seconds、consent_price_cents、consent_monthly_seconds（自动续费单独勾选条款） | subscriptions(user_id, status)；subscriptions(period_end, status)（到期任务） |
+| `renewal_events` | 续费扣款前提醒（TASK-064） | renewal_id PK、subscription_id FK、period_start/period_end、monthly_seconds、price_cents、status（reminded/charged/failed）、reminded_at、charged_at、idempotency_key UNIQUE | renewal_events(subscription_id, period_start) UNIQUE；renewal_events(status, created_at) |
 
 ### 5.5 机构族
 
