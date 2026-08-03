@@ -1,0 +1,310 @@
+{
+  "report_kind": "redteam_093",
+  "generated_at": "2026-08-03T09:23:41.261768+00:00",
+  "classes": [
+    {
+      "id": "injection",
+      "name": "提示注入（AI 编排/材料）",
+      "threat_refs": [
+        "TM-01"
+      ],
+      "evidence_refs": [
+        "ai/services/orchestrator/tests/test_safety_pipeline.py",
+        "ai/services/orchestrator/tests/test_handoff_generator.py",
+        "ai/services/orchestrator/tests/test_training_coach.py",
+        "ai/services/parsing/tests/test_job_parsing.py",
+        "ai/services/parsing/tests/test_resume_parsing.py"
+      ],
+      "normal_case_count": 1,
+      "attack_case_count": 5,
+      "normal": [
+        {
+          "cmd": "python -m pytest tests/test_safety_pipeline.py -k policy_loaded_from_yaml_single_source or plan_safety_gate -q",
+          "cwd": "ai/services/orchestrator",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "attacks": [
+        {
+          "cmd": "python -m pytest tests/test_safety_pipeline.py -k zh_injection or english_injection or encoded_obfuscation or tool_induction or jd_injection_fixture or protected_attribute_question_blocked or protected_evidence_zero_carry -q",
+          "cwd": "ai/services/orchestrator",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "python -m pytest tests/test_handoff_generator.py::test_injection_text_stays_data_not_instruction -q",
+          "cwd": "ai/services/orchestrator",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "python -m pytest tests/test_training_coach.py::test_injection_in_practice_answer_is_data -q",
+          "cwd": "ai/services/orchestrator",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "python -m pytest tests/test_job_parsing.py::test_injection_is_data_and_governance_eval_has_zero_leakage -q",
+          "cwd": "ai/services/parsing",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "python -m pytest tests/test_resume_parsing.py::test_resume_parsing_security_eval_dataset -q",
+          "cwd": "ai/services/parsing",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "idor",
+      "name": "越权（IDOR/水平越权）",
+      "threat_refs": [
+        "TM-03"
+      ],
+      "evidence_refs": [
+        "services/project/httpapi/handler_test.go",
+        "services/scoring/httpapi/handler_test.go",
+        "services/identity/httpapi/handler_test.go",
+        "services/org/service_test.go",
+        "services/adminapi/ops_test.go"
+      ],
+      "normal_case_count": 1,
+      "attack_case_count": 5,
+      "normal": [
+        {
+          "cmd": "go test ./httpapi/ -run TestCreateProjectHTTP|TestLibraryAndPreferencesHTTP -count=1",
+          "cwd": "services/project",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "attacks": [
+        {
+          "cmd": "go test ./httpapi/ -run TestUnauthorizedHTTP|TestGetProjectNotFoundHTTP -count=1",
+          "cwd": "services/project",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./httpapi/ -run TestUnauthorized -count=1",
+          "cwd": "services/scoring",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./httpapi/ -run TestBindingRequiresBearerAndDualProof -count=1",
+          "cwd": "services/identity",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestRoleSeparation|TestPermissionMatrix -count=1",
+          "cwd": "services/org",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestRoleAndRegionGuards -count=1",
+          "cwd": "services/adminapi",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "cross_tenant",
+      "name": "跨租户/跨数据区泄露",
+      "threat_refs": [
+        "TM-04",
+        "TM-05"
+      ],
+      "evidence_refs": [
+        "services/org/aggregates_test.go",
+        "services/org/audit_test.go",
+        "services/identity/httpapi/handler_test.go",
+        "services/consent/httpapi/handler_test.go",
+        "services/region/region_test.go",
+        "services/adminapi/ops_test.go"
+      ],
+      "normal_case_count": 1,
+      "attack_case_count": 5,
+      "normal": [
+        {
+          "cmd": "go test ./ -run TestAggregateOverTenShowsMetrics|TestGrantShareScopeExpiryIdempotent -count=1",
+          "cwd": "services/org",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "attacks": [
+        {
+          "cmd": "go test ./ -run TestNoPersonalRankingSurface|TestAuditVisibility|TestAggregateUnderTenHidden -count=1",
+          "cwd": "services/org",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./httpapi/ -run TestEmailChallengeContractAndRegionIsolation -count=1",
+          "cwd": "services/identity",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./httpapi/ -run TestIdentityAuthenticationAndRegionPinning -count=1",
+          "cwd": "services/consent",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestRouteMismatchRejected|TestRouteInvalidRejected -count=1",
+          "cwd": "services/region",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestRoleAndRegionGuards|TestAnonymousRoomsAndRegionStatus -count=1",
+          "cwd": "services/adminapi",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "malicious_files",
+      "name": "恶意文件（病毒/宏/压缩炸弹/伪装/超限）",
+      "threat_refs": [
+        "TM-02"
+      ],
+      "evidence_refs": [
+        "services/ingestion/upload_test.go"
+      ],
+      "normal_case_count": 1,
+      "attack_case_count": 1,
+      "normal": [
+        {
+          "cmd": "go test ./ -run TestUploadAcceptsSupportedFilesInRegionalUploadsBucket|TestUploadIdempotencyAndConcurrentDuplicates -count=1",
+          "cwd": "services/ingestion",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "attacks": [
+        {
+          "cmd": "go test ./ -run TestMaliciousFileMatrixRejectedWithSpecificReasons|TestSandboxPolicyFailsClosedBeforeUpload|TestScannerUnavailableRetainsQuarantineForRetry|TestScanTimeoutRetainsOriginalAndRetryIsIdempotent|TestOversizedAndUnsupportedRejectedBeforeObjectStorage|TestReadAllLimitedRejectsActualOversize -count=1",
+          "cwd": "services/ingestion",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "replay",
+      "name": "重放（业务请求/回调/挑战码）",
+      "threat_refs": [
+        "TM-16",
+        "TM-06"
+      ],
+      "evidence_refs": [
+        "services/billing/payment_test.go",
+        "services/adminapi/mfa_test.go",
+        "services/room/transcript_test.go",
+        "services/evidence/evidence_test.go",
+        "services/identity/service_test.go"
+      ],
+      "normal_case_count": 1,
+      "attack_case_count": 5,
+      "normal": [
+        {
+          "cmd": "go test ./ -run TestAppendAllKinds|TestAppendValidation -count=1",
+          "cwd": "services/evidence",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "attacks": [
+        {
+          "cmd": "go test ./ -run TestCallbackRejectsBadSignatureAndReplay -count=1",
+          "cwd": "services/billing",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestMFAChallengeVerifyAndReplay -count=1",
+          "cwd": "services/adminapi",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestTranscriptIdempotency -count=1",
+          "cwd": "services/room",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestAppendIdempotent -count=1",
+          "cwd": "services/evidence",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestRefreshRotationAndIdempotency -count=1",
+          "cwd": "services/identity",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "duplicate_charge",
+      "name": "重复扣费/重复记账",
+      "threat_refs": [
+        "TM-06"
+      ],
+      "evidence_refs": [
+        "services/billing/payment_test.go",
+        "services/billing/ledger_test.go"
+      ],
+      "normal_case_count": 1,
+      "attack_case_count": 2,
+      "normal": [
+        {
+          "cmd": "go test ./ -run TestPaymentFailedThenReinitiate|TestSettleActualUsageAndRelease -count=1",
+          "cwd": "services/billing",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "attacks": [
+        {
+          "cmd": "go test ./ -run TestPaymentCallbackSettlesAndDedup|TestDuplicateChargeAutoRefund|TestCreateOrderIdempotentAndPendingBlocksCharge|TestSuccessNotCreditedStaysPendingThenReconcile -count=1",
+          "cwd": "services/billing",
+          "passed": true,
+          "error": ""
+        },
+        {
+          "cmd": "go test ./ -run TestReserveConsumesAndIdempotent|TestRefundFullRestoresReservation -count=1",
+          "cwd": "services/billing",
+          "passed": true,
+          "error": ""
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "metrics": {
+    "class_count": 6,
+    "passed_class_count": 6,
+    "total_selectors": 29,
+    "attack_selectors": 23
+  },
+  "passed": true,
+  "failures": []
+}
