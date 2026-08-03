@@ -839,6 +839,16 @@
 > 专家盲评一致率 ≥85% 与维度 MAE ≤10 在报告内标记 pending，由项目负责人线下签字。
 > （TASK-095、SCORING-SPEC 10、ai/evals README）
 
+> **任务状态（2026-08-03 更新）**：TASK-093 已实现——`tools/security-redteam/` 新增
+> 可重复执行的红队自动化套件：manifest.json 定义六类攻击（提示注入 TM-01、越权 TM-03、
+> 跨租户/跨区 TM-04/05、恶意文件 TM-02、重放 TM-16/06、重复扣费 TM-06）每类
+> 正常+攻击选择器（共 29 个：6 正常 + 23 攻击，指向仓库真实 Go/Python 测试）；
+> `run_redteam.py --write/--check` 执行并产出 `ai/evals/reports/redteam.json`
+> （report_kind=redteam_093），攻击用例断言“命中即阻断”，任一类失败即套件失败；
+> 实测 6/6 类通过；CI 阶段5 挂接 `--check` 0 失败门禁（测试变更后必须重新 --write
+> 入库）；README 提供运行说明。专家盲评签字不在本窗口。
+> （TASK-093、THREAT-MODEL、SECURITY-REQUIREMENTS）
+
 ## 6. 全局完成定义（Definition of Done）
 
 任何任务标记完成前必须同时满足：

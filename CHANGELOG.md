@@ -28,6 +28,9 @@
   新增 `tools/ci/verify_task095_gates.py` 与 `ai/evals/reports/task095-hardgates.json`
   （禁止属性进入证据为 0、专家盲评标记 pending 待项目负责人签字），CI 阶段3 挂接
   0 失败门禁。
+- TASK-093 安全红队套件：`tools/security-redteam/` 六类攻击（注入/越权/跨租户/恶意文件/
+  重放/重复扣费）29 个选择器全部自动化，攻击断言命中即阻断，报告
+  `ai/evals/reports/redteam.json` 入库，CI 阶段5 挂接 0 失败门禁。
 
 ### Added
 

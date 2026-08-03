@@ -178,6 +178,8 @@ jobs:
           for m in services/*/ workflows/; do
             (cd "$m" && govulncheck ./...) || exit 1
           done
+      - name: TASK-093 安全红队套件（六类攻击，0 失败门禁）
+        run: python tools/security-redteam/run_redteam.py --check
       - name: pip-audit（Python 工具链依赖漏洞）
         run: |
           pip install pip-audit
