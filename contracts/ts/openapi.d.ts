@@ -1836,6 +1836,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/{orgId}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 移除成员（访问与共享链接立即失效；个人记录保留；写审计） */
+        delete: operations["removeOrgMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/audits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 机构访问审计（谁/何时/访问了什么；privacy_auditor/owner 可见；追加式） */
+        get: operations["listOrgAudits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orgs/{orgId}/members/{userId}/role": {
         parameters: {
             query?: never;
@@ -3250,6 +3284,19 @@ export interface components {
             status: "active" | "withdrawn";
             /** Format: date-time */
             withdrawn_at?: string | null;
+        };
+        OrgAuditEntry: {
+            /** Format: uuid */
+            audit_id: string;
+            /** @description 谁 */
+            actor_id: string;
+            /** @enum {unknown} */
+            actor_role: "owner" | "admin" | "instructor" | "privacy_auditor" | "finance" | "candidate";
+            /** @description 访问了什么/什么操作 */
+            action: string;
+            target_ref?: string | null;
+            /** Format: date-time */
+            occurred_at: string;
         };
         Assignment: {
             /** Format: uuid */
@@ -7301,6 +7348,54 @@ export interface operations {
                     "application/json": {
                         data_region?: components["schemas"]["Region"];
                         items?: components["schemas"]["OrgMember"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeOrgMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已移除 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listOrgAudits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 审计列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data_region?: components["schemas"]["Region"];
+                        items?: components["schemas"]["OrgAuditEntry"][];
                     };
                 };
             };

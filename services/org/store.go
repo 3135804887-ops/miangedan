@@ -36,4 +36,6 @@ type Store interface {
 	ListSharesByUser(dataRegion, userID, assignmentID string) ([]Share, error)
 	ListSharesByAssignment(dataRegion, assignmentID string) ([]Share, error)
 	ListActiveShares(dataRegion string) ([]Share, error)
+	// TASK-074 退出/移除即时失效。
+	ListActiveSharesForUserOrg(userID, orgID string) ([]Share, error)
 }

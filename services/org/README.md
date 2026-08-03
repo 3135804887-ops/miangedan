@@ -50,6 +50,13 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/org`；启动�
 - **无个人排名**：PersonalRankingAvailable 恒 false，无个人排行榜/排名/
   候选人搜索；个人分数样本由评分服务注入，机构侧不持久化。
 
+## 已实现（TASK-074，FR-034/FR-035）
+
+- **访问审计**：谁/何时/访问了什么（privacy_auditor/owner 可见；追加式）。
+- **退出即时失效**：退出/被移除 → 分享授权立即撤回、令牌判定失效
+  （IsMemberAccessValid）；机构停用/注销 → InvalidateOrgAccess 撤回全部
+  共享链接并写审计；个人记录保留、审计继续存在。
+
 ## 规划（后续任务）
 
-- TASK-074 访问审计与退出即时失效。
+- EPIC-09 治理（TASK-080~085）在 adminapi 推进。

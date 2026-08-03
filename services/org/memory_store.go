@@ -364,3 +364,16 @@ func (m *MemoryStore) ListActiveShares(dataRegion string) ([]Share, error) {
 	}
 	return out, nil
 }
+
+// ListActiveSharesForUserOrg 列出用户在某机构全部有效分享（退出/移除即时撤回）。
+func (m *MemoryStore) ListActiveSharesForUserOrg(userID, orgID string) ([]Share, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]Share, 0)
+	for _, sh := range m.shares {
+		if sh.UserID == userID && sh.OrgID == orgID && sh.Status == ShareActive {
+			out = append(out, sh)
+		}
+	}
+	return out, nil
+}
