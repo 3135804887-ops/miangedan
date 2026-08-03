@@ -12,7 +12,7 @@
 
 ## 已选主供应商（cn 区，2026-08-03 项目负责人初步选定，待实测确认）
 
-- WebRTC/SFU：腾讯云 TRTC（备选：声网 Agora）
+- WebRTC/SFU：自建 LiveKit（本地开发先行，云上统一部署后续；备选：腾讯云 TRTC）
 - ASR：讯飞实时语音转写（备选：阿里云智能语音）
 - TTS：讯飞在线语音合成（备选：火山豆包语音）
 - LLM：DeepSeek（备选：阿里云百炼 Qwen）
@@ -73,12 +73,12 @@ python ai/evals/providers/scripts/runner.py scorecard --capability asr --region 
 
 ### WebRTC/SFU
 
-- 声网 Agora：注册 [https://console.agora.io/](https://console.agora.io/) ，完成实名认证后创建项目。
-  - 提供：App ID、App Certificate、项目所在区域说明。
-  - 注入：`WEBRTC_SFU_URL`、`WEBRTC_API_KEY`（App ID）、`WEBRTC_API_SECRET`（App Certificate）。
-- 腾讯云 TRTC：开通 [https://console.cloud.tencent.com/trtc](https://console.cloud.tencent.com/trtc)（产品页 [https://cloud.tencent.com/product/trtc](https://cloud.tencent.com/product/trtc)）。
+- LiveKit 自建（主）：本地开发用 `infra/modules/sfu/start-local.ps1` 一键启动（`ws://localhost:7880`，dev 模式免证书）；云上统一部署见 `docs/operations/LIVEKIT-RUNBOOK.md`（服务器 + 域名 + TURN + 证书）。
+  - 提供：本地开发无需任何账号；云上需要 cn 区云服务器、域名与 SSH 访问。
+  - 注入：`WEBRTC_SFU_URL`（本地 `ws://localhost:7880`）、`WEBRTC_API_KEY`、`WEBRTC_API_SECRET`（`start-local.ps1` 生成的 dev 密钥）。
+- 腾讯云 TRTC（备选）：开通 [https://console.cloud.tencent.com/trtc](https://console.cloud.tencent.com/trtc)（产品页 [https://cloud.tencent.com/product/trtc](https://cloud.tencent.com/product/trtc)）。
   - 提供：SDKAppID、SDKSecretKey、部署区域。
-  - 注入：`WEBRTC_SFU_URL`、`WEBRTC_API_KEY`（SDKAppID）、`WEBRTC_API_SECRET`（SDKSecretKey）。
+  - 注入：`WEBRTC_SFU_URL`、`WEBRTC_API_KEY`（SDKAppID）、`WEBRTC_API_SECRET`（SDKSecretKey）（云上切换为备选时使用）。
 
 ### ASR
 

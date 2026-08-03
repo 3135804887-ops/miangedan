@@ -50,8 +50,9 @@ DIMENSION_WEIGHTS = {
 # Vendor -> region-scoped env vars, aligned with .env.example.
 VENDOR_ENV_MAP: dict[str, dict[str, tuple[str, ...]]] = {
     "cn": {
-        # 2026-08-03 项目负责人初步选定：TRTC / 讯飞 ASR / 讯飞 TTS /
+        # 2026-08-03 项目负责人初步选定：自建 LiveKit / 讯飞 ASR / 讯飞 TTS /
         # DeepSeek / 腾讯数智人 为主供应商，其余为备选。
+        "livekit_selfhost": ("WEBRTC_SFU_URL", "WEBRTC_API_KEY", "WEBRTC_API_SECRET"),
         "trtc": ("WEBRTC_SFU_URL", "WEBRTC_API_KEY", "WEBRTC_API_SECRET"),
         "agora": ("WEBRTC_SFU_URL", "WEBRTC_API_KEY", "WEBRTC_API_SECRET"),
         "iflytek_asr": ("ASR_PRIMARY_BASE_URL", "ASR_PRIMARY_API_KEY"),
