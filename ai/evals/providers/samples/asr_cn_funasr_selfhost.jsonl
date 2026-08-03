@@ -1,0 +1,10 @@
+{"metric": "asr_final", "value_ms": 750.6, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:45:52Z"}
+{"metric": "asr_final", "value_ms": 525.7, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:45:54Z"}
+{"metric": "asr_final", "value_ms": 403.5, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:45:57Z"}
+{"metric": "asr_final", "value_ms": 499.2, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:02Z"}
+{"metric": "asr_final", "value_ms": 837.2, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:05Z"}
+{"metric": "asr_final", "value_ms": 332.0, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:07Z"}
+{"metric": "asr_final", "value_ms": 302.0, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:10Z"}
+{"metric": "asr_final", "value_ms": 279.1, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:12Z"}
+{"metric": "asr_final", "value_ms": 263.8, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:16Z"}
+{"metric": "asr_final", "value_ms": 273.6, "vendor": "funasr_selfhost", "region": "cn", "synthetic": true, "at": "2026-08-03T15:46:18Z"}
