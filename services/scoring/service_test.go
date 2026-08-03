@@ -36,8 +36,8 @@ func defaultWeights() map[DimensionKey]int {
 	}
 }
 
-func baseInput() ScoringInput {
-	return ScoringInput{
+func baseInput() Input {
+	return Input{
 		SchemaVersion:      "1.0.0",
 		ScoringRequestID:   "req-001",
 		IdempotencyKey:     "idem-001",
@@ -108,7 +108,7 @@ func voiceAssessments(level int) []CoverageAssessment {
 	}
 }
 
-func mustScore(t *testing.T, svc *Service, in ScoringInput) ScoringResult {
+func mustScore(t *testing.T, svc *Service, in Input) Result {
 	t.Helper()
 	result, err := svc.Score(context.Background(), testActor, in)
 	if err != nil {
@@ -467,30 +467,30 @@ func TestGetLatestAndListVersions(t *testing.T) {
 // 异常路径：非法输入全部拒绝。
 func TestInvalidInputsRejected(t *testing.T) {
 	svc, _ := newTestService(t)
-	cases := map[string]ScoringInput{
-		"缺项目":  func() ScoringInput { in := baseInput(); in.ProjectID = ""; return in }(),
-		"非法区域": func() ScoringInput { in := baseInput(); in.DataRegion = "xx"; return in }(),
-		"权重和不为100": func() ScoringInput {
+	cases := map[string]Input{
+		"缺项目":  func() Input { in := baseInput(); in.ProjectID = ""; return in }(),
+		"非法区域": func() Input { in := baseInput(); in.DataRegion = "xx"; return in }(),
+		"权重和不为100": func() Input {
 			in := baseInput()
 			in.DimensionWeights[DimProfessional] = 30
 			return in
 		}(),
-		"非法锚点": func() ScoringInput {
+		"非法锚点": func() Input {
 			in := baseInput()
 			in.CoverageAssessments = []CoverageAssessment{assessment(DimProfessional, AnswerAnswered, 9, 1)}
 			return in
 		}(),
-		"文字模式未实现": func() ScoringInput {
+		"文字模式未实现": func() Input {
 			in := baseInput()
 			in.InputModeContext.CommunicationMode = ModeText
 			return in
 		}(),
-		"正式复核未实现": func() ScoringInput {
+		"正式复核未实现": func() Input {
 			in := baseInput()
 			in.IsFormalReview = true
 			return in
 		}(),
-		"重试缺范围": func() ScoringInput {
+		"重试缺范围": func() Input {
 			in := baseInput()
 			in.AttemptKind = AttemptFormalRetry
 			return in
@@ -568,7 +568,7 @@ type faultStore struct {
 	failSave bool
 }
 
-func (f *faultStore) SaveResult(r ScoringResult, key string) error {
+func (f *faultStore) SaveResult(r Result, key string) error {
 	if f.failSave {
 		return errors.New("persistence unavailable")
 	}

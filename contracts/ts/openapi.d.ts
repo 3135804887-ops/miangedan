@@ -989,7 +989,9 @@ export interface paths {
         /**
          * 创建正式/重试轮次房间并签发短期房间令牌（与业务令牌隔离）
          * @description 前置条件（全部满足，否则 state_conflict/insufficient_entitlement）：
-         *     覆盖方案与量表就绪；第 2 轮起交接包就绪；额度预留成功；单活动设备；便利设置已冻结。
+         *     覆盖方案与量表就绪；第 2 轮起交接包（HandoffPackage，见
+         *     `ai/schemas/handoff-package.schema.json` 与 docs/ai/HANDOFF-SPEC.md）就绪；
+         *     额度预留成功；单活动设备；便利设置已冻结。
          *     房间令牌短期有效，仅用于媒体面；浏览器不持有任何供应商密钥。
          */
         post: operations["createSession"];
@@ -2635,6 +2637,17 @@ export interface components {
                 is_critical?: boolean;
             }[];
             weak_dimensions?: components["schemas"]["DimensionKey"][];
+            /** @description 双门槛判定（SCORING-SPEC 6.6；评估未完成时为 null） */
+            gate_result?: {
+                total_gate_passed?: boolean | null;
+                critical_gate_passed?: boolean | null;
+                failed_critical_dimensions?: components["schemas"]["DimensionKey"][];
+                weak_dimensions?: components["schemas"]["DimensionKey"][];
+                insufficient_dimensions?: components["schemas"]["DimensionKey"][];
+                uncovered_dimensions?: components["schemas"]["DimensionKey"][];
+            };
+            /** @enum {string|null} */
+            incomplete_reason?: "insufficient_evidence" | "scoring_service_failure" | "unrecoverable_transcript" | "user_exit" | "system_fault" | null;
             rubric_version?: string;
             /** @description 可解释评分（对齐 scoring-result.schema.json） */
             explanations?: {
@@ -2642,6 +2655,52 @@ export interface components {
             } | null;
             input_mode_notes?: string | null;
             data_region: components["schemas"]["Region"];
+        };
+        /** @description 跨轮交接包（结构事实源为 ai/schemas/handoff-package.schema.json；docs/ai/HANDOFF-SPEC.md） */
+        HandoffPackage: {
+            /** Format: uuid */
+            package_id: string;
+            /** Format: uuid */
+            project_id: string;
+            from_round_sequence: number;
+            to_round_sequence: number;
+            /** @description 前序轮次纪要（问题/回答摘要/追问/工具行为/维度分） */
+            rounds_history: unknown[];
+            verified_capabilities?: string[];
+            failed_points?: {
+                dimension?: components["schemas"]["DimensionKey"];
+                summary?: string;
+                evidence_refs?: string[];
+            }[];
+            uncovered_points?: string[];
+            risks?: string[];
+            contradictions?: {
+                summary?: string;
+                evidence_refs?: string[];
+            }[];
+            follow_up_focus?: string[];
+            do_not_repeat_questions: {
+                question_id?: string;
+                question_summary?: string;
+                /** @constant */
+                passed?: true;
+            }[];
+            allowed_reverification?: {
+                /** @enum {unknown} */
+                reason_type?: "direct_contradiction" | "new_job_scenario_transfer";
+                description?: string;
+                related_question_id?: string | null;
+            }[];
+            context_budget?: {
+                max_tokens?: number;
+                compression_applied?: boolean;
+            };
+            factual_integrity?: {
+                no_new_facts?: boolean;
+                source_refs_complete?: boolean;
+            };
+            /** Format: date-time */
+            generated_at?: string;
         };
         Report: {
             /** Format: uuid */

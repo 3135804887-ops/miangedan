@@ -16,10 +16,10 @@ import (
 
 // Application 为传输无关的评分应用接口（openapi scores 标签）。
 type Application interface {
-	GetLatest(context.Context, scoring.Actor, string, int) (scoring.ScoringResult, error)
+	GetLatest(context.Context, scoring.Actor, string, int) (scoring.Result, error)
 	ListVersions(
 		context.Context, scoring.Actor, string, int, int, string,
-	) ([]scoring.ScoringResult, string, error)
+	) ([]scoring.Result, string, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现。
@@ -110,7 +110,7 @@ func (h *handler) listScoreVersions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if items == nil {
-		items = []scoring.ScoringResult{}
+		items = []scoring.Result{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"data_region": actor.DataRegion,
@@ -119,7 +119,7 @@ func (h *handler) listScoreVersions(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *handler) reviewNotImplemented(w http.ResponseWriter, r *http.Request) {
+func (h *handler) reviewNotImplemented(w http.ResponseWriter, _ *http.Request) {
 	writeError(w, http.StatusNotImplemented, "not_implemented",
 		"正式复核由 TASK-043 实现（每次正式尝试仅一次）")
 }

@@ -45,7 +45,7 @@ func NewService(store Store) (*Service, error) {
 // 幂等：同一 idempotency_key 重复提交返回首个结果，不产生新 ScoreVersion（NFR-006）。
 // 服务故障（panic/持久化失败）降级为 EVALUATION_INCOMPLETE(scoring_service_failure)，
 // 不判失败、不解锁、不产生已落库版本；恢复后可用同一幂等键重算。
-func (s *Service) Score(_ context.Context, actor Actor, in ScoringInput) (result ScoringResult, err error) {
+func (s *Service) Score(_ context.Context, actor Actor, in Input) (result Result, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			result = s.faultResult(actor, in)
@@ -53,28 +53,28 @@ func (s *Service) Score(_ context.Context, actor Actor, in ScoringInput) (result
 		}
 	}()
 	if err := validateInput(actor, in); err != nil {
-		return ScoringResult{}, err
+		return Result{}, err
 	}
 	if in.IsFormalReview {
-		return ScoringResult{}, ErrFormalReviewUnsupported
+		return Result{}, ErrFormalReviewUnsupported
 	}
 	cached, cacheErr := s.store.GetByIdempotencyKey(in.DataRegion, in.IdempotencyKey)
 	if cacheErr == nil {
 		return cached, nil
 	}
 	if !errors.Is(cacheErr, ErrNotFound) {
-		return ScoringResult{}, cacheErr
+		return Result{}, cacheErr
 	}
 	result, err = s.compute(in)
 	if err != nil {
-		return ScoringResult{}, err
+		return Result{}, err
 	}
 	latest, latestErr := s.store.GetLatestByAttempt(in.DataRegion, in.AttemptID)
 	version := 1
 	if latestErr == nil {
 		version = latest.ScoreVersion + 1
 	} else if !errors.Is(latestErr, ErrNotFound) {
-		return ScoringResult{}, latestErr
+		return Result{}, latestErr
 	}
 	result.ScoreID = newID()
 	result.ScoreVersion = version
@@ -87,9 +87,9 @@ func (s *Service) Score(_ context.Context, actor Actor, in ScoringInput) (result
 }
 
 // GetLatest 查询项目轮次最新有效版本。
-func (s *Service) GetLatest(_ context.Context, actor Actor, projectID string, roundSequence int) (ScoringResult, error) {
+func (s *Service) GetLatest(_ context.Context, actor Actor, projectID string, roundSequence int) (Result, error) {
 	if err := region.ValidateDataRegion(actor.DataRegion); err != nil {
-		return ScoringResult{}, err
+		return Result{}, err
 	}
 	return s.store.GetLatest(actor.DataRegion, projectID, roundSequence)
 }
@@ -97,7 +97,7 @@ func (s *Service) GetLatest(_ context.Context, actor Actor, projectID string, ro
 // ListVersions 分页列出全部保留版本（追加式；历史永不改写）。
 func (s *Service) ListVersions(
 	_ context.Context, actor Actor, projectID string, roundSequence, limit int, cursor string,
-) ([]ScoringResult, string, error) {
+) ([]Result, string, error) {
 	if err := region.ValidateDataRegion(actor.DataRegion); err != nil {
 		return nil, "", err
 	}
@@ -108,7 +108,7 @@ func (s *Service) ListVersions(
 }
 
 // ---- 校验 ----
-func validateInput(actor Actor, in ScoringInput) error {
+func validateInput(actor Actor, in Input) error {
 	if err := region.ValidateDataRegion(actor.DataRegion); err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func validDimension(d DimensionKey) bool {
 }
 
 // ---- 核心计算（SCORING-SPEC 6.1-6.6） ----
-func (s *Service) compute(in ScoringInput) (ScoringResult, error) {
+func (s *Service) compute(in Input) (Result, error) {
 	results := make(map[DimensionKey]DimensionResult, len(DimensionKeys))
 	critical := keySet(in.CriticalDimensions)
 	contradictions := keySet(in.ContradictionUnlocks)
@@ -353,7 +353,7 @@ func validInterpolation(cp CoverageAssessment) bool {
 }
 
 // finish 执行 6.5 加权总分与 6.6 双门槛判定。
-func (s *Service) finish(in ScoringInput, results map[DimensionKey]DimensionResult) ScoringResult {
+func (s *Service) finish(in Input, results map[DimensionKey]DimensionResult) Result {
 	critical := keySet(in.CriticalDimensions)
 	for _, d := range DimensionKeys {
 		status := results[d].ScoreStatus
@@ -410,7 +410,7 @@ func (s *Service) finish(in ScoringInput, results map[DimensionKey]DimensionResu
 		summary = fmt.Sprintf("总分 %d 未达 60 或关键维度未过线（未通过）", total)
 	}
 	strengths, improvements := explainDimensions(results)
-	return ScoringResult{
+	return Result{
 		SchemaVersion:    "1.0.0",
 		ScoringRequestID: in.ScoringRequestID,
 		ProjectID:        in.ProjectID,
@@ -437,11 +437,11 @@ func (s *Service) finish(in ScoringInput, results map[DimensionKey]DimensionResu
 }
 
 func (s *Service) incomplete(
-	in ScoringInput, reason string, results map[DimensionKey]DimensionResult, summary string,
-) ScoringResult {
+	in Input, reason string, results map[DimensionKey]DimensionResult, summary string,
+) Result {
 	reasonCopy := reason
 	notes := summary
-	return ScoringResult{
+	return Result{
 		SchemaVersion:    "1.0.0",
 		ScoringRequestID: in.ScoringRequestID,
 		ProjectID:        in.ProjectID,
@@ -465,7 +465,7 @@ func (s *Service) incomplete(
 	}
 }
 
-func (s *Service) faultResult(actor Actor, in ScoringInput) ScoringResult {
+func (s *Service) faultResult(actor Actor, in Input) Result {
 	results := make(map[DimensionKey]DimensionResult, len(DimensionKeys))
 	for _, d := range DimensionKeys {
 		results[d] = DimensionResult{
@@ -475,7 +475,7 @@ func (s *Service) faultResult(actor Actor, in ScoringInput) ScoringResult {
 	}
 	reason := ReasonScoringServiceFailure
 	summary := "评分服务中途故障：评估未完成（不判失败，恢复后可重算）"
-	return ScoringResult{
+	return Result{
 		SchemaVersion:    "1.0.0",
 		ScoringRequestID: in.ScoringRequestID,
 		ProjectID:        in.ProjectID,
@@ -571,7 +571,7 @@ func roundHalfUp(value float64) int {
 }
 
 // evidenceSnapshotHash 计算冻结输入散列（复核输入必须一致；防篡改）。
-func evidenceSnapshotHash(in ScoringInput) string {
+func evidenceSnapshotHash(in Input) string {
 	payload := struct {
 		Assessments []CoverageAssessment   `json:"assessments"`
 		Evidence    []EvidenceRef          `json:"evidence"`

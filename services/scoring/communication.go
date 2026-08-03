@@ -4,7 +4,7 @@ package scoring
 // TASK-040 覆盖 voice 模式：structure_clarity × 0.6 + oral_delivery × 0.4；
 // text/mixed 归一化由 TASK-041 扩展（文字模式口语 not_evaluated 不记 0、混合模式按占比合并）。
 func (s *Service) computeCommunication(
-	_ ScoringInput, cps []CoverageAssessment, base DimensionResult,
+	_ Input, cps []CoverageAssessment, base DimensionResult,
 ) DimensionResult {
 	sumSC, weightSC := 0, 0
 	sumOD, weightOD := 0, 0

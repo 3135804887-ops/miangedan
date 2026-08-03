@@ -13,8 +13,8 @@ import (
 )
 
 type stubApp struct {
-	latest  scoring.ScoringResult
-	items   []scoring.ScoringResult
+	latest  scoring.Result
+	items   []scoring.Result
 	next    string
 	err     error
 	queried []string
@@ -22,17 +22,17 @@ type stubApp struct {
 
 func (s *stubApp) GetLatest(
 	_ context.Context, _ scoring.Actor, projectID string, _ int,
-) (scoring.ScoringResult, error) {
+) (scoring.Result, error) {
 	s.queried = append(s.queried, projectID)
 	if s.err != nil {
-		return scoring.ScoringResult{}, s.err
+		return scoring.Result{}, s.err
 	}
 	return s.latest, nil
 }
 
 func (s *stubApp) ListVersions(
 	_ context.Context, _ scoring.Actor, projectID string, _ int, _ int, cursor string,
-) ([]scoring.ScoringResult, string, error) {
+) ([]scoring.Result, string, error) {
 	s.queried = append(s.queried, projectID+"|"+cursor)
 	if s.err != nil {
 		return nil, "", s.err
@@ -67,7 +67,7 @@ func get(t *testing.T, handler http.Handler, path string) *httptest.ResponseReco
 }
 
 func TestGetRoundResultOK(t *testing.T) {
-	app := &stubApp{latest: scoring.ScoringResult{
+	app := &stubApp{latest: scoring.Result{
 		ScoreID: "score-1", ScoreVersion: 1, ProjectID: "p1",
 		RoundSequence: 1, DataRegion: "cn", ResultStatus: scoring.ResultPass,
 	}}
@@ -96,7 +96,7 @@ func TestGetRoundResultNotFound(t *testing.T) {
 
 func TestListScoreVersionsPaged(t *testing.T) {
 	app := &stubApp{
-		items: []scoring.ScoringResult{{ScoreID: "s1"}, {ScoreID: "s2"}},
+		items: []scoring.Result{{ScoreID: "s1"}, {ScoreID: "s2"}},
 		next:  "2",
 	}
 	rec := get(t, newTestHandler(app),

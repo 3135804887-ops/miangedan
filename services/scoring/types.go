@@ -146,8 +146,8 @@ type EvidenceRef struct {
 	EvidenceHash string `json:"evidence_hash,omitempty"`
 }
 
-// ScoringInput 为评分服务输入（冻结证据包；对齐 scoring-input.schema.json）。
-type ScoringInput struct {
+// Input 为评分服务输入（冻结证据包；对齐 scoring-input.schema.json）。
+type Input struct {
 	SchemaVersion         string                 `json:"schema_version"`
 	ScoringRequestID      string                 `json:"scoring_request_id"`
 	IdempotencyKey        string                 `json:"idempotency_key"`
@@ -218,8 +218,8 @@ type VersionLineage struct {
 	SupersedesScoreID    *string           `json:"supersedes_score_id,omitempty"`
 }
 
-// ScoringResult 为评分服务输出（ScoreVersion，追加式；对齐 scoring-result.schema.json）。
-type ScoringResult struct {
+// Result 为评分服务输出（ScoreVersion，追加式；对齐 scoring-result.schema.json）。
+type Result struct {
 	SchemaVersion    string            `json:"schema_version"`
 	ScoreID          string            `json:"score_id"`
 	ScoreVersion     int               `json:"score_version"`

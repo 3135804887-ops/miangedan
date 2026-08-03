@@ -9,17 +9,17 @@ import (
 // MemoryStore 为内存版 ScoreVersion 存储（开发/测试；生产 PostgreSQL 只读+插入角色）。
 type MemoryStore struct {
 	mu        sync.RWMutex
-	byIDem    map[string]ScoringResult
-	byKey     map[string][]ScoringResult
-	byAttempt map[string][]ScoringResult
+	byIDem    map[string]Result
+	byKey     map[string][]Result
+	byAttempt map[string][]Result
 }
 
 // NewMemoryStore 创建空内存评分存储。
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		byIDem:    make(map[string]ScoringResult),
-		byKey:     make(map[string][]ScoringResult),
-		byAttempt: make(map[string][]ScoringResult),
+		byIDem:    make(map[string]Result),
+		byKey:     make(map[string][]Result),
+		byAttempt: make(map[string][]Result),
 	}
 }
 
@@ -28,7 +28,7 @@ func resultKey(dataRegion, projectID string, roundSequence int) string {
 }
 
 // SaveResult 保存结果（同 idempotency_key 覆盖等价，幂等由服务层保证）。
-func (m *MemoryStore) SaveResult(r ScoringResult, idempotencyKey string) error {
+func (m *MemoryStore) SaveResult(r Result, idempotencyKey string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.byIDem[r.DataRegion+"|"+idempotencyKey] = r
@@ -48,34 +48,34 @@ func (m *MemoryStore) SaveResult(r ScoringResult, idempotencyKey string) error {
 }
 
 // GetByIdempotencyKey 幂等键查询。
-func (m *MemoryStore) GetByIdempotencyKey(dataRegion, idempotencyKey string) (ScoringResult, error) {
+func (m *MemoryStore) GetByIdempotencyKey(dataRegion, idempotencyKey string) (Result, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	r, ok := m.byIDem[dataRegion+"|"+idempotencyKey]
 	if !ok {
-		return ScoringResult{}, ErrNotFound
+		return Result{}, ErrNotFound
 	}
 	return r, nil
 }
 
 // GetLatestByAttempt 查询某次正式尝试的最新版本（版本号递增依据）。
-func (m *MemoryStore) GetLatestByAttempt(dataRegion, attemptID string) (ScoringResult, error) {
+func (m *MemoryStore) GetLatestByAttempt(dataRegion, attemptID string) (Result, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	items := m.byAttempt[dataRegion+"|"+attemptID]
 	if len(items) == 0 {
-		return ScoringResult{}, ErrNotFound
+		return Result{}, ErrNotFound
 	}
 	return items[len(items)-1], nil
 }
 
 // GetLatest 查询项目轮次最新有效版本。
-func (m *MemoryStore) GetLatest(dataRegion, projectID string, roundSequence int) (ScoringResult, error) {
+func (m *MemoryStore) GetLatest(dataRegion, projectID string, roundSequence int) (Result, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	items := m.byKey[resultKey(dataRegion, projectID, roundSequence)]
 	if len(items) == 0 {
-		return ScoringResult{}, ErrNotFound
+		return Result{}, ErrNotFound
 	}
 	return items[len(items)-1], nil
 }
@@ -83,7 +83,7 @@ func (m *MemoryStore) GetLatest(dataRegion, projectID string, roundSequence int)
 // ListVersions 分页列出版本（score_version 升序；cursor 为版本序号偏移）。
 func (m *MemoryStore) ListVersions(
 	dataRegion, projectID string, roundSequence, limit int, cursor string,
-) ([]ScoringResult, string, error) {
+) ([]Result, string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	items := m.byKey[resultKey(dataRegion, projectID, roundSequence)]
@@ -105,7 +105,7 @@ func (m *MemoryStore) ListVersions(
 	if end > len(items) {
 		end = len(items)
 	}
-	out := make([]ScoringResult, end-start)
+	out := make([]Result, end-start)
 	copy(out, items[start:end])
 	next := ""
 	if end < len(items) {
