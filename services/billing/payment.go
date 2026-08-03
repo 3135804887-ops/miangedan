@@ -404,7 +404,7 @@ func (s *Service) appendRefundLedger(order Order, refund Refund, reason string) 
 }
 
 // applyRefundSucceeded 处理退款成功回调：将订单对应待退款标记为已退款。
-func (s *Service) applyRefundSucceeded(order Order, in PaymentEventInput) (Order, error) {
+func (s *Service) applyRefundSucceeded(order Order, _ PaymentEventInput) (Order, error) {
 	refunds, err := s.store.ListRefundsByOrder(order.DataRegion, order.OrderID)
 	if err != nil {
 		return Order{}, err
