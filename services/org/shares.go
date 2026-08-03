@@ -89,7 +89,7 @@ func (s *Service) GrantAssignmentShare(
 
 // RevokeAssignmentShare 用户撤回分享授权（在线访问立即失效；写审计）。
 func (s *Service) RevokeAssignmentShare(
-	_ context.Context, actor Actor, assignmentID, shareID, idemKey string,
+	_ context.Context, actor Actor, assignmentID, shareID, _ string,
 ) error {
 	if err := validateActor(actor); err != nil {
 		return err
