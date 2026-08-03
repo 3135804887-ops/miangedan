@@ -2,23 +2,30 @@ package asr
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 func TestSelfHostClientTranscribeWAV(t *testing.T) {
-	var gotLanguage string
 	var gotAuth string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
-		if err := r.ParseMultipartForm(1 << 20); err != nil {
-			t.Fatalf("parse multipart: %v", err)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
 		}
-		if len(r.MultipartForm.File["file"]) == 0 {
+		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+			t.Fatal("expected multipart content type")
+		}
+		if !strings.Contains(string(body), "audio.wav") {
 			t.Fatal("multipart file field missing")
 		}
-		gotLanguage = r.FormValue("language")
+		if !strings.Contains(string(body), "zh-CN") {
+			t.Fatal("language field missing")
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"text":"你好，我是面试官"}`))
 	}))
@@ -34,9 +41,6 @@ func TestSelfHostClientTranscribeWAV(t *testing.T) {
 	}
 	if text != "你好，我是面试官" {
 		t.Fatalf("unexpected text: %s", text)
-	}
-	if gotLanguage != "zh-CN" {
-		t.Fatalf("unexpected language: %s", gotLanguage)
 	}
 	if gotAuth != "Bearer test-key" {
 		t.Fatalf("unexpected auth: %s", gotAuth)
