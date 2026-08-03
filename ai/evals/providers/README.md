@@ -5,6 +5,11 @@
 - 追踪：IMPLEMENTATION_PLAN.md 第 7 节 OD-01；docs/testing/PHASE0-PROVIDER-EVALUATION.md（TEST-PHASE0-001）；NFR-007 ~ NFR-012；TASK-030、TASK-091、TASK-096
 - 一致性锚点：docs/ai/PROVIDER-ADAPTERS.md（能力契约）、docs/decisions/OD-01-provider-evaluation.md（预筛结论）、.env.example（[REGION-SCOPED] 凭据位）
 
+## 区域范围（2026-08-03）
+
+- 主力：**cn 区**。本轮 Phase 0 实测与供应商选型全部在 cn 区执行。
+- 待开发：eu/intl 区候选名单保留（LiveKit/100ms、Deepgram/Azure、ElevenLabs/Azure、Azure OpenAI/Claude、HeyGen/Synthesia），不进入本轮实测与评分；runner 中的 eu/intl 配置位保留供后续窗口使用。
+
 ## 目的
 
 把 OD-01 第 6 节清单变成可执行、可复核的沙箱实测流程：生成合成会话素材，按厂商/区域记录原始样本，计算分位数并对照 NFR 门槛，最终组装六维评分卡供三方签字。
@@ -45,24 +50,63 @@ python ai/evals/providers/scripts/runner.py scorecard --capability asr --region 
 
 ## 实测流程
 
-1. 按下方清单注册供应商沙箱账号，并将真实密钥注入区域隔离环境变量（值不入库）。
+1. 按下方 cn 区清单注册供应商沙箱账号，并将真实密钥注入区域隔离环境变量（值不入库；eu/intl 本轮不实测）。
 2. 生成会话素材；ASR 闭环用 TTS 合成黄金答案音频后转写，比对字准率。
 3. 逐项实测 OD-01 第 6 节指标：建连、全链路回应、打断、ASR 终稿、口型、720p/24fps、弱网降级、60 分钟长会话。
 4. 原始样本写入 `samples/`，每条标注 `synthetic: true` 与厂商/区域。
 5. 人工盲评质量维度（MOS、自然度、口型表现），评分记录归档。
 6. `runner.py scorecard` 组装六维评分卡；安全与授权复核后由技术、AI、安全负责人三方签字，形成 ADR，OD-01 关闭。
 
-## 供应商账号与密钥清单（B 档配合项）
+## 供应商账号与密钥清单（cn 区，B 档配合项）
 
-每项能力按区域给出候选。真实密钥由用户注册后注入环境变量，仓库一律不保存。
+注册时统一核验材料：数据区端点或部署说明、DPA 与零保留配置、固定角色库授权链证明（数字人）、可核算单价模型。数字人候选缺少完整授权链即否决。
 
-- WebRTC/SFU：cn 区 Agora、腾讯 TRTC；eu/intl 区 LiveKit、100ms。凭据位 `WEBRTC_SFU_URL`、`WEBRTC_API_KEY`、`WEBRTC_API_SECRET`（按区隔离）。
-- ASR：cn 区阿里云、讯飞；eu/intl 区 Deepgram、Azure Speech。凭据位 `ASR_PRIMARY_*`、`ASR_SECONDARY_*`。
-- TTS：cn 区火山豆包、讯飞；eu/intl 区 ElevenLabs、Azure TTS。凭据位 `TTS_PRIMARY_*`、`TTS_SECONDARY_*`。
-- LLM：cn 区 DeepSeek、Qwen；eu/intl 区 Azure OpenAI、Claude。凭据位 `LLM_PRIMARY_*`、`LLM_SECONDARY_*`、`LLM_MODEL_PINNED_VERSION`。
-- 数字人：cn 区腾讯云数智人、硅基智能；eu/intl 区 HeyGen、Synthesia。凭据位 `AVATAR_PRIMARY_*`、`AVATAR_SECONDARY_*`、`AVATAR_CHARACTER_LICENSE_REF`。
+### WebRTC/SFU
 
-注册时需要一并核验的材料：数据区端点或部署说明、DPA 与零保留配置、固定角色库授权链证明、可核算单价模型。数字人候选缺少完整授权链即否决。
+- 声网 Agora：注册 [https://console.agora.io/](https://console.agora.io/) ，完成实名认证后创建项目。
+  - 提供：App ID、App Certificate、项目所在区域说明。
+  - 注入：`WEBRTC_SFU_URL`、`WEBRTC_API_KEY`（App ID）、`WEBRTC_API_SECRET`（App Certificate）。
+- 腾讯云 TRTC：开通 [https://console.cloud.tencent.com/trtc](https://console.cloud.tencent.com/trtc)（产品页 [https://cloud.tencent.com/product/trtc](https://cloud.tencent.com/product/trtc)）。
+  - 提供：SDKAppID、SDKSecretKey、部署区域。
+  - 注入：`WEBRTC_SFU_URL`、`WEBRTC_API_KEY`（SDKAppID）、`WEBRTC_API_SECRET`（SDKSecretKey）。
+
+### ASR
+
+- 阿里云智能语音交互：控制台 [https://nls.console.aliyun.com/](https://nls.console.aliyun.com/)（产品页 [https://www.aliyun.com/product/nls](https://www.aliyun.com/product/nls)）。
+  - 提供：RAM AccessKey ID/Secret（最小权限）、项目 AppKey、模型名（如 16k 实时识别）、可用区网关地址。
+  - 注入：`ASR_PRIMARY_BASE_URL`、`ASR_PRIMARY_API_KEY`。
+- 讯飞实时语音转写：开放平台 [https://www.xfyun.cn/](https://www.xfyun.cn/) ，控制台 [https://console.xfyun.cn/](https://console.xfyun.cn/) 创建应用并开通实时语音转写。
+  - 提供：AppID、APIKey、APISecret。
+  - 注入：`ASR_PRIMARY_BASE_URL`（rtasr WebSocket 地址）、`ASR_PRIMARY_API_KEY`。
+
+### TTS
+
+- 火山引擎豆包语音：控制台 [https://console.volcengine.com/speech/service/10028](https://console.volcengine.com/speech/service/10028)（文档 [https://www.volcengine.com/docs/6561/516011](https://www.volcengine.com/docs/6561/516011)）。
+  - 提供：应用 AppID、Access Token、音色 ID（大模型音色列表）。
+  - 注入：`TTS_PRIMARY_BASE_URL`、`TTS_PRIMARY_API_KEY`。
+- 讯飞在线语音合成：开放平台创建应用后开通语音合成。
+  - 提供：AppID、APIKey、APISecret、音色参数。
+  - 注入：`TTS_SECONDARY_BASE_URL`、`TTS_SECONDARY_API_KEY`。
+
+### LLM
+
+- DeepSeek：注册 [https://platform.deepseek.com/](https://platform.deepseek.com/) ，创建 API Key（需小额充值）。
+  - 提供：API Key、模型名（控制台当前可用的 pinned 版本）。
+  - 注入：`LLM_PRIMARY_BASE_URL`（https://api.deepseek.com）、`LLM_PRIMARY_API_KEY`、`LLM_MODEL_PINNED_VERSION`。
+- 阿里云百炼（Qwen）：控制台 [https://bailian.console.aliyun.com/](https://bailian.console.aliyun.com/) 开通并创建 API Key（区域建议北京）。
+  - 提供：API Key、模型名（如 qwen-plus 或同档位 pinned 版本）。
+  - 注入：`LLM_SECONDARY_BASE_URL`（DashScope 兼容地址）、`LLM_SECONDARY_API_KEY`。
+
+### 数字人
+
+- 腾讯云智能数智人：产品页 [https://cloud.tencent.com/product/ivh](https://cloud.tencent.com/product/ivh) ，平台入口 [https://cloud.tencent.com/document/product/1240/102018](https://cloud.tencent.com/document/product/1240/102018) 。
+  - 提供：数智人平台账号/项目、角色 ID（固定授权角色）、肖像与声音授权链证明、接口地址与密钥。
+  - 注入：`AVATAR_PRIMARY_BASE_URL`、`AVATAR_PRIMARY_API_KEY`、`AVATAR_CHARACTER_LICENSE_REF`。
+- 硅基智能：官网 [https://guiji.cn/](https://guiji.cn/) 提交商务申请；DUIX 文档 [https://duix.guiji.ai/](https://duix.guiji.ai/) 。
+  - 提供：平台账号、AppKey/Secret、固定角色库清单与授权证明。
+  - 注入：`AVATAR_SECONDARY_BASE_URL`、`AVATAR_SECONDARY_API_KEY`、`AVATAR_CHARACTER_LICENSE_REF`。
+
+密钥说明：所有密钥只经本地环境变量注入，禁止写入仓库。PowerShell 会话示例：`$env:LLM_PRIMARY_API_KEY='...'`；`runner.py check-config` 只报告缺失项，不回显任何值。
 
 ## 指标与门槛（OD-01 第 6 节 / NFR-007 ~ NFR-012）
 
