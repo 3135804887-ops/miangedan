@@ -192,6 +192,10 @@ erDiagram
 ### 6.13 HandoffPackage（跨轮交接）
 
 结构、生成与校验见 `docs/ai/HANDOFF-SPEC.md` 与 `ai/schemas/handoff-package.schema.json`。追加式保存；前序 ScoreVersion 被复核更新时重新生成。
+生成实现：`ai/services/orchestrator` 的 `mgd_orchestrator.handoff_generator`（TASK-034）——
+组装八类必备内容、按 HANDOFF-SPEC 第 6 节优先级压缩、事实完整性独立复核、
+敏感字段零携带（命中即拒绝并告警）；`services/migrate` 迁移 `0034_handoff_packages.sql`
+落库，业务角色无 UPDATE/DELETE（ADR-0004）。
 
 ### 6.14 Practice / RetryAttempt（练习与正式重试）
 

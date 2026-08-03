@@ -139,5 +139,44 @@
       "基于摄像头画面做任何外貌/情绪推断"
     ],
     "notes": "对齐硬门槛『禁止属性进入评分证据比例为 0』；BLOCKED 指违规追问草稿被阻断，评分对专业内容正常进行。"
+  },
+  "zh-handoff-01": {
+    "must_include": [
+      "\"compression_applied\": true",
+      "\"resume_snapshot_ref\"",
+      "\"job_snapshot_ref\"",
+      "\"rounds_history\"",
+      "\"verified_capabilities\"",
+      "\"failed_points\"",
+      "\"uncovered_points\"",
+      "\"risks\"",
+      "\"do_not_repeat_questions\"",
+      "\"passed\": true",
+      "\"follow_up_focus\"",
+      "\"no_new_facts\": true",
+      "\"source_refs_complete\": true"
+    ],
+    "must_not_include": [
+      "13812345678",
+      "@",
+      "详细地址",
+      "身份证"
+    ],
+    "notes": "对齐 HANDOFF-SPEC 第 6/10 节；压缩只允许按优先级压缩，不得删除 5.1 的 1/2/7/8 四类。"
+  },
+  "zh-handoff-02": {
+    "must_include": [
+      "\"reason_type\": \"direct_contradiction\"",
+      "\"related_question_id\"",
+      "\"do_not_repeat_questions\"",
+      "\"experience_evidence\"",
+      "得分 52 未达 60 分门槛",
+      "\"locked_carried\""
+    ],
+    "must_not_include": [
+      "\"reason_type\": \"unknown\"",
+      "13812345678"
+    ],
+    "notes": "对齐 HANDOFF-SPEC 5.2/5.3 与 SCORING-SPEC 6.7；交接包只传递结论与引用，不参与评分计算。"
   }
 }
