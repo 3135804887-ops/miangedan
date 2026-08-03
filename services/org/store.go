@@ -1,0 +1,21 @@
+// Package org 提供机构租户存储接口（TASK-070）。
+package org
+
+// Store 为机构租户存储（生产 PostgreSQL；审计仅 SELECT/INSERT）。
+type Store interface {
+	SaveOrg(Org, string) error
+	GetOrgByID(dataRegion, orgID string) (Org, error)
+	GetOrgByIdempotencyKey(dataRegion, key string) (Org, error)
+	UpdateOrg(Org) error
+	SaveMember(Member) error
+	GetMember(orgID, userID string) (Member, error)
+	ListMembers(orgID string) ([]Member, error)
+	UpdateMember(Member) error
+	SaveInvitation(Invitation, string) error
+	GetInvitationByID(dataRegion, invitationID string) (Invitation, error)
+	GetInvitationByIdempotencyKey(dataRegion, key string) (Invitation, error)
+	UpdateInvitation(Invitation) error
+	ListInvitations(dataRegion, orgID string) ([]Invitation, error)
+	AppendAudit(AuditEntry) error
+	ListAudits(dataRegion, orgID string) ([]AuditEntry, error)
+}

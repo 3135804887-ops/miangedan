@@ -2274,6 +2274,81 @@ paths:
       responses:
         '200': { description: 机构详情, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/invitations/{invitationId}/accept:
+    post:
+      tags: [organizations]
+      operationId: acceptOrgInvitation
+      summary: 用户以个人账户接受邀请加入（无影子账户；过期/停用拒绝）
+      parameters:
+        - name: invitationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201': { description: 已加入, content: { application/json: { schema: { $ref: '#/components/schemas/OrgMember' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/members:
+    get:
+      tags: [organizations]
+      operationId: listOrgMembers
+      summary: 机构成员列表（owner/admin/instructor 可看）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200': { description: 成员列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/OrgMember' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/members/{userId}/role:
+    post:
+      tags: [organizations]
+      operationId: setOrgMemberRole
+      summary: 调整成员角色（owner 仅本人可变更；写审计）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate] }
+      responses:
+        '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/OrgMember' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/leave:
+    post:
+      tags: [organizations]
+      operationId: leaveOrg
+      summary: 退出机构（个人记录保留；机构访问立即失效由 TASK-074 挂接）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '204': { description: 已退出 }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/status:
+    post:
+      tags: [organizations]
+      operationId: setOrgStatus
+      summary: 机构停用/启用/注销（owner；停用后成员令牌与共享链接失效）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { enum: [active, suspended, deactivated] }
+      responses:
+        '200': { description: 已更新, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/orgs/{orgId}/members/invite:
     post:
       tags: [organizations]
@@ -3481,6 +3556,27 @@ components:
         data_region: { $ref: '#/components/schemas/Region' }
         status: { enum: [active, suspended, deactivated] }
         caller_role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate, null], default: null }
+    OrgMember:
+      type: object
+      required: [org_id, user_id, role, joined_at]
+      properties:
+        org_id: { type: string, format: uuid }
+        user_id: { type: string, description: 个人账户 ID（无影子账户） }
+        role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate] }
+        invite_method: { enum: [link, org_email, bulk_list, sso, scim] }
+        joined_at: { type: string, format: date-time }
+        left_at: { type: ['string', 'null'], format: date-time }
+    Invitation:
+      type: object
+      required: [invitation_id, org_id, role, invite_method, status, expires_at]
+      properties:
+        invitation_id: { type: string, format: uuid }
+        org_id: { type: string, format: uuid }
+        email: { type: ['string', 'null'], format: email }
+        role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate] }
+        invite_method: { enum: [link, org_email, bulk_list, sso, scim] }
+        status: { enum: [pending, accepted, revoked] }
+        expires_at: { type: string, format: date-time }
     Assignment:
       type: object
       required: [assignment_id, org_id, title, status]
