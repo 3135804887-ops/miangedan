@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 技术基线 | Python ≥3.11，src 布局，ruff + mypy(strict) + pytest |
-| 拥有任务 | TASK-031、TASK-032、TASK-033 |
+| 拥有任务 | TASK-031、TASK-032、TASK-033、TASK-034 |
 | 追踪 | IMPLEMENTATION_PLAN.md；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.1 节 |
 
 ## 已实现
@@ -22,10 +22,16 @@
   - 轮次建议（默认 3 轮、1-5 轮与 10-60 分钟边界、六维权重和 100）；
   - 安全过滤（PII 复述/注入检测，重生成 ≤2 次）；单轮失败只重试失败模块；
   - 输出对齐 `interview-plan.schema.json`（服务层补齐项目字段）。
-
+- **跨轮交接包**（TASK-034）：`mgd_orchestrator.handoff_generator`
+  - 组装八类必备内容（简历/JD 快照引用、轮次纪要、评价、风险、已验证能力、
+    未覆盖点、禁止重复问题与允许重新验证例外）；
+  - 上下文压缩（超预算按 HANDOFF-SPEC 优先级，不得删除简历/JD/未覆盖/禁止重复）；
+  - 事实完整性独立复核（no_new_facts / source_refs_complete，声明与复核不一致即拒绝）；
+  - 敏感字段零携带（命中即拒绝生成并告警）；输出过 handoff-package Schema（fail-closed）；
+  - 语义去重执行层：`repeats_previous_question` / `allowed_to_reverberify`。
 ## 规划（后续任务）
 
-- TASK-034 跨轮交接包；TASK-035 注入防护与内容安全管道；TASK-036 AI 评测框架。
+- TASK-035 注入防护与内容安全管道；TASK-036 AI 评测框架。
 
 AI 行为实现必须遵循 `docs/ai/` 契约（编排、评分、交接、提示词政策、供应商适配层），
 禁止业务代码直连供应商 SDK。

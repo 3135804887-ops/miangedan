@@ -15,6 +15,21 @@
 
 ### Added
 
+- TASK-034 跨轮交接包（`task/TASK-034-handoff-package` 分支）：
+  - `ai/services/orchestrator` 新增 `mgd_orchestrator.handoff_generator`（跨轮交接规则）：
+    八类必备内容组装（简历/JD 快照引用、轮次纪要、评价、风险、已验证能力、未覆盖点、
+    禁止重复问题与允许重新验证例外）；按 HANDOFF-SPEC 第 6 节优先级压缩
+    （摘要 ≤120 字/≤80 词、追问链合并、强弱项去重、最新有效维度分），超预算不删除
+    简历/JD/未覆盖/禁止重复四类；事实完整性独立复核（no_new_facts /
+    source_refs_complete，声明与复核不一致即拒绝）；敏感字段零携带（命中即拒绝并告警）；
+    输出过 `handoff-package.schema.json` 校验（fail-closed，补充 locked_carried 状态
+    与 SCORING-SPEC 6.1 对齐）；语义去重执行层（例外仅
+    direct_contradiction / new_job_scenario_transfer）。
+  - 迁移 `0034_handoff_packages.sql`（追加式、业务角色无 UPDATE/DELETE、ADR-0004）；
+    DOMAIN-MODEL §6.13、openapi（HandoffPackage schema 与第 2 轮起前置说明）同步。
+  - 评测集 zh-core/en-core 新增 handoff_compression / contradictory_evidence 用例
+    并附预期结果；pytest 13 用例全绿，ruff、mypy(strict) 通过。
+    （TASK-034、HANDOFF-SPEC、FR-011、ADR-0004）
 - TASK-023 双向字幕与转写修订（`task/TASK-023-captions-revision` 分支）：
   - `services/room` 扩展字幕/转写能力（FR-018）：ASR 临时/最终文本追加（partial 仅展示，
     不入证据账本）、修订状态机（none → submitted → accepted/rejected）、回合冻结边界

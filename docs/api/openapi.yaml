@@ -1351,7 +1351,9 @@ paths:
       summary: 创建正式/重试轮次房间并签发短期房间令牌（与业务令牌隔离）
       description: |
         前置条件（全部满足，否则 state_conflict/insufficient_entitlement）：
-        覆盖方案与量表就绪；第 2 轮起交接包就绪；额度预留成功；单活动设备；便利设置已冻结。
+        覆盖方案与量表就绪；第 2 轮起交接包（HandoffPackage，见
+        `ai/schemas/handoff-package.schema.json` 与 docs/ai/HANDOFF-SPEC.md）就绪；
+        额度预留成功；单活动设备；便利设置已冻结。
         房间令牌短期有效，仅用于媒体面；浏览器不持有任何供应商密钥。
       parameters:
         - $ref: '#/components/parameters/ProjectId'
@@ -3091,6 +3093,27 @@ components:
         explanations: { type: ['object', 'null'], additionalProperties: true, description: 可解释评分（对齐 scoring-result.schema.json） }
         input_mode_notes: { type: ['string', 'null'] }
         data_region: { $ref: '#/components/schemas/Region' }
+    HandoffPackage:
+      type: object
+      description: 跨轮交接包（结构事实源为 ai/schemas/handoff-package.schema.json；docs/ai/HANDOFF-SPEC.md）
+      required: [package_id, project_id, from_round_sequence, to_round_sequence, rounds_history, do_not_repeat_questions]
+      properties:
+        package_id: { type: string, format: uuid }
+        project_id: { type: string, format: uuid }
+        from_round_sequence: { type: integer, minimum: 1, maximum: 4 }
+        to_round_sequence: { type: integer, minimum: 2, maximum: 5 }
+        rounds_history: { type: array, description: 前序轮次纪要（问题/回答摘要/追问/工具行为/维度分） }
+        verified_capabilities: { type: array, items: { type: string } }
+        failed_points: { type: array, items: { type: object, properties: { dimension: { $ref: '#/components/schemas/DimensionKey' }, summary: { type: string }, evidence_refs: { type: array, items: { type: string } } } } }
+        uncovered_points: { type: array, items: { type: string } }
+        risks: { type: array, items: { type: string } }
+        contradictions: { type: array, items: { type: object, properties: { summary: { type: string }, evidence_refs: { type: array, items: { type: string } } } } }
+        follow_up_focus: { type: array, items: { type: string } }
+        do_not_repeat_questions: { type: array, items: { type: object, properties: { question_id: { type: string }, question_summary: { type: string }, passed: { const: true } } } }
+        allowed_reverification: { type: array, items: { type: object, properties: { reason_type: { enum: [direct_contradiction, new_job_scenario_transfer] }, description: { type: string }, related_question_id: { type: ['string', 'null'] } } } }
+        context_budget: { type: object, properties: { max_tokens: { type: integer, minimum: 1 }, compression_applied: { type: boolean } } }
+        factual_integrity: { type: object, properties: { no_new_facts: { type: boolean }, source_refs_complete: { type: boolean } } }
+        generated_at: { type: string, format: date-time }
     Report:
       type: object
       required: [report_id, project_id, report_kind, project_status, training_use_disclaimer, data_region]

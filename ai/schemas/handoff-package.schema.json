@@ -67,7 +67,7 @@
               "required": ["dimension", "score_status"],
               "properties": {
                 "dimension": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] },
-                "score_status": { "enum": ["scored", "insufficient_evidence", "uncovered", "not_applicable"] },
+                "score_status": { "enum": ["scored", "insufficient_evidence", "uncovered", "not_applicable", "locked_carried"], "description": "锁定沿用为 SCORING-SPEC 6.1 定义的状态；交接包原样传递最新有效 ScoreVersion" },
                 "score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
                 "locked": { "type": "boolean", "description": "≥60 锁定为已验证" }
               },
