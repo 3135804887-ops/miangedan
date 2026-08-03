@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-082 禁止改分系统级约束与破窗访问（`task/TASK-082-score-guard` 分支）：
+  - `services/adminapi` 改分红线（FR-039，US-08 场景 3）：编辑分数/解锁/改证据
+    一律拒绝并写审计；正式复核唯一入口；无分数修改存储路径；
+  - 破窗访问：限重大安全/法律事件、理由+时长 ≤8h、72h 内事后复核、不可自审、
+    到期自动 expired、敏感访问记录可查；break_glass 与审计存储仅 SELECT/INSERT
+    （测试反射断言无 Update/Delete 路径）。
+  - 迁移 `0070_break_glass.sql`；openapi 增加 break-glass 端点与 schema。
+  - 服务正常、异常、自审拒绝、超窗拒绝、到期、无修改路径测试齐备（新增 4 用例），
+    gofmt/vet 通过。
+    （TASK-082、FR-039、AGENTS.md §2）
 - TASK-081 版本治理（`task/TASK-081-version-governance` 分支）：
   - `services/adminapi` 版本注册与推进（FR-038，US-08 场景 2/6）：模型/提示词/
     量表/工作流 offline→shadow→canary→full；灰度需兼容+安全测试、放量需指标通过；

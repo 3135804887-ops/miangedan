@@ -128,6 +128,8 @@
 | `ops_region_status` | 区域监控快照（TASK-080） | region PK、online_rooms、queued_sessions、capacity、provider_health_json、slo_json、error_budget_burn、updated_at | — |
 | `artifact_versions` | 版本注册表（TASK-081） | version_id PK、asset_type（model/prompt/rubric/workflow）、asset_key、version、stage（offline/shadow/canary/full）、compatible、safety_tested、metrics_ok、deprecated | artifact_versions(data_region, asset_type, stage)；asset 三元组 UNIQUE |
 | `version_pins` | 项目版本固定（TASK-081） | project_id PK、asset_type、asset_key、version_id FK、pinned_at | — |
+| `break_glass` | 破窗访问（TASK-082） | glass_id PK、target_user_id、reason、duration_minutes（1-480）、target_ref、opened_by、opened_at、expires_at | break_glass(target_user_id, opened_at) |
+| `break_glass_reviews` | 破窗事后复核（TASK-082） | review_id PK、glass_id FK UNIQUE、reviewer_id、decision（approved/rejected）、note、reviewed_at | — |
 
 ## 6. 对象存储桶划分（每区独立）
 

@@ -23,4 +23,10 @@ type Store interface {
 	GetPin(dataRegion, projectID string) (VersionPin, error)
 	UpdatePin(VersionPin) error
 	HasActiveSession(dataRegion, projectID string) bool
+	// TASK-082 破窗访问（仅 SELECT/INSERT；状态由追加式评审事件推导）。
+	SaveBreakGlass(BreakGlass) error
+	GetBreakGlass(dataRegion, glassID string) (BreakGlass, error)
+	ListBreakGlassByTarget(dataRegion, targetUserID string) ([]BreakGlass, error)
+	AppendBreakGlassReview(BreakGlassReview) error
+	ListBreakGlassReviews(glassID string) ([]BreakGlassReview, error)
 }

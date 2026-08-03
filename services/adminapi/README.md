@@ -31,7 +31,14 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/adminapi`；�
 - **量表停用**：产品/面试专业/安全公平三方审批；不批量改写历史分数。
 - 迁移 `0069_version_registry.sql`（artifact_versions/version_pins）。
 
+## 已实现（TASK-082，FR-039）
+
+- **禁止改分系统级约束**：编辑分数/解锁/改证据一律拒绝并写审计；正式复核唯一
+  入口；无分数修改存储路径（与前端 control-registry 红线呼应）。
+- **破窗访问**：限重大安全/法律事件、理由+时长 ≤8h、72h 内事后复核、不可自审、
+  到期自动 expired、敏感访问记录可查；break_glass 与审计存储仅 SELECT/INSERT。
+- 迁移 `0070_break_glass.sql`。
+
 ## 规划（后续任务）
 
-- TASK-082 禁止改分系统级约束；TASK-083 数据权利请求；
-  TASK-084 追加式审计与 MFA；TASK-085 客服工单。
+- TASK-083 数据权利请求；TASK-084 追加式审计与 MFA；TASK-085 客服工单。
