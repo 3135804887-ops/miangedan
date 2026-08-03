@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 技术基线 | Python ≥3.11，src 布局，ruff + mypy(strict) + pytest |
-| 拥有任务 | TASK-031、TASK-032、TASK-033、TASK-034 |
+| 拥有任务 | TASK-031、TASK-032、TASK-033、TASK-034、TASK-035 |
 | 追踪 | IMPLEMENTATION_PLAN.md；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.1 节 |
 
 ## 已实现
@@ -29,9 +29,17 @@
   - 事实完整性独立复核（no_new_facts / source_refs_complete，声明与复核不一致即拒绝）；
   - 敏感字段零携带（命中即拒绝生成并告警）；输出过 handoff-package Schema（fail-closed）；
   - 语义去重执行层：`repeats_previous_question` / `allowed_to_reverberify`。
+- **提示注入防护与内容安全管道**（TASK-035）：`mgd_orchestrator.safety_pipeline`
+  - 以 `config/safety/policy.yaml` 为唯一事实源（保护属性/禁止类别/动作/重生成次数）；
+  - 注入检测（prompt_registry 基线 + 编码混淆 + 工具诱导）与指令中和
+    （sanitize_and_log，内容仍按数据处理、默认不向用户暴露安全细节）；
+  - 禁止内容分类（歧视/侮辱/无关隐私/危险/骚扰/作弊协助/录用预测/PII 复述）与
+    动作一一对应 policy.yaml；阻断-重生成 ≤3 次、危险/骚扰直接升级人工；
+  - 评分证据保护属性零携带扫描（evidence_scan）与最小化审计记录。
+
 ## 规划（后续任务）
 
-- TASK-035 注入防护与内容安全管道；TASK-036 AI 评测框架。
+- TASK-036 AI 评测框架。
 
 AI 行为实现必须遵循 `docs/ai/` 契约（编排、评分、交接、提示词政策、供应商适配层），
 禁止业务代码直连供应商 SDK。

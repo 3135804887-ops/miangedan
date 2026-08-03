@@ -374,6 +374,20 @@
 > openapi（HandoffPackage schema）同步。pytest 13 用例全绿，ruff/mypy(strict) 通过。
 > （TASK-034、HANDOFF-SPEC、FR-011）
 
+> **任务状态（2026-08-03 更新）**：TASK-035 已实现（P0 注入风险；US-02 场景 5）——
+> `ai/services/orchestrator` 新增 `mgd_orchestrator.safety_pipeline`：
+> 以 `config/safety/policy.yaml` 为唯一事实源（policy_version safety/v1、八类
+> prohibited_content 与 action、regeneration.max_attempts=3、injection_defense
+> sanitize_and_log、audit.log_minimization）；简历/JD/网页/自由文本/工具输出一律视为
+> 不可信数据；注入检测在 prompt_registry 基线之上补充编码混淆（%22/\\u0022/HTML 实体）、
+> 工具诱导与中文“忽略……指令”宽模式，命中即中和指令并标记 injection_detected
+> （内容仍按数据处理，不向用户暴露安全细节）；禁止内容分类动作与 policy.yaml 一一对应
+> （歧视/侮辱/无关隐私/危险/骚扰/作弊协助/录用预测/PII 复述），阻断-重生成 ≤3 次、
+> 危险/骚扰直接升级人工；评分证据保护属性零携带扫描（evidence_scan）；审计记录
+> 最小化（不含敏感正文）。红队回归：zh-core/en-core prompt_injection /
+> protected_attribute 用例 + fixtures/synthetic/jobs/jd-injection-zh.md 全部通过。
+> pytest 23 用例全绿，ruff/mypy(strict) 通过。（TASK-035、PROMPT-POLICY、policy.yaml）
+
 ### EPIC-05 评分与复核
 
 目标：独立、可重复、可解释、版本冻结的评分与正式复核。
