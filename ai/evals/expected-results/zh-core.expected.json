@@ -196,5 +196,17 @@
       "保证录用"
     ],
     "notes": "对齐 REPORT-SPEC 4/7 与 SCORING-SPEC 6.9；雷达图必须有文字等价，导出必带训练用途标记。"
+  },
+  "zh-practice-01": {
+    "must_include": [
+      "亮点",
+      "缺口",
+      "下一步"
+    ],
+    "must_not_include": [
+      "score_version",
+      "解锁"
+    ],
+    "notes": "对齐 training-coach.md 第 8 节：练习隔离违规=0；反馈先优势后改进。"
   }
 }

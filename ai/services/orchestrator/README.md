@@ -43,10 +43,17 @@
   - 模块级失败重试（FR-026：失败模块 status=failed 可单独重试 ≤2 次）；
   - 输出过 `report.schema.json` 校验（fail-closed）；训练用途声明与
     deletion_entry 强制；保护属性零携带（evidence_scan 脱敏）。
+- **AI 教练练习**（TASK-052）：`mgd_orchestrator.training_coach`
+  - 原题/变体/框架/示例练习项（变体只关联已考覆盖点，不预演后续轮次）；
+  - 逐步反馈：亮点 → 缺口 → 下一步（先优势后改进，聚焦行为与证据）；
+  - 练习隔离红线：is_formal_evidence 恒 false、PracticeRecord 独立于
+    正式证据链、永不产生 ScoreVersion；用户回答注入按数据处理并说明隔离；
+  - 安全：录用预测/作弊/侮辱阻断重生成 ≤3、危险/骚扰升级人工；
+    简历/JD 原文不进入练习内容。
 
 ## 规划（后续任务）
 
-- TASK-051 报告文字等价/导出标记；TASK-052 AI 教练练习。
+- TASK-053 正式重试；TASK-054 结果流（祝贺/失败阻断/累计复盘）。
 
 AI 行为实现必须遵循 `docs/ai/` 契约（编排、评分、交接、提示词政策、供应商适配层），
 禁止业务代码直连供应商 SDK。
