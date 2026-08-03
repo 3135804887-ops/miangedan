@@ -15,6 +15,14 @@
 
 ### Added
 
+- TASK-041 输入模式归一化（`task/TASK-041-input-mode-normalization` 分支）：
+  - `services/scoring` 实现 SCORING-SPEC 6.4：voice 公式不变；文字模式
+    communication = structure_clarity、oral_delivery = `not_evaluated`
+    （不记 0、不扣分，SC-EC-09），报告标注输入模式与证据限制；混合模式按
+    语音/文字有效证据占比合并（SC-EC-10），语音占比缺失即拒绝；摄像头开关与
+    便利设置只记录不进入评分证据（SC-EC-11/12）。
+  - SC-EC-09/10/11/12 + 异常路径测试全绿；gofmt/vet 通过。
+    （TASK-041、SCORING-SPEC 6.4）
 - TASK-040 评分服务（`task/TASK-040-scoring-service` 分支）：
   - 新 Go 模块 `services/scoring`（FR-021）：SCORING-SPEC 6.1-6.7 伪代码逐条实现
     ——六维证据状态机、锚点映射与相邻锚点插值（引用缺失回退下锚点）、覆盖率 ≥0.5、

@@ -23,10 +23,16 @@
     不判失败、不落库，恢复后可重算（SC-EC-18）。
 - **HTTP**：`/v1/projects/{projectId}/rounds/{sequence}/result`、
   `/scores`（分页）、`/review`（TASK-043 501 占位）。
+- **输入模式归一化**（TASK-041）：SCORING-SPEC 6.4
+  - voice：0.6×structure_clarity + 0.4×oral_delivery；
+  - text：communication = structure_clarity，oral_delivery = `not_evaluated`
+    （不记 0、不扣分；SC-EC-09），报告标注输入模式与证据限制；
+  - mixed：按语音/文字有效证据占比合并（SC-EC-10，0.6×80 + 0.4×60 = 72），
+    报告标注混合模式与证据限制；
+  - 摄像头开关与便利设置（字幕/延时/降速/禁止打断等）不进入任何计算（SC-EC-11/12）。
 
 ## 规划（后续任务）
 
-- TASK-041 输入模式归一化（文字模式 not_evaluated、混合模式合并、证据限制标注）；
 - TASK-042 岗位匹配度（必备/加分分列、无 JD 不展示、无简历不做经历一致性）；
 - TASK-043 正式复核（每次正式尝试仅一次）。
 
