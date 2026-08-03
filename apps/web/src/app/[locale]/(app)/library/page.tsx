@@ -1,5 +1,7 @@
 /** SCR-13 资产与历史：简历库/岗位库/面试记录/训练进度四分区。 */
 
+'use client';
+
 import {
   Button,
   Card,
@@ -14,36 +16,89 @@ import {
   PageHeader,
   Tabs,
   Tint,
+  useToast,
 } from '@mgd/ui';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-export default async function LibraryPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<ReactNode> {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
+import { apiFetch } from '../../../../lib/api-fetch.ts';
+import { useApiGet } from '../../../../lib/api-hooks.ts';
+
+interface LibraryPayload {
+  readonly items: readonly {
+    material_id: string;
+    name?: string;
+    company?: string;
+    job_title?: string;
+    version?: number;
+    confirmed_at?: string;
+  }[];
+}
+
+export default function LibraryPage(): ReactNode {
+  const t = useTranslations('common');
+  const toast = useToast();
+  const params = useParams<{ locale: 'zh-CN' | 'en-US' }>();
+  const locale = params.locale;
   const zh = locale === 'zh-CN';
+  const resumesState = useApiGet<LibraryPayload>('/v1/library/resumes', {});
+  const jobsState = useApiGet<LibraryPayload>('/v1/library/jobs', {});
 
-  const resumes = [
-    { id: 'r1', name: zh ? '合成候选人简历 v1' : 'Synthetic resume v1', company: '合成科技', role: zh ? '后端工程师' : 'Backend engineer', version: 3, date: '2026-07-28' },
-  ] as const;
-  const jobs = [
-    { id: 'j1', name: zh ? '后端工程师 JD' : 'Backend engineer JD', company: '合成科技', role: zh ? '后端工程师' : 'Backend engineer', version: 2, date: '2026-07-28' },
-  ] as const;
-  const interviews = [
-    { id: 'p-0001', name: zh ? '后端工程师面试训练' : 'Backend interview training', status: zh ? '活动中' : 'Active', date: '2026-08-01' },
-    { id: 'p-0006', name: zh ? '全流程训练（已完成）' : 'Full training (completed)', status: zh ? '已完成' : 'Completed', date: '2026-07-24' },
-  ] as const;
+  const resumes = (resumesState.data?.items ?? []).map((x, i) => ({
+    id: x.material_id,
+    name: x.name ?? (zh ? `简历 ${i + 1}` : `Resume ${i + 1}`),
+    company: x.company ?? '—',
+    role: x.job_title ?? '—',
+    version: x.version ?? 1,
+    date: (x.confirmed_at ?? '').slice(0, 10),
+  }));
+  const jobs = (jobsState.data?.items ?? []).map((x, i) => ({
+    id: x.material_id,
+    name: x.name ?? (zh ? `JD ${i + 1}` : `JD ${i + 1}`),
+    company: x.company ?? '—',
+    role: x.job_title ?? '—',
+    version: x.version ?? 1,
+    date: (x.confirmed_at ?? '').slice(0, 10),
+  }));
 
-  const listCard = (title: string, items: readonly { id: string; name: string; company: string; role: string; version: number; date: string }[], emptyTitle: string) => (
+  const removeResume = async (id: string) => {
+    const res = await apiFetch('/v1/library/resumes/{resumeId}', {
+      method: 'delete',
+      idempotencyKey: `delete-resume-${id}-${Date.now()}`,
+      pathParams: { resumeId: id },
+    });
+    toast.push({
+      title: res.ok ? (zh ? '删除任务已创建' : 'Deletion task created') : (zh ? '删除暂未接入（占位）' : 'Delete placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
+  const removeJob = async (id: string) => {
+    const res = await apiFetch('/v1/library/jobs/{jobId}', {
+      method: 'delete',
+      idempotencyKey: `delete-job-${id}-${Date.now()}`,
+      pathParams: { jobId: id },
+    });
+    toast.push({
+      title: res.ok ? (zh ? '删除任务已创建' : 'Deletion task created') : (zh ? '删除暂未接入（占位）' : 'Delete placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
+  const listCard = (
+    title: string,
+    items: readonly { id: string; name: string; company: string; role: string; version: number; date: string }[],
+    emptyTitle: string,
+    onDelete: (id: string) => void,
+    loading: boolean,
+  ) => (
     <Card>
       <CardHeader title={title} />
       <CardBody className="space-y-3">
-        {items.length === 0 ? (
+        {loading ? (
+          <p className="mb-0 text-sm text-neutral-500" role="status">{zh ? '加载中…' : 'Loading…'}</p>
+        ) : items.length === 0 ? (
           <EmptyState icon={<IconFile size={24} />} title={emptyTitle} />
         ) : (
           items.map((item) => (
@@ -58,13 +113,18 @@ export default async function LibraryPage({
                 </p>
               </div>
               <Button variant="secondary" targetSize="min" aria-label={t('action.edit')}><IconEdit size={15} /></Button>
-              <Button variant="secondary" targetSize="min" aria-label={t('action.delete')}><IconTrash size={15} /></Button>
+              <Button variant="secondary" targetSize="min" aria-label={t('action.delete')} onClick={() => onDelete(item.id)}><IconTrash size={15} /></Button>
             </div>
           ))
         )}
       </CardBody>
     </Card>
   );
+
+  const interviews = [
+    { id: 'p-0001', name: zh ? '后端工程师面试训练' : 'Backend interview training', status: zh ? '活动中' : 'Active', date: '2026-08-01' },
+    { id: 'p-0006', name: zh ? '全流程训练（已完成）' : 'Full training (completed)', status: zh ? '已完成' : 'Completed', date: '2026-07-24' },
+  ] as const;
 
   return (
     <>
@@ -74,8 +134,8 @@ export default async function LibraryPage({
           <Tabs
             initialId="resumes"
             items={[
-              { id: 'resumes', label: t('library.tabResumes'), content: listCard(t('library.tabResumes'), resumes, t('library.emptyResumes')) },
-              { id: 'jobs', label: t('library.tabJobs'), content: listCard(t('library.tabJobs'), jobs, t('library.emptyJobs')) },
+              { id: 'resumes', label: t('library.tabResumes'), content: listCard(t('library.tabResumes'), resumes, t('library.emptyResumes'), removeResume, resumesState.loading) },
+              { id: 'jobs', label: t('library.tabJobs'), content: listCard(t('library.tabJobs'), jobs, t('library.emptyJobs'), removeJob, jobsState.loading) },
               {
                 id: 'interviews',
                 label: t('library.tabInterviews'),

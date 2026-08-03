@@ -40,6 +40,12 @@ import DemoPage from '../src/app/[locale]/(public)/demo/page.tsx';
 import LandingPage from '../src/app/[locale]/(public)/page.tsx';
 import SessionPage from '../src/app/[locale]/(room)/sessions/[id]/page.tsx';
 
+const navParams = vi.hoisted(() => ({ current: {} as Record<string, string> }));
+
+vi.mock('next/navigation', () => ({
+  useParams: () => navParams.current,
+}));
+
 vi.mock('next-intl/server', () => {
   const messageImports: Record<
     string,
@@ -94,6 +100,7 @@ const PAGES: ReadonlyArray<{
   readonly page: PageComponent;
   readonly params: Record<string, string>;
   readonly locales: readonly ['zh-CN', 'en-US'];
+  readonly client?: boolean;
 }> = [
   { id: 'landing', scr: 'SCR-01', page: LandingPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'] },
   { id: 'demo', scr: 'SCR-01', page: DemoPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'] },
@@ -104,29 +111,36 @@ const PAGES: ReadonlyArray<{
   { id: 'plan', scr: 'SCR-06', page: PlanPage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003' }, locales: ['zh-CN', 'en-US'] },
   { id: 'precheck', scr: 'SCR-07', page: PrecheckPage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003' }, locales: ['zh-CN', 'en-US'] },
   { id: 'session', scr: 'SCR-08', page: SessionPage as PageComponent, params: { locale: 'zh-CN', id: 's-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'result', scr: 'SCR-10', page: ResultPage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003', n: '1' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'report', scr: 'SCR-11', page: ReportPage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'practice', scr: 'SCR-12', page: PracticePage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003', pid: 'pr-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'library', scr: 'SCR-13', page: LibraryPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'settings', scr: 'SCR-14', page: SettingsPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'billing', scr: 'SCR-15', page: BillingPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-aggregates', scr: 'SCR-16', page: OrgAggregatesPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-assignments', scr: 'SCR-16', page: OrgAssignmentsPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-assignment-detail', scr: 'SCR-16', page: OrgAssignmentDetailPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001', assignmentId: 'as-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-completion', scr: 'SCR-16', page: OrgCompletionPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-members', scr: 'SCR-16', page: OrgMembersPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-permissions', scr: 'SCR-16', page: OrgPermissionsPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'org-shares', scr: 'SCR-16', page: OrgSharesPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'] },
-  { id: 'admin', scr: 'SCR-17', page: AdminPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'] },
+  { id: 'result', scr: 'SCR-10', page: ResultPage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003', n: '1' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'report', scr: 'SCR-11', page: ReportPage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'practice', scr: 'SCR-12', page: PracticePage as PageComponent, params: { locale: 'zh-CN', id: 'p-0003', pid: 'pr-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'library', scr: 'SCR-13', page: LibraryPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'settings', scr: 'SCR-14', page: SettingsPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'billing', scr: 'SCR-15', page: BillingPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-aggregates', scr: 'SCR-16', page: OrgAggregatesPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-assignments', scr: 'SCR-16', page: OrgAssignmentsPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-assignment-detail', scr: 'SCR-16', page: OrgAssignmentDetailPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001', assignmentId: 'as-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-completion', scr: 'SCR-16', page: OrgCompletionPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-members', scr: 'SCR-16', page: OrgMembersPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-permissions', scr: 'SCR-16', page: OrgPermissionsPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'org-shares', scr: 'SCR-16', page: OrgSharesPage as PageComponent, params: { locale: 'zh-CN', orgId: 'org-0001' }, locales: ['zh-CN', 'en-US'], client: true },
+  { id: 'admin', scr: 'SCR-17', page: AdminPage as PageComponent, params: { locale: 'zh-CN' }, locales: ['zh-CN', 'en-US'], client: true },
 ];
 
 async function renderPage(
   page: PageComponent,
   params: Record<string, string>,
   locale: string,
+  client: boolean,
 ): Promise<{ container: HTMLElement; unmount: () => void }> {
-  const element = await page({ params: Promise.resolve({ ...params, locale }) } as never);
   const messages = await loadMessages(locale as 'zh-CN' | 'en-US');
+  const element = client
+    ? (() => {
+        navParams.current = { ...params, locale };
+        const Page = page as React.ComponentType;
+        return <Page />;
+      })()
+    : await page({ params: Promise.resolve({ ...params, locale }) } as never);
   const view = render(
     <NextIntlClientProvider locale={locale} messages={messages}>
       <ToastProvider>{element}</ToastProvider>
@@ -158,7 +172,7 @@ describe('TASK-094 页面级 axe 扫描（WCAG 2.2 AA）', () => {
   for (const entry of PAGES) {
     for (const locale of entry.locales) {
       it(`${entry.scr} ${entry.id}（${locale}）无 axe 违规`, async () => {
-        const { container, unmount } = await renderPage(entry.page, entry.params, locale);
+        const { container, unmount } = await renderPage(entry.page, entry.params, locale, entry.client === true);
         await expectNoAxeViolations(container, `${entry.scr} ${entry.id} ${locale}`);
         unmount();
       });
@@ -170,6 +184,7 @@ describe('TASK-094 页面级 axe 扫描（WCAG 2.2 AA）', () => {
       SessionPage as PageComponent,
       { locale: 'zh-CN', id: 's-0001' },
       'zh-CN',
+      false,
     );
     const liveRegions = container.querySelectorAll('[aria-live]');
     expect(liveRegions.length).toBeGreaterThanOrEqual(1);
@@ -192,6 +207,7 @@ describe('TASK-094 页面级 axe 扫描（WCAG 2.2 AA）', () => {
       ReportPage as PageComponent,
       { locale: 'zh-CN', id: 'p-0003' },
       'zh-CN',
+      true,
     );
     const svg = container.querySelector('svg[role="img"]');
     expect(svg).not.toBeNull();

@@ -19,6 +19,8 @@ import {
 } from '@mgd/ui';
 import { useEffect, useRef, useState } from 'react';
 
+import { apiFetch } from '../lib/api-fetch.ts';
+
 interface Labels {
   readonly title: string;
   readonly round: string;
@@ -69,9 +71,11 @@ type Overlay = 'none' | 'paused' | 'reconnect' | 'downgrade' | 'auth' | 'exit';
 export function RoomView({
   locale,
   labels,
+  sessionId,
 }: {
   readonly locale: 'zh-CN' | 'en-US';
   readonly labels: Labels;
+  readonly sessionId: string;
 }): React.ReactNode {
   const toast = useToast();
   const [elapsed, setElapsed] = useState(482);
@@ -83,7 +87,31 @@ export function RoomView({
   const [answer, setAnswer] = useState('');
   const [frozen, setFrozen] = useState(false);
   const [status, setStatus] = useState<'live' | 'paused' | 'reconnecting' | 'text'>('live');
+  const [apiUnavailable, setApiUnavailable] = useState(false);
   const lastTick = useRef(Date.now());
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const res = await apiFetch<{ session: { room_status: string; elapsed_seconds: number } }>(
+        '/v1/sessions/{sessionId}',
+        { method: 'get', pathParams: { sessionId } },
+      );
+      if (!alive) return;
+      if (res.ok) {
+        const s = res.data.session;
+        setElapsed(s.elapsed_seconds);
+        if (s.room_status.includes('PAUSED')) setStatus('paused');
+        else if (s.room_status.includes('DEGRADED')) setStatus('text');
+        else setStatus('live');
+      } else {
+        setApiUnavailable(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -129,13 +157,27 @@ export function RoomView({
     lastTick.current = Date.now();
   };
 
-  const acceptDowngrade = () => {
+  const acceptDowngrade = async () => {
+    const res = await apiFetch<{ session: { room_status: string } }>(
+      '/v1/sessions/{sessionId}/downgrade/accept',
+      { method: 'post', idempotencyKey: `downgrade-accept-${sessionId}-${Date.now()}`, pathParams: { sessionId } },
+    );
     setOverlay('none');
     setStatus('text');
-    toast.push({ title: locale === 'zh-CN' ? '已切换文字面试' : 'Switched to text interview', tone: 'info' });
+    toast.push({
+      title: res.ok
+        ? (locale === 'zh-CN' ? '已切换文字面试' : 'Switched to text interview')
+        : (locale === 'zh-CN' ? '降级确认暂未接入（占位）' : 'Downgrade accept placeholder'),
+      tone: 'info',
+    });
   };
 
-  const declineDowngrade = () => {
+  const declineDowngrade = async () => {
+    await apiFetch('/v1/sessions/{sessionId}/downgrade/decline', {
+      method: 'post',
+      idempotencyKey: `downgrade-decline-${sessionId}-${Date.now()}`,
+      pathParams: { sessionId },
+    });
     setOverlay('none');
     toast.push({ title: locale === 'zh-CN' ? '已结束：评估未完成（不是失败），额度将返还' : 'Ended: evaluation incomplete (not a failure). Credits will be refunded.', tone: 'success' });
     window.location.href = `/${locale}/projects/p-0001/rounds/2/result`;
@@ -147,8 +189,51 @@ export function RoomView({
     toast.push({ title: labels.revised, tone: 'success' });
   };
 
+  const triggerPause = async () => {
+    await apiFetch('/v1/sessions/{sessionId}/timer/pause', {
+      method: 'post',
+      idempotencyKey: `timer-pause-${sessionId}-${Date.now()}`,
+      pathParams: { sessionId },
+    });
+    startOverlay('paused');
+  };
+
+  const triggerReconnect = async () => {
+    await apiFetch('/v1/sessions/{sessionId}/reconnect', {
+      method: 'post',
+      idempotencyKey: `reconnect-${sessionId}-${Date.now()}`,
+      pathParams: { sessionId },
+    });
+    startOverlay('reconnect');
+  };
+
+  const triggerDowngradeOffer = async () => {
+    await apiFetch('/v1/sessions/{sessionId}/downgrade/offer', {
+      method: 'post',
+      idempotencyKey: `downgrade-offer-${sessionId}-${Date.now()}`,
+      pathParams: { sessionId },
+    });
+    startOverlay('downgrade');
+  };
+
+  const endSession = async () => {
+    await apiFetch('/v1/sessions/{sessionId}/end', {
+      method: 'post',
+      idempotencyKey: `session-end-${sessionId}-${Date.now()}`,
+      pathParams: { sessionId },
+    });
+    setOverlay('none');
+    toast.push({ title: locale === 'zh-CN' ? '本轮已标记评估未完成' : 'Round marked evaluation incomplete', tone: 'info' });
+    window.location.href = `/${locale}/projects/p-0001/rounds/2/result`;
+  };
+
   return (
     <div className="mgd-room">
+      {apiUnavailable ? (
+        <p className="mb-4 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning-text" role="status">
+          {locale === 'zh-CN' ? '会话服务暂未接入（占位），当前为合成演示。' : 'Session service placeholder — synthetic demo.'}
+        </p>
+      ) : null}
       <div className="mgd-room__stage">
         {/* 顶栏 */}
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-100 bg-surface px-4 py-3 shadow-[var(--mgd-app-shadow-sm)]">
@@ -334,15 +419,15 @@ export function RoomView({
           <button
             type="button"
             className="mt-3 w-full cursor-pointer rounded-lg border border-dashed border-[var(--mgd-app-border-strong)] px-3 py-2 text-xs text-neutral-500 hover:border-warning hover:text-warning-text"
-            onClick={() => startOverlay('paused')}
+            onClick={triggerPause}
           >
             {locale === 'zh-CN' ? '演示：触发系统故障暂停' : 'Demo: trigger system pause'}
           </button>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <button type="button" className="cursor-pointer rounded-lg border border-dashed border-[var(--mgd-app-border-strong)] px-2 py-2 text-xs text-neutral-500 hover:border-info hover:text-info" onClick={() => startOverlay('reconnect')}>
+            <button type="button" className="cursor-pointer rounded-lg border border-dashed border-[var(--mgd-app-border-strong)] px-2 py-2 text-xs text-neutral-500 hover:border-info hover:text-info" onClick={triggerReconnect}>
               {locale === 'zh-CN' ? '演示：断线重连' : 'Demo: reconnect'}
             </button>
-            <button type="button" className="cursor-pointer rounded-lg border border-dashed border-[var(--mgd-app-border-strong)] px-2 py-2 text-xs text-neutral-500 hover:border-danger hover:text-danger" onClick={() => startOverlay('downgrade')}>
+            <button type="button" className="cursor-pointer rounded-lg border border-dashed border-[var(--mgd-app-border-strong)] px-2 py-2 text-xs text-neutral-500 hover:border-danger hover:text-danger" onClick={triggerDowngradeOffer}>
               {locale === 'zh-CN' ? '演示：降级询问' : 'Demo: downgrade'}
             </button>
           </div>
@@ -370,7 +455,7 @@ export function RoomView({
 
       <AlertDialog open={overlay === 'exit'} title={labels.exitDialogTitle} description={labels.exitDialogBody} onClose={() => setOverlay('none')}>
         <Button variant="secondary" onClick={() => setOverlay('none')}>{locale === 'zh-CN' ? '取消' : 'Cancel'}</Button>
-        <Button variant="danger" onClick={() => { setOverlay('none'); toast.push({ title: locale === 'zh-CN' ? '本轮已标记评估未完成' : 'Round marked evaluation incomplete', tone: 'info' }); window.location.href = `/${locale}/projects/p-0001/rounds/2/result`; }}>
+        <Button variant="danger" onClick={endSession}>
           {labels.exit}
         </Button>
       </AlertDialog>

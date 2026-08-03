@@ -14,6 +14,7 @@ import {
 } from '@mgd/ui';
 import { useEffect, useRef, useState } from 'react';
 
+import { apiFetch } from '../lib/api-fetch.ts';
 import { SyntheticNote } from './synthetic-note.tsx';
 
 interface Labels {
@@ -97,7 +98,7 @@ export function ProjectNewForm({
     toast.push({ title: labels.sampleFill, tone: 'info' });
   };
 
-  const submit = () => {
+  const submit = async () => {
     setError(null);
     if (fileName === null && jd.trim().length === 0) {
       setError(labels.noResumeOrJd);
@@ -111,8 +112,20 @@ export function ProjectNewForm({
       setError(labels.jdTooShort);
       return;
     }
-    toast.push({ title: locale === 'zh-CN' ? '已进入解析与校对' : 'Moving to parsing and review', tone: 'success' });
-    window.location.href = `/${locale}/projects/p-0004/review`;
+    const res = await apiFetch<{ project: { project_id: string } }>('/v1/projects', {
+      method: 'post',
+      idempotencyKey: `create-project-${Date.now()}`,
+      body: {
+        interview_language: locale === 'zh-CN' ? 'zh-CN' : 'en-US',
+        degraded_mode: fileName !== null ? 'resume_only' : 'jd_only',
+      },
+    });
+    if (res.ok) {
+      toast.push({ title: locale === 'zh-CN' ? '项目已创建，进入解析与校对' : 'Project created. Moving to parsing and review', tone: 'success' });
+      window.location.href = `/${locale}/projects/${res.data.project.project_id}/review`;
+    } else {
+      setError(locale === 'zh-CN' ? '创建项目失败，请重试。' : 'Failed to create project. Please retry.');
+    }
   };
 
   return (

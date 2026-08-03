@@ -859,6 +859,17 @@
 > i18n/令牌。人工与残障用户测试由项目负责人在发布窗口执行。
 > （TASK-094、ACCESSIBILITY、SCREEN-SPEC 状态矩阵）
 
+> **前端交付追踪（frontend-api-wiring，2026-08-03）**：SCR-01~17 数据源统一接线完成——
+> SCR-02/03 原有 apiFetch 保留；SCR-04~17 全部内联 mock 页改为 apiFetch 契约端点
+> （plan/precheck/room/result/report/practice/library/settings/billing/org×7/admin），
+> 类型来自 `contracts/ts/openapi.d.ts`，501 占位端点保持占位文案；Mock_Layer handlers
+> 重写为契约路径全集（NEXT_PUBLIC_MGD_MOCKS=on 演示可用，关闭时同源直连真实后端，
+> api-fetch 语义不变）；新增 `apps/web/src/lib/api-hooks.ts` 共享层与 next.config
+> env 门控 `/api` rewrite；17 页数据源盘点与全栈联调说明见
+> `docs/frontend/API-WIRING.md`（DATA_REGION/INFRA_REGION 启动参数 + 网关路径）。
+> 前端门禁全绿：eslint/typecheck/vitest 148/build/i18n/令牌/api:check。
+> （SCR-01~17、FR-028、NFR-006）
+
 ## 6. 全局完成定义（Definition of Done）
 
 任何任务标记完成前必须同时满足：

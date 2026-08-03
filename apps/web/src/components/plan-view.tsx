@@ -16,9 +16,9 @@ import {
   Tint,
   useToast,
 } from '@mgd/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { mockPlan, type MockPlanRound } from '../mocks/data.ts';
+import { useApiGet, useApiWrite, isPlaceholder } from '../lib/api-hooks.ts';
 
 interface Labels {
   readonly kicker: string;
@@ -50,6 +50,26 @@ interface Labels {
   readonly difficultyChallenge: string;
 }
 
+interface PlanRound {
+  readonly sequence: number;
+  readonly round_type: string;
+  readonly role: string;
+  readonly focus: string;
+  readonly duration_minutes: number;
+  readonly difficulty: string;
+  readonly critical_dimensions: readonly string[];
+  readonly tools: readonly string[];
+  readonly ready: boolean;
+}
+
+interface PlanPayload {
+  readonly plan: {
+    readonly project_id?: string;
+    readonly frozen: boolean;
+    readonly rounds: readonly PlanRound[];
+  };
+}
+
 const DIFFICULTY_LABEL: Readonly<Record<string, string>> = {
   basic: 'difficultyBasic',
   standard: 'difficultyStandard',
@@ -68,21 +88,61 @@ const DIMENSION_LABELS: Readonly<Record<string, string>> = {
 export function PlanView({
   locale,
   labels,
+  projectId,
 }: {
   readonly locale: 'zh-CN' | 'en-US';
   readonly labels: Labels;
+  readonly projectId: string;
 }): React.ReactNode {
   const toast = useToast();
-  const [rounds, setRounds] = useState<readonly MockPlanRound[]>(mockPlan.rounds);
+  const [rounds, setRounds] = useState<readonly PlanRound[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [frozen, setFrozen] = useState<boolean>(mockPlan.frozen);
+  const [frozen, setFrozen] = useState(false);
+  const planState = useApiGet<PlanPayload>('/v1/projects/{projectId}/plan', {
+    pathParams: { projectId },
+  });
+  const { run: runGenerate, pending: generating } = useApiWrite<PlanPayload>();
+  const { run: runConfirm, pending: confirming } = useApiWrite<{ project: { status: string } }>();
+
+  useEffect(() => {
+    const plan = planState.data?.plan;
+    if (plan === undefined) return;
+    setRounds(plan.rounds ?? []);
+    setFrozen(Boolean(plan.frozen));
+  }, [planState.data]);
+
   const totalMinutes = rounds.reduce((s, r) => s + r.duration_minutes, 0);
   const allReady = rounds.every((r) => r.ready);
 
-  const confirm = () => {
-    setFrozen(true);
-    setConfirmOpen(false);
-    toast.push({ title: locale === 'zh-CN' ? '计划已冻结' : 'Plan frozen', tone: 'success' });
+  const generate = async () => {
+    const res = await runGenerate('/v1/projects/{projectId}/plan:generate', {
+      method: 'post',
+      idempotencyKey: `plan-generate-${projectId}-${Date.now()}`,
+      pathParams: { projectId },
+    });
+    if (res.ok) {
+      setRounds(res.data.plan.rounds ?? []);
+      toast.push({ title: locale === 'zh-CN' ? '计划草稿已生成' : 'Plan draft generated', tone: 'success' });
+    } else if (isPlaceholder(res)) {
+      toast.push({ title: locale === 'zh-CN' ? '计划生成端点暂未上线（占位）' : 'Plan generation is not available yet (placeholder)', tone: 'info' });
+    } else {
+      toast.push({ title: locale === 'zh-CN' ? '计划生成失败，请重试' : 'Plan generation failed, please retry', tone: 'danger' });
+    }
+  };
+
+  const confirm = async () => {
+    const res = await runConfirm('/v1/projects/{projectId}/plan:confirm', {
+      method: 'post',
+      idempotencyKey: `plan-confirm-${projectId}-${Date.now()}`,
+      pathParams: { projectId },
+    });
+    if (res.ok) {
+      setFrozen(true);
+      setConfirmOpen(false);
+      toast.push({ title: locale === 'zh-CN' ? '计划已冻结' : 'Plan frozen', tone: 'success' });
+    } else {
+      toast.push({ title: locale === 'zh-CN' ? '冻结失败，请重试' : 'Freeze failed, please retry', tone: 'danger' });
+    }
   };
 
   const toggleReady = (sequence: number) => {
@@ -97,6 +157,22 @@ export function PlanView({
         description={labels.desc}
         actions={frozen ? <Tint tone="success">{labels.frozen}</Tint> : undefined}
       />
+
+      {planState.loading ? (
+        <p className="mb-4 rounded-xl bg-surface-muted px-4 py-3 text-sm text-neutral-600" role="status" aria-live="polite">
+          {locale === 'zh-CN' ? '正在加载计划…' : 'Loading plan…'}
+        </p>
+      ) : null}
+      {planState.failure !== undefined && !isPlaceholder(planState.failure) ? (
+        <p className="mb-4 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger-text" role="alert">
+          {locale === 'zh-CN' ? '计划加载失败，请重试。' : 'Failed to load plan. Please retry.'}
+        </p>
+      ) : null}
+      {planState.failure !== undefined && isPlaceholder(planState.failure) ? (
+        <p className="mb-4 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning-text" role="status">
+          {locale === 'zh-CN' ? '计划服务暂未接入（占位），可先点击生成计划体验流程。' : 'Plan service placeholder — try generating the plan.'}
+        </p>
+      ) : null}
 
       <div className="mgd-grid mgd-grid--sidebar">
         <div className="space-y-4">
@@ -174,7 +250,7 @@ export function PlanView({
               </CardBody>
             </Card>
           ))}
-          <Button variant="secondary" onClick={() => toast.push({ title: labels.addRound, tone: 'info' })}>
+          <Button variant="secondary" onClick={generate} disabled={generating} disabledReason={generating ? labels.notReadyHint : undefined}>
             <IconPlus size={16} />
             {labels.addRound}
           </Button>
@@ -229,7 +305,7 @@ export function PlanView({
             </CardBody>
           </Card>
 
-          <Button variant="primary" className="w-full" disabled={!allReady} disabledReason={allReady ? undefined : labels.notReadyHint} onClick={() => setConfirmOpen(true)}>
+          <Button variant="primary" className="w-full" disabled={!allReady || confirming} disabledReason={allReady ? (confirming ? labels.notReadyHint : undefined) : labels.notReadyHint} onClick={() => setConfirmOpen(true)}>
             {labels.confirmPlan}
           </Button>
         </div>

@@ -34,6 +34,11 @@
 - TASK-094 WCAG 2.2 AA：新增 17 页 × 双语 axe-core 页面级扫描（48 用例，0 违规）；
   修复 heading-order（CardHeader/EmptyState/工作台/设置 h3→h2）与房间页
   aria-live/role=status/role=img 语义；对比度由 tokens:check-contrast 门禁覆盖。
+- 前端真实 API 接线：SCR-04~17 数据源统一走 apiFetch 契约端点（plan/precheck/room/
+  result/report/practice/library/settings/billing/org/admin 全部改造），MSW handlers
+  补齐为契约路径全集（501 占位语义保留），新增 `useApiGet/useApiWrite` 共享层与
+  env 门控 `/api` 网关 rewrite；`docs/frontend/API-WIRING.md` 提供 17 页盘点与
+  全栈本地联调说明（DATA_REGION/INFRA_REGION）。
 
 ### Added
 

@@ -1,41 +1,71 @@
-/** SCR-16 任务配置：可配置项与禁止项（红线不在界面出现）。 */
+/** SCR-16 任务详情：模板不可配置（红线）与发布/关闭。 */
 
-import { Button, Card, CardBody, CardHeader, IconLock, PageHeader } from '@mgd/ui';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+'use client';
+
+import { Button, Card, CardBody, CardHeader, PageHeader, Tint, useToast } from '@mgd/ui';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-export default async function OrgAssignmentDetailPage({ params }: { params: Promise<{ locale: string; orgId: string; assignmentId: string }> }): Promise<ReactNode> {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
+import { apiFetch } from '../../../../../../../lib/api-fetch.ts';
+import { useApiGet } from '../../../../../../../lib/api-hooks.ts';
+
+interface AssignmentPayload {
+  readonly assignment: { assignment_id: string; title?: string; status?: string; deadline?: string; quota_minutes?: number };
+}
+
+export default function OrgAssignmentDetailPage(): ReactNode {
+  const t = useTranslations('common');
+  const toast = useToast();
+  const params = useParams<{ locale: 'zh-CN' | 'en-US'; orgId: string; assignmentId: string }>();
+  const locale = params.locale;
   const zh = locale === 'zh-CN';
+  const orgId = params.orgId;
+  const assignmentId = params.assignmentId;
+  const state = useApiGet<AssignmentPayload>('/v1/orgs/{orgId}/assignments/{assignmentId}', { pathParams: { orgId, assignmentId } });
+  const assignment = state.data?.assignment;
+
+  const publish = async () => {
+    const res = await apiFetch('/v1/orgs/{orgId}/assignments/{assignmentId}/publish', {
+      method: 'post',
+      idempotencyKey: `publish-${assignmentId}-${Date.now()}`,
+      pathParams: { orgId, assignmentId },
+    });
+    toast.push({
+      title: res.ok ? (zh ? '任务已发布' : 'Assignment published') : (zh ? '发布暂未接入（占位）' : 'Publish placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
+  const close = async () => {
+    const res = await apiFetch('/v1/orgs/{orgId}/assignments/{assignmentId}/close', {
+      method: 'post',
+      idempotencyKey: `close-${assignmentId}-${Date.now()}`,
+      pathParams: { orgId, assignmentId },
+    });
+    toast.push({
+      title: res.ok ? (zh ? '任务已关闭' : 'Assignment closed') : (zh ? '关闭暂未接入（占位）' : 'Close placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
   return (
     <>
-      <PageHeader kicker={t('org.kicker')} title={t('org.configTitle')} description={t('org.configHint')} actions={<Button variant="primary">{t('action.save')}</Button>} />
-      <div className="mgd-grid mgd-grid--sidebar">
-        <Card>
-          <CardHeader title={zh ? '任务设置' : 'Assignment settings'} />
-          <CardBody className="space-y-4">
-            {[
-              [zh ? '岗位或岗位类别' : 'Role or category', zh ? '后端工程师' : 'Backend engineer'],
-              [zh ? '轮次与时长' : 'Rounds and duration', zh ? '3 轮 · 25-30-20 分钟' : '3 rounds · 25-30-20 min'],
-              [zh ? '难度与语言' : 'Difficulty and language', zh ? '标准 · 中文' : 'Standard · Chinese'],
-              [zh ? '截止时间' : 'Deadline', '2026-09-01'],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-neutral-100 bg-[var(--mgd-app-surface-muted)] p-4">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">{label}</div>
-                <div className="text-sm text-neutral-800">{value}</div>
-              </div>
-            ))}
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title={<span className="flex items-center gap-2"><IconLock size={16} className="text-warning" />{zh ? '禁止配置项' : 'Locked items'}</span>} />
-          <CardBody>
-            <p className="mb-0 rounded-xl bg-[color-mix(in_srgb,var(--mgd-color-warning)_8%,transparent)] p-4 text-sm leading-6 text-warning-text">{t('org.notConfigurable')}</p>
-          </CardBody>
-        </Card>
-      </div>
+      <PageHeader kicker={t('org.kicker')} title={assignment?.title ?? assignmentId} />
+      <Card>
+        <CardHeader title={t('org.configTitle')} description={t('org.configHint')} />
+        <CardBody>
+          <Tint tone="warning">{t('org.notConfigurable')}</Tint>
+          <p className="mb-4 mt-3 text-sm text-neutral-600">
+            {zh ? `状态：${assignment?.status ?? '—'} · 截止：${assignment?.deadline ?? '—'} · 额度：${assignment?.quota_minutes ?? '—'} 分钟` : `Status: ${assignment?.status ?? '—'} · Deadline: ${assignment?.deadline ?? '—'} · Quota: ${assignment?.quota_minutes ?? '—'} min`}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={publish}>{zh ? '发布' : 'Publish'}</Button>
+            <Button variant="secondary" onClick={close}>{zh ? '关闭' : 'Close'}</Button>
+            <Button variant="secondary">{t('action.save')}</Button>
+          </div>
+        </CardBody>
+      </Card>
     </>
   );
 }

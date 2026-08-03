@@ -1,41 +1,54 @@
-/** SCR-16 权限与审计。 */
+/** SCR-16 权限与审计：角色分离 + 追加式审计（最小可见）。 */
+
+'use client';
 
 import { Card, CardBody, CardHeader, PageHeader, Tint } from '@mgd/ui';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-export default async function OrgPermissionsPage({ params }: { params: Promise<{ locale: string; orgId: string }> }): Promise<ReactNode> {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
-  const zh = locale === 'zh-CN';
-  const audit = [
-    { actor: zh ? '指导老师 A' : 'Coach A', action: zh ? '查看维度聚合（匿名）' : 'Viewed aggregate (anonymous)', at: '2026-08-01 08:00' },
-    { actor: zh ? '机构管理员' : 'Org admin', action: zh ? '邀请成员' : 'Invited member', at: '2026-08-01 07:00' },
-  ];
+import { useApiGet } from '../../../../../../lib/api-hooks.ts';
+
+interface AuditsPayload {
+  readonly items: readonly { actor?: string; action?: string; resource?: string; at?: string }[];
+}
+
+export default function OrgPermissionsPage(): ReactNode {
+  const t = useTranslations('common');
+  const params = useParams<{ locale: 'zh-CN' | 'en-US'; orgId: string }>();
+  const zh = params.locale === 'zh-CN';
+  const state = useApiGet<AuditsPayload>('/v1/orgs/{orgId}/audits', { pathParams: { orgId: params.orgId } });
+  const audits = state.data?.items ?? [];
+
   return (
     <>
       <PageHeader kicker={t('org.kicker')} title={t('org.navPermissions')} />
-      <div className="mgd-grid mgd-grid--sidebar">
-        <Card>
-          <CardHeader title={t('org.roles')} />
-          <CardBody>
-            <Tint tone="brand">{t('org.roleOwners')}</Tint>
-            <p className="mb-0 mt-3 text-sm text-neutral-600">{t('org.auditHint')}</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title={t('org.audit')} />
-          <CardBody className="space-y-2">
-            {audit.map((a) => (
-              <div key={`${a.actor}-${a.at}`} className="rounded-xl border border-neutral-100 bg-[var(--mgd-app-surface-muted)] px-4 py-3 text-sm">
-                <p className="mb-0.5 font-medium text-neutral-800">{a.actor} · {a.action}</p>
-                <p className="mb-0 font-mono text-xs text-neutral-500">{a.at}</p>
+      <Card className="mb-5">
+        <CardHeader title={t('org.roles')} />
+        <CardBody>
+          <p className="mb-0 text-sm text-neutral-600">{t('org.roleOwners')}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Tint tone="brand">admin</Tint>
+            <Tint tone="info">coach</Tint>
+            <Tint tone="neutral">candidate</Tint>
+          </div>
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title={t('org.audit')} description={t('org.auditHint')} />
+        <CardBody className="space-y-2">
+          {state.loading ? <p className="mb-0 text-sm text-neutral-500" role="status">{zh ? '加载中…' : 'Loading…'}</p> : null}
+          {audits.map((a, i) => (
+            <div key={`${a.actor}-${i}`} className="rounded-xl border border-neutral-100 px-4 py-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-medium text-neutral-800">{a.actor ?? '—'}</span>
+                <span className="text-xs text-neutral-500">{a.at ?? ''}</span>
               </div>
-            ))}
-          </CardBody>
-        </Card>
-      </div>
+              <p className="mb-0 mt-1 text-neutral-600">{a.action ?? '—'} · {a.resource ?? '—'}</p>
+            </div>
+          ))}
+        </CardBody>
+      </Card>
     </>
   );
 }
