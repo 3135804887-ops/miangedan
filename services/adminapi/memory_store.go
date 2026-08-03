@@ -10,6 +10,10 @@ type MemoryStore struct {
 	rooms        map[string][]RoomSnapshot
 	regionStatus map[string]RegionOpsStatus
 	audits       map[string][]AuditEntry
+	versions     map[string]ArtifactVersion
+	versionByKey map[string]ArtifactVersion
+	pins         map[string]VersionPin
+	activeSess   map[string]bool
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -19,6 +23,10 @@ func NewMemoryStore() *MemoryStore {
 		rooms:        make(map[string][]RoomSnapshot),
 		regionStatus: make(map[string]RegionOpsStatus),
 		audits:       make(map[string][]AuditEntry),
+		versions:     make(map[string]ArtifactVersion),
+		versionByKey: make(map[string]ArtifactVersion),
+		pins:         make(map[string]VersionPin),
+		activeSess:   make(map[string]bool),
 	}
 }
 
@@ -115,4 +123,91 @@ func (m *MemoryStore) ListAudits(dataRegion string) ([]AuditEntry, error) {
 	out := make([]AuditEntry, len(items))
 	copy(out, items)
 	return out, nil
+}
+
+// SaveVersion 保存版本注册条目。
+func (m *MemoryStore) SaveVersion(v ArtifactVersion) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.versions[v.DataRegion+"|"+v.VersionID] = v
+	m.versionByKey[v.DataRegion+"|"+v.AssetType+"|"+v.AssetKey] = v
+	return nil
+}
+
+// GetVersion 按版本 ID 查询。
+func (m *MemoryStore) GetVersion(dataRegion, versionID string) (ArtifactVersion, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	v, ok := m.versions[dataRegion+"|"+versionID]
+	if !ok {
+		return ArtifactVersion{}, ErrNotFound
+	}
+	return v, nil
+}
+
+// GetVersionByKey 按资产键查询（量表停用入口）。
+func (m *MemoryStore) GetVersionByKey(dataRegion, assetType, assetKey string) (ArtifactVersion, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	v, ok := m.versionByKey[dataRegion+"|"+assetType+"|"+assetKey]
+	if !ok {
+		return ArtifactVersion{}, ErrNotFound
+	}
+	return v, nil
+}
+
+// UpdateVersion 更新版本阶段/废弃标记。
+func (m *MemoryStore) UpdateVersion(v ArtifactVersion) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.versions[v.DataRegion+"|"+v.VersionID] = v
+	m.versionByKey[v.DataRegion+"|"+v.AssetType+"|"+v.AssetKey] = v
+	return nil
+}
+
+// ListVersions 列出资产类型版本。
+func (m *MemoryStore) ListVersions(dataRegion, assetType string) ([]ArtifactVersion, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]ArtifactVersion, 0)
+	for _, v := range m.versions {
+		if v.DataRegion == dataRegion && (assetType == "" || v.AssetType == assetType) {
+			out = append(out, v)
+		}
+	}
+	return out, nil
+}
+
+// SavePin 保存项目版本固定。
+func (m *MemoryStore) SavePin(pin VersionPin) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pins[pin.DataRegion+"|"+pin.ProjectID] = pin
+	return nil
+}
+
+// GetPin 查询项目版本固定。
+func (m *MemoryStore) GetPin(dataRegion, projectID string) (VersionPin, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	pin, ok := m.pins[dataRegion+"|"+projectID]
+	if !ok {
+		return VersionPin{}, ErrNotFound
+	}
+	return pin, nil
+}
+
+// UpdatePin 更新固定版本（回滚）。
+func (m *MemoryStore) UpdatePin(pin VersionPin) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pins[pin.DataRegion+"|"+pin.ProjectID] = pin
+	return nil
+}
+
+// HasActiveSession 判断项目是否存在进行中的正式会话（回滚门禁）。
+func (m *MemoryStore) HasActiveSession(dataRegion, projectID string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.activeSess[dataRegion+"|"+projectID]
 }

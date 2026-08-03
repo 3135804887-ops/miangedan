@@ -126,6 +126,8 @@
 | `ops_providers` | 供应商注册表（TASK-080） | provider_id PK、capability、region、status、ramp_percent、latency_p95_ms、error_rate、circuit_breaker、note（停用原因） | ops_providers(region, status) |
 | `ops_room_snapshots` | 匿名房间技术快照（TASK-080） | snapshot_id PK、region、anonymous_session_id、state、duration_seconds、fault_code、created_at | ops_room_snapshots(region, created_at) |
 | `ops_region_status` | 区域监控快照（TASK-080） | region PK、online_rooms、queued_sessions、capacity、provider_health_json、slo_json、error_budget_burn、updated_at | — |
+| `artifact_versions` | 版本注册表（TASK-081） | version_id PK、asset_type（model/prompt/rubric/workflow）、asset_key、version、stage（offline/shadow/canary/full）、compatible、safety_tested、metrics_ok、deprecated | artifact_versions(data_region, asset_type, stage)；asset 三元组 UNIQUE |
+| `version_pins` | 项目版本固定（TASK-081） | project_id PK、asset_type、asset_key、version_id FK、pinned_at | — |
 
 ## 6. 对象存储桶划分（每区独立）
 

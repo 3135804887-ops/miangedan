@@ -2613,6 +2613,94 @@ paths:
       responses:
         '200': { description: 量表版本列表 }
         default: { $ref: '#/components/responses/Error' }
+  /v1/admin/versions:
+    post:
+      tags: [admin]
+      operationId: registerArtifactVersion
+      summary: 注册模型/提示词/量表/工作流版本（初始 offline；兼容与安全测试标记）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [asset_type, asset_key, version]
+              properties:
+                asset_type: { enum: [model, prompt, rubric, workflow] }
+                asset_key: { type: string }
+                version: { type: string }
+                compatible: { type: boolean, default: false }
+                safety_tested: { type: boolean, default: false }
+                metrics_ok: { type: boolean, default: false }
+      responses:
+        '201': { description: 已注册, content: { application/json: { schema: { $ref: '#/components/schemas/ArtifactVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/versions/{versionId}/promote:
+    post:
+      tags: [admin]
+      operationId: promoteArtifactVersion
+      summary: 版本推进（offline→shadow→canary→full；灰度需兼容+安全测试，放量需指标通过）
+      parameters:
+        - name: versionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_stage]
+              properties:
+                target_stage: { enum: [shadow, canary, full] }
+      responses:
+        '200': { description: 已推进, content: { application/json: { schema: { $ref: '#/components/schemas/ArtifactVersion' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/projects/{projectId}/version-pin:
+    put:
+      tags: [admin]
+      operationId: freezeProjectVersion
+      summary: 固定项目开始版本（活跃正式面试固定开始版本；不可中途改变）
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version_id]
+              properties:
+                version_id: { type: string, format: uuid }
+      responses:
+        '200': { description: 已固定, content: { application/json: { schema: { $ref: '#/components/schemas/VersionPin' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/projects/{projectId}/version-pin/rollback:
+    post:
+      tags: [admin]
+      operationId: rollbackProjectVersion
+      summary: 回滚到稳定版本（新会话生效；进行中的正式会话不被中途改变）
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stable_version_id]
+              properties:
+                stable_version_id: { type: string, format: uuid }
+      responses:
+        '200': { description: 已回滚, content: { application/json: { schema: { $ref: '#/components/schemas/VersionPin' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/admin/rubrics/{rubricId}/deprecate:
     post:
       tags: [admin]
@@ -3814,6 +3902,29 @@ components:
         slo: { type: object, additionalProperties: { type: number } }
         error_budget_burn: { type: number }
         updated_at: { type: string, format: date-time }
+    ArtifactVersion:
+      type: object
+      required: [version_id, asset_type, asset_key, version, stage]
+      properties:
+        version_id: { type: string, format: uuid }
+        asset_type: { enum: [model, prompt, rubric, workflow] }
+        asset_key: { type: string }
+        version: { type: string }
+        stage: { enum: [offline, shadow, canary, full] }
+        compatible: { type: boolean }
+        safety_tested: { type: boolean }
+        metrics_ok: { type: boolean }
+        deprecated: { type: boolean }
+        data_region: { $ref: '#/components/schemas/Region' }
+    VersionPin:
+      type: object
+      required: [project_id, version_id, pinned_at]
+      properties:
+        project_id: { type: string, format: uuid }
+        asset_type: { enum: [model, prompt, rubric, workflow] }
+        asset_key: { type: string }
+        version_id: { type: string, format: uuid }
+        pinned_at: { type: string, format: date-time }
     AuditLog:
       type: object
       required: [audit_id, actor_role, action, occurred_at]

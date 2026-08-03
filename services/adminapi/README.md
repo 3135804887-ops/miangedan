@@ -22,7 +22,16 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/adminapi`；�
   后台角色与跨区访问校验。
 - 迁移 `0068_admin_ops.sql`（ops_providers/ops_room_snapshots/ops_region_status）。
 
+## 已实现（TASK-081，FR-038）
+
+- **版本治理**：模型/提示词/量表/工作流版本注册（offline→shadow→canary→full
+  逐级推进）；灰度门槛=结构兼容+安全测试、放量门槛=指标通过；
+- **冻结与回滚**：项目固定开始版本（活跃正式面试不可中途改变）；回滚仅限
+  无进行中会话（新会话回稳定版）；
+- **量表停用**：产品/面试专业/安全公平三方审批；不批量改写历史分数。
+- 迁移 `0069_version_registry.sql`（artifact_versions/version_pins）。
+
 ## 规划（后续任务）
 
-- TASK-081 版本治理；TASK-082 禁止改分系统级约束；TASK-083 数据权利请求；
+- TASK-082 禁止改分系统级约束；TASK-083 数据权利请求；
   TASK-084 追加式审计与 MFA；TASK-085 客服工单。
