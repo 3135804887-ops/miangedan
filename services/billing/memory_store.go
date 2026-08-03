@@ -18,6 +18,15 @@ type MemoryStore struct {
 	ledger        map[string][]LedgerEntry
 	ledgerIDem    map[string]LedgerEntry
 	meters        map[string]Meter
+	orders        map[string]Order
+	orderIDem     map[string]Order
+	ordersByUser  map[string][]Order
+	paymentEvents map[string]PaymentEvent
+	incidents     map[string][]Incident
+	refunds       map[string]Refund
+	refundIDem    map[string]Refund
+	refundsByOrd  map[string][]Refund
+	refundsByUser map[string][]Refund
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -33,6 +42,15 @@ func NewMemoryStore() *MemoryStore {
 		ledger:        make(map[string][]LedgerEntry),
 		ledgerIDem:    make(map[string]LedgerEntry),
 		meters:        make(map[string]Meter),
+		orders:        make(map[string]Order),
+		orderIDem:     make(map[string]Order),
+		ordersByUser:  make(map[string][]Order),
+		paymentEvents: make(map[string]PaymentEvent),
+		incidents:     make(map[string][]Incident),
+		refunds:       make(map[string]Refund),
+		refundIDem:    make(map[string]Refund),
+		refundsByOrd:  make(map[string][]Refund),
+		refundsByUser: make(map[string][]Refund),
 	}
 }
 
@@ -222,4 +240,159 @@ func (m *MemoryStore) GetMeter(dataRegion, sessionID string) (Meter, error) {
 		return Meter{}, ErrNotFound
 	}
 	return meter, nil
+}
+
+// SaveOrder 保存订单。
+func (m *MemoryStore) SaveOrder(o Order, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.orders[o.DataRegion+"|"+o.OrderID] = o
+	if idemKey != "" {
+		m.orderIDem[o.DataRegion+"|"+idemKey] = o
+	}
+	m.ordersByUser[o.DataRegion+"|"+o.UserID] =
+		append(m.ordersByUser[o.DataRegion+"|"+o.UserID], o)
+	return nil
+}
+
+// GetOrderByIdempotencyKey 幂等键查询订单。
+func (m *MemoryStore) GetOrderByIdempotencyKey(dataRegion, key string) (Order, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	o, ok := m.orderIDem[dataRegion+"|"+key]
+	if !ok {
+		return Order{}, ErrNotFound
+	}
+	return o, nil
+}
+
+// GetOrderByID 按订单 ID 查询。
+func (m *MemoryStore) GetOrderByID(dataRegion, orderID string) (Order, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	o, ok := m.orders[dataRegion+"|"+orderID]
+	if !ok {
+		return Order{}, ErrNotFound
+	}
+	return o, nil
+}
+
+// ListOrdersByUser 列出用户订单。
+func (m *MemoryStore) ListOrdersByUser(dataRegion, userID string) ([]Order, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.ordersByUser[dataRegion+"|"+userID]
+	out := make([]Order, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// UpdateOrder 更新订单状态。
+func (m *MemoryStore) UpdateOrder(o Order) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.orders[o.DataRegion+"|"+o.OrderID] = o
+	return nil
+}
+
+// SavePaymentEvent 保存支付事件（provider + event_id 去重由服务层保证）。
+func (m *MemoryStore) SavePaymentEvent(e PaymentEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.paymentEvents[e.Provider+"|"+e.PaymentEventID] = e
+	return nil
+}
+
+// GetPaymentEvent 查询支付事件。
+func (m *MemoryStore) GetPaymentEvent(provider, eventID string) (PaymentEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	e, ok := m.paymentEvents[provider+"|"+eventID]
+	if !ok {
+		return PaymentEvent{}, ErrNotFound
+	}
+	return e, nil
+}
+
+// SaveIncident 追加事故记录。
+func (m *MemoryStore) SaveIncident(i Incident) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.incidents[i.DataRegion] = append(m.incidents[i.DataRegion], i)
+	return nil
+}
+
+// ListIncidents 列出区域事故。
+func (m *MemoryStore) ListIncidents(dataRegion string) ([]Incident, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.incidents[dataRegion]
+	out := make([]Incident, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// SaveRefund 保存退款。
+func (m *MemoryStore) SaveRefund(r Refund, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.refunds[r.DataRegion+"|"+r.RefundID] = r
+	if idemKey != "" {
+		m.refundIDem[r.DataRegion+"|"+idemKey] = r
+	}
+	m.refundsByOrd[r.DataRegion+"|"+r.OrderID] =
+		append(m.refundsByOrd[r.DataRegion+"|"+r.OrderID], r)
+	m.refundsByUser[r.DataRegion+"|"+r.UserID] =
+		append(m.refundsByUser[r.DataRegion+"|"+r.UserID], r)
+	return nil
+}
+
+// GetRefundByIdempotencyKey 幂等键查询退款。
+func (m *MemoryStore) GetRefundByIdempotencyKey(dataRegion, key string) (Refund, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r, ok := m.refundIDem[dataRegion+"|"+key]
+	if !ok {
+		return Refund{}, ErrNotFound
+	}
+	return r, nil
+}
+
+// GetRefundByID 按退款 ID 查询。
+func (m *MemoryStore) GetRefundByID(dataRegion, refundID string) (Refund, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r, ok := m.refunds[dataRegion+"|"+refundID]
+	if !ok {
+		return Refund{}, ErrNotFound
+	}
+	return r, nil
+}
+
+// ListRefundsByOrder 列出订单退款。
+func (m *MemoryStore) ListRefundsByOrder(dataRegion, orderID string) ([]Refund, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.refundsByOrd[dataRegion+"|"+orderID]
+	out := make([]Refund, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// ListRefundsByUser 列出用户退款。
+func (m *MemoryStore) ListRefundsByUser(dataRegion, userID string) ([]Refund, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.refundsByUser[dataRegion+"|"+userID]
+	out := make([]Refund, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// UpdateRefund 更新退款状态。
+func (m *MemoryStore) UpdateRefund(r Refund) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.refunds[r.DataRegion+"|"+r.RefundID] = r
+	return nil
 }

@@ -97,9 +97,9 @@
 | `usage_ledger` | **追加式秒级账本** | entry_id PK、entitlement_id FK、user_id FK、project_id、round_sequence、entry_type（reserve/consume/release/refund/reversal）、seconds、reason、balance_after、idempotency_key、created_at | usage_ledger(entitlement_id, created_at)；usage_ledger(idempotency_key) UNIQUE；分区(data_region, 月份) |
 | `quotes` | 报价 | quote_id PK、project_id FK、plan_version、amount、currency、tax_json、status、created_at | quotes(project_id, plan_version) |
 | `billing_freezes` | 计费版本冻结（TASK-060） | project_id PK、quote_id FK、plan_version、frozen、frozen_at | — |
-| `orders` | 订单 | order_id PK、user_id FK、quote_id、idempotency_key UNIQUE、status、amount、currency、provider、provider_txn_id NULL、created_at | orders(user_id, status)；orders(provider, provider_txn_id) |
+| `orders` | 订单（TASK-062） | order_id PK、user_id FK、quote_id、idempotency_key UNIQUE、status、amount、currency、provider、provider_txn_id NULL、refunded_cents、progress_note、paid_at、created_at | orders(user_id, status)；orders(provider, provider_txn_id)（部分唯一） |
 | `payment_events` | 支付回调去重 | payment_event_id PK、provider、order_id FK、payload_hash、processed_at | payment_events(provider, payment_event_id) UNIQUE |
-| `refunds` | 退款 | refund_id PK、order_id FK、amount、reason、status、approver_pair_json NULL、created_at | refunds(order_id)；refunds(status, created_at)（审批队列） |
+| `refunds` | 退款（TASK-062/063） | refund_id PK、order_id FK、amount、reason、kind（user_request/system_fault/compensation/duplicate_charge）、status、approver_pair_json NULL、reject_reason、refunded_at、created_at | refunds(order_id)；refunds(status, created_at)（审批队列） |
 | `subscriptions` | 订阅 | subscription_id PK、user_id FK、plan_code、status、period_start、period_end、auto_renew、carryover_seconds | subscriptions(user_id, status)；subscriptions(period_end, status)（到期任务） |
 
 ### 5.5 机构族
@@ -117,7 +117,7 @@
 | 表 | 用途 | 关键字段 | 主要索引 |
 |---|---|---|---|
 | `access_audits` | **追加式访问审计** | audit_id PK、subject_type（user/org/staff/system）、subject_id、actor_id、actor_role、action、resource_type、resource_id、legal_basis（consent/break_glass/system）、created_at | access_audits(subject_id, created_at)；access_audits(actor_id, created_at)；分区(data_region, 月份) |
-| `incidents` | 事故与破窗 | incident_id PK、kind（fault/break_glass/release/rollback/compensation）、severity、region、summary、timeline_json、postmortem_ref NULL、created_at | incidents(kind, severity, created_at) |
+| `incidents` | 事故与破窗 | incident_id PK、kind（duplicate_charge/payment_fault/fault/break_glass/release/rollback/compensation）、severity、region、summary、timeline_json、postmortem_ref NULL、created_at | incidents(kind, severity, created_at) |
 | `deletion_tasks` | 删除编排 | task_id PK、user_id FK、scope（account/project/resume/job）、status、progress_json（每存储层状态：database/cache/index/object_storage/backup/third_party）、created_at、completed_at | deletion_tasks(user_id, status)；deletion_tasks(status, created_at)（重试队列） |
 | `export_tasks` | 导出编排（TASK-055） | task_id PK、user_id FK、scope（account/project）、project_id、status、progress_note、export_content_ref、training_marker（恒 true）、created_at | export_tasks(user_id, created_at)；export_tasks(idempotency_key) UNIQUE |
 

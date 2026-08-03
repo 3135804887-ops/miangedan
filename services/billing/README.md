@@ -29,10 +29,15 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/billing`；启
   `Settle`（按实际扣减 + 冲正释放未使用预留；用户主动退出同规则）、
   `RefundFull`（系统责任自动全额返还本轮预留，冲正条目）；
   账本追加式（reserve/consume/reversal），幂等键去重，逐笔可查。
+- **区域化支付集成**（TASK-062，FR-033，US-06 场景 4）：Order 状态机
+  （PAYMENT_PENDING → PAID / PAYMENT_FAILED / PAYMENT_TIMEOUT），创建订单幂等键
+  去重；支付回调 HMAC-SHA256 验签 + ±5 分钟重放窗口 + payment_event_id 去重；
+  支付成功未到账保持 PAYMENT_PENDING，对账任务按 provider_txn_id 收敛；
+  同一订单只记一次权益和一次扣款；重复扣款自动识别原路退回（写 Incident）；
+  支付状态不明禁止重复发起扣款。迁移 `0062_payment_orders.sql`。
 
 ## 规划（后续任务）
 
-- TASK-062 支付集成；TASK-063 退款；
-  TASK-064 Pro 订阅；TASK-065 发票/收据。
+- TASK-063 退款流程；TASK-064 Pro 订阅；TASK-065 发票/收据。
 
 红线：付费永不影响评分；重复扣费为 0；系统故障自动全额返还（TASK-061/063 落地）。

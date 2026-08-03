@@ -15,6 +15,18 @@
 
 ### Added
 
+- TASK-062 区域化支付集成（`task/TASK-062-payment-orders` 分支）：
+  - `services/billing` 支付订单（FR-033，US-06 场景 4）：Order 状态机
+    （PAYMENT_PENDING → PAID / PAYMENT_FAILED / PAYMENT_TIMEOUT）、创建订单幂等键去重、
+    状态不明禁止重复发起扣款；
+  - 支付回调验签（HMAC-SHA256）+ ±5 分钟重放窗口 + payment_event_id 去重；
+    成功未到账保持处理中，对账按 provider_txn_id 收敛；同一订单只记一次权益与一次
+    扣款；重复扣款自动识别并原路退回（退款 + 账本冲正原因 + Incident + 通知）。
+  - 迁移 `0062_payment_orders.sql`（orders/payment_events/refunds/incidents）；
+    openapi 回调补充 data_region、Order 增加 refunded_total。
+  - 服务正常、异常、幂等、重复回调、重复扣款、签名/重放、对账收敛测试齐备
+    （新增 6 用例），gofmt/vet 通过。
+    （TASK-062、FR-033、BILLING-STATE-MACHINE §5.2/§8/§9）
 - TASK-061 秒级 UsageLedger（`task/TASK-061-usage-ledger` 分支）：
   - `services/billing` 账本（FR-032）：Reserve（开始前预留、不足阻止、消费顺序
     免费→项目包→Pro→加油包）、Start/StopMetering（只计 LIVE 秒）、Settle

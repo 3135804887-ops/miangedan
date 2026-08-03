@@ -21,4 +21,20 @@ type Store interface {
 	GetLedgerByProject(dataRegion, projectID string) ([]LedgerEntry, error)
 	SaveMeter(Meter) error
 	GetMeter(dataRegion, sessionID string) (Meter, error)
+	// TASK-062 支付订单与回调去重（幂等键唯一；同一订单只记一次权益和一次扣款）。
+	SaveOrder(Order, string) error
+	GetOrderByIdempotencyKey(dataRegion, key string) (Order, error)
+	GetOrderByID(dataRegion, orderID string) (Order, error)
+	ListOrdersByUser(dataRegion, userID string) ([]Order, error)
+	UpdateOrder(Order) error
+	SavePaymentEvent(PaymentEvent) error
+	GetPaymentEvent(provider, eventID string) (PaymentEvent, error)
+	SaveIncident(Incident) error
+	ListIncidents(dataRegion string) ([]Incident, error)
+	SaveRefund(Refund, string) error
+	GetRefundByIdempotencyKey(dataRegion, key string) (Refund, error)
+	GetRefundByID(dataRegion, refundID string) (Refund, error)
+	ListRefundsByOrder(dataRegion, orderID string) ([]Refund, error)
+	ListRefundsByUser(dataRegion, userID string) ([]Refund, error)
+	UpdateRefund(Refund) error
 }
