@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-055 数据导出与删除（`task/TASK-055-export-deletion` 分支）：
+  - 新 Go 模块 `services/export`（FR-040，RETENTION-MATRIX）：导出任务异步
+    创建/执行/进度可查，导出物必带训练用途标记；account/project 范围、幂等；
+  - 删除任务：project/resume/job/account 级联，六层真实进度
+    （database/cache/search_index/object_storage/backups/third_party），
+    失败可重试、不伪造完成；法定财务记录保留但解除内容关联；
+  - 到期提醒 30/7 天窗口扫描；迁移 `0055_export_deletion_tasks.sql`；
+    DATA-MODEL 增加 export_tasks；go.work/CI 矩阵登记 export。
+  - 服务/HTTP 正常、异常、幂等、失败重试、进度真实性测试齐备（新增 10 用例）。
+    （TASK-055、FR-040、RETENTION-MATRIX）
 - TASK-054 轮次结果流（`task/TASK-054-result-flow` 分支）：
   - `services/scoring` 新增 `BuildRoundResultView`（FR-021/FR-022，SCR-10）：
     通过态固定祝贺文案与下一轮预告；失败态阻断下一轮 + 累计纪要 + 训练入口；
