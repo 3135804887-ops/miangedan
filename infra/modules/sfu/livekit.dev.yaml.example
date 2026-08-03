@@ -1,0 +1,16 @@
+# LiveKit 本地开发配置（dev 模式，无 TLS；仅绑定本机回环）
+# 追踪：docs/operations/LIVEKIT-RUNBOOK.md
+# 真实密钥由 start-local.ps1 生成并写入 work/livekit/livekit.dev.yaml，本文件仅为示例。
+port: 7880
+bind_addresses:
+  - "127.0.0.1"
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  use_external_ip: false
+  enable_loopback_candidate: true
+keys:
+  replace-with-dev-api-key: replace-with-dev-api-secret
+logging:
+  level: info
