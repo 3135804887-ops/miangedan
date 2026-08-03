@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from mgd_selfhost.asr import AsrBackend, create_asr_backend
@@ -19,6 +20,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     asr_backend = create_asr_backend(cfg)
     tts_backend = create_tts_backend(cfg)
     app = FastAPI(title="mgd-selfhost", version="0.1.0")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:

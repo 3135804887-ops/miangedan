@@ -21,6 +21,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { apiFetch } from '../lib/api-fetch.ts';
 
+const selfhostTtsUrl = process.env.NEXT_PUBLIC_SELFHOST_TTS_URL ?? 'http://127.0.0.1:8000';
+
 interface Labels {
   readonly title: string;
   readonly round: string;
@@ -88,6 +90,36 @@ export function RoomView({
   const [frozen, setFrozen] = useState(false);
   const [status, setStatus] = useState<'live' | 'paused' | 'reconnecting' | 'text'>('live');
   const [apiUnavailable, setApiUnavailable] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  async function playGreeting(): Promise<void> {
+    try {
+      const response = await fetch(`${selfhostTtsUrl}/v1/tts/synthesize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          text: locale === 'zh-CN' ? '你好，我是面个蛋的数字面试官。' : 'Hello, I am your digital interviewer.',
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`tts http ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      await audio.play();
+    } catch {
+      toast.push({
+        title: locale === 'zh-CN' ? '自建语音服务未就绪' : 'Self-hosted TTS unavailable',
+        tone: 'danger',
+      });
+    }
+  }
   const lastTick = useRef(Date.now());
 
   useEffect(() => {
@@ -385,6 +417,13 @@ export function RoomView({
             <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-400" />
             REC
           </span>
+          <button
+            type="button"
+            onClick={() => void playGreeting()}
+            className="absolute bottom-3 right-3 rounded-lg bg-white/15 px-2.5 py-1 text-xs text-white backdrop-blur transition-colors hover:bg-white/25"
+          >
+            {locale === 'zh-CN' ? '播放问候语' : 'Play greeting'}
+          </button>
         </div>
         <div
           role="img"
