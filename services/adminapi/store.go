@@ -45,4 +45,18 @@ type Store interface {
 	SaveMFAVerification(MFAVerification) error
 	GetLatestMFAVerification(dataRegion, staffID string) (MFAVerification, error)
 	ListAuditsPaged(dataRegion string, limit, offset int) ([]AuditEntry, error)
+	// TASK-085 客服工单（默认最小可见；逐字稿授权；媒体双人审批）。
+	SaveTicket(Ticket, string) error
+	GetTicketByID(dataRegion, ticketID string) (Ticket, error)
+	GetTicketByIdempotencyKey(dataRegion, key string) (Ticket, error)
+	UpdateTicket(Ticket) error
+	ListTickets(dataRegion string) ([]Ticket, error)
+	SaveTranscriptAuthorization(TranscriptAuthorization, string) error
+	GetTranscriptAuthByIdempotencyKey(dataRegion, key string) (TranscriptAuthorization, error)
+	ListTranscriptAuths(dataRegion, ticketID, sessionID string) ([]TranscriptAuthorization, error)
+	SaveMediaRequest(MediaAccessRequest, string) error
+	GetMediaRequestByID(dataRegion, requestID string) (MediaAccessRequest, error)
+	GetMediaRequestByIdempotencyKey(dataRegion, key string) (MediaAccessRequest, error)
+	UpdateMediaRequest(MediaAccessRequest) error
+	AppendMediaApproval(dataRegion, requestID, approverID string) ([]string, error)
 }
