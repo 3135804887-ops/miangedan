@@ -29,4 +29,10 @@ type Store interface {
 	ListBreakGlassByTarget(dataRegion, targetUserID string) ([]BreakGlass, error)
 	AppendBreakGlassReview(BreakGlassReview) error
 	ListBreakGlassReviews(glassID string) ([]BreakGlassReview, error)
+	// TASK-083 数据权利请求（删除编排；级联可追踪；失败可重试）。
+	SaveDataRightRequest(DataRightRequest, string) error
+	GetDataRightByID(dataRegion, requestID string) (DataRightRequest, error)
+	GetDataRightByIdempotencyKey(dataRegion, key string) (DataRightRequest, error)
+	UpdateDataRightRequest(DataRightRequest) error
+	ListDataRights(dataRegion, userID string) ([]DataRightRequest, error)
 }

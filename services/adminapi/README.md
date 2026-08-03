@@ -39,6 +39,13 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/adminapi`；�
   到期自动 expired、敏感访问记录可查；break_glass 与审计存储仅 SELECT/INSERT。
 - 迁移 `0070_break_glass.sql`。
 
+## 已实现（TASK-083，FR-040）
+
+- **数据权利请求**：delete/export/correct/withdraw 工单化（幂等）；复用
+  export 删除编排骨架：六层真实进度 + 级联删除逐项可追踪；法定财务记录保留
+  但解除内容关联；失败如实 FAILED 且可重试。
+- 迁移 `0071_data_rights.sql`。
+
 ## 规划（后续任务）
 
-- TASK-083 数据权利请求；TASK-084 追加式审计与 MFA；TASK-085 客服工单。
+- TASK-084 追加式审计与 MFA；TASK-085 客服工单。
