@@ -539,6 +539,18 @@
 > 全绿（通过/失败累计/未完成返还/不泄露），gofmt/vet 通过。
 > （TASK-054、FR-021、FR-022、SCR-10）
 
+> **任务状态（2026-08-03 更新）**：TASK-055 已实现（FR-040，US-05 场景 5；
+> RETENTION-MATRIX）——新 Go 模块 `services/export`（登记 go.work 与 CI golangci
+> 矩阵）：导出任务异步创建/执行/进度可查（queued→running→succeeded），导出物必带
+> 训练用途标记"模拟训练结果，不代表真实企业录用结论"，account/project 范围、
+> 项目导出必带 project_id、幂等；删除任务按 target_type（project/resume/job/
+> account）级联编排，六层真实进度（database/cache/search_index/object_storage/
+> backups/third_party_processors）逐项 pending/in_progress/done/failed，失败可
+> 重试、不伪造完成；法定财务记录保留但解除内容关联；到期提醒 30/7 天窗口扫描。
+> 迁移 `0055_export_deletion_tasks.sql`；DATA-MODEL 增加 export_tasks。服务/HTTP
+> 正常、异常、幂等、失败重试、进度真实性测试齐备（新增 10 用例），gofmt/vet 通过。
+> （TASK-055、FR-040、RETENTION-MATRIX）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。

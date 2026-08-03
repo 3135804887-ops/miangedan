@@ -118,6 +118,7 @@
 | `access_audits` | **追加式访问审计** | audit_id PK、subject_type（user/org/staff/system）、subject_id、actor_id、actor_role、action、resource_type、resource_id、legal_basis（consent/break_glass/system）、created_at | access_audits(subject_id, created_at)；access_audits(actor_id, created_at)；分区(data_region, 月份) |
 | `incidents` | 事故与破窗 | incident_id PK、kind（fault/break_glass/release/rollback/compensation）、severity、region、summary、timeline_json、postmortem_ref NULL、created_at | incidents(kind, severity, created_at) |
 | `deletion_tasks` | 删除编排 | task_id PK、user_id FK、scope（account/project/resume/job）、status、progress_json（每存储层状态：database/cache/index/object_storage/backup/third_party）、created_at、completed_at | deletion_tasks(user_id, status)；deletion_tasks(status, created_at)（重试队列） |
+| `export_tasks` | 导出编排（TASK-055） | task_id PK、user_id FK、scope（account/project）、project_id、status、progress_note、export_content_ref、training_marker（恒 true）、created_at | export_tasks(user_id, created_at)；export_tasks(idempotency_key) UNIQUE |
 
 ## 6. 对象存储桶划分（每区独立）
 

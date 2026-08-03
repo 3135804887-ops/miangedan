@@ -8,6 +8,7 @@ use (
 	./services/billing
 	./services/consent
 	./services/evidence
+	./services/export
 	./services/identity
 	./services/ingestion
 	./services/migrate
