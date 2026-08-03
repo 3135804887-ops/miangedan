@@ -25,6 +25,8 @@ var (
 	ErrInvalidCursor           = errors.New("invalid cursor")
 	ErrFormalReviewUnsupported = errors.New("formal review is implemented in TASK-043")
 	ErrScoringFault            = errors.New("scoring service fault")
+	ErrReviewLimit             = errors.New("formal review limit reached")
+	ErrEvidenceMismatch        = errors.New("frozen evidence mismatch")
 )
 
 // Service 为评分服务（独立、可重复、可解释、版本冻结；追加式 ScoreVersion）。
@@ -81,6 +83,9 @@ func (s *Service) Score(_ context.Context, actor Actor, in Input) (result Result
 	result.ComputedAt = s.now().UTC()
 	if saveErr := s.store.SaveResult(result, in.IdempotencyKey); saveErr != nil {
 		// 持久化故障：不判失败，降级评估未完成；恢复后重算（SC-EC-18）。
+		return s.faultResult(actor, in), nil
+	}
+	if inputErr := s.store.SaveInput(in.DataRegion, result.ScoreID, in); inputErr != nil {
 		return s.faultResult(actor, in), nil
 	}
 	return result, nil

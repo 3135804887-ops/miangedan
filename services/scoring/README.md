@@ -22,7 +22,7 @@
   - 故障降级：持久化故障/panic → EVALUATION_INCOMPLETE(scoring_service_failure)，
     不判失败、不落库，恢复后可重算（SC-EC-18）。
 - **HTTP**：`/v1/projects/{projectId}/rounds/{sequence}/result`、
-  `/scores`（分页）、`/review`（TASK-043 501 占位）。
+  `/scores`（分页）、`/review`（正式复核）。
 - **输入模式归一化**（TASK-041）：SCORING-SPEC 6.4
   - voice：0.6×structure_clarity + 0.4×oral_delivery；
   - text：communication = structure_clarity，oral_delivery = `not_evaluated`
@@ -37,10 +37,17 @@
   - JD-only（无简历）→ 只按面试证明计算、禁止经历一致性评分（SC-EC-21，
     experience_evidence 权重必须在计划阶段重新分配为 0）；
   - 匹配度与面试分数相互独立，不作为单轮解锁的隐藏因素。
+- **正式复核**（TASK-043）：SCORING-SPEC 6.10
+  - 每次正式尝试仅一次自动复核；第二次请求拒绝（SC-EC-17，409 state_conflict）；
+  - 复核输入 = 与原始评分完全相同的冻结证据（evidence_snapshot_hash 校验，不一致
+    即拒绝并触发安全审计）、量表、权重与版本；
+  - 复核产出新 ScoreVersion（supersedes_score_id 指向原版本），返回原结果/新结果/
+    逐维前后对比与原因（SC-EC-16）；全部版本保留，历史分数不可改写；
+  - 复核结果是否达标由工作流据 result_status 解锁，评分服务不改业务状态。
 
 ## 规划（后续任务）
 
-- TASK-043 正式复核（每次正式尝试仅一次）。
+- TASK-044 量表/权重版本化与公平性监控。
 
 评分红线：分数一经冻结不可改写（ADR-0004 追加式）；提示词不产出最终评分；
 练习永不进入本服务；摄像头/便利设置/保护属性/付费状态永远不是评分输入。

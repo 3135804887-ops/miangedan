@@ -15,6 +15,18 @@
 
 ### Added
 
+- TASK-043 正式复核服务（`task/TASK-043-formal-review` 分支）：
+  - `services/scoring` 扩展正式复核（FR-025，SCORING-SPEC 6.10）：每次正式尝试
+    仅一次自动复核（SC-EC-17），二次请求拒绝（409 state_conflict）；复核输入与
+    原始评分完全一致（evidence_snapshot_hash 校验，不一致触发安全审计）；
+    产出新 ScoreVersion（supersedes_score_id 指向原版本）并返回原结果/新结果/
+    逐维前后对比与原因（SC-EC-16）；全部版本保留、历史分数不可改写；冻结输入
+    追加保存；复核幂等键去重。
+  - `/v1/projects/{projectId}/rounds/{sequence}/review` 由 501 落地为 202
+    （ReviewAccepted 含 review_result）；openapi 新增 ReviewAccepted/ReviewResult
+    组件并重新生成 `contracts/ts` 产物；DOMAIN-MODEL §6.12 同步。
+  - 服务/HTTP 正常、异常、幂等、二次拒绝、证据篡改测试齐备。
+    （TASK-043、FR-025、SCORING-SPEC 6.10）
 - TASK-042 岗位匹配度（`task/TASK-042-job-match` 分支）：
   - `services/scoring` 新增 `ComputeJobMatch`（SCORING-SPEC 6.8）：必备/加分分列
     独立计算 match = Σ weight(已证明)/Σ weight(全部)；已证明 = 简历证据（仅当

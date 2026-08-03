@@ -440,6 +440,18 @@
 > 异常（非法分列/重复/未注册证明/无简历证明/经历权重非 0）、幂等测试全绿。
 > （TASK-042、SCORING-SPEC 6.8）
 
+> **任务状态（2026-08-03 更新）**：TASK-043 已实现（FR-025）——`services/scoring`
+> 扩展正式复核（SCORING-SPEC 6.10）：每次正式尝试仅一次自动复核（SC-EC-17，
+> 二次请求 409 state_conflict）；复核使用与原始评分完全相同的冻结证据
+> （evidence_snapshot_hash 校验，不一致拒绝并触发安全审计）、量表、权重与版本；
+> 复核产出新 ScoreVersion（supersedes_score_id 指向原版本），返回原结果/新结果/
+> 逐维前后对比与原因（SC-EC-16），全部版本保留、历史分数不可改写；冻结输入随
+> ScoreVersion 追加保存（只增不改）；复核幂等键去重；`/v1/.../review` 由 501 落地为
+> 202（ReviewAccepted 含 review_result），409/404/400 异常路径齐备。openapi 新增
+> ReviewAccepted/ReviewResult 组件并重新生成 contracts/ts 产物；DOMAIN-MODEL §6.12
+> 同步。服务/HTTP 正常、异常、幂等、二次拒绝、证据篡改测试齐备（新增 8 用例）。
+> （TASK-043、FR-025、SCORING-SPEC 6.10）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。
