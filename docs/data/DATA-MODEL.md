@@ -96,6 +96,7 @@
 | `entitlements` | 权益 | entitlement_id PK、user_id FK、kind（free_credit/project_pack/pro_subscription/topup_pack）、scope_json（project_id 等）、total_seconds、consumed_seconds、status、valid_from、valid_to | entitlements(user_id, kind, status) |
 | `usage_ledger` | **追加式秒级账本** | entry_id PK、entitlement_id FK、user_id FK、project_id、round_sequence、entry_type（reserve/consume/release/refund/reversal）、seconds、reason、balance_after、idempotency_key、created_at | usage_ledger(entitlement_id, created_at)；usage_ledger(idempotency_key) UNIQUE；分区(data_region, 月份) |
 | `quotes` | 报价 | quote_id PK、project_id FK、plan_version、amount、currency、tax_json、status、created_at | quotes(project_id, plan_version) |
+| `billing_freezes` | 计费版本冻结（TASK-060） | project_id PK、quote_id FK、plan_version、frozen、frozen_at | — |
 | `orders` | 订单 | order_id PK、user_id FK、quote_id、idempotency_key UNIQUE、status、amount、currency、provider、provider_txn_id NULL、created_at | orders(user_id, status)；orders(provider, provider_txn_id) |
 | `payment_events` | 支付回调去重 | payment_event_id PK、provider、order_id FK、payload_hash、processed_at | payment_events(provider, payment_event_id) UNIQUE |
 | `refunds` | 退款 | refund_id PK、order_id FK、amount、reason、status、approver_pair_json NULL、created_at | refunds(order_id)；refunds(status, created_at)（审批队列） |

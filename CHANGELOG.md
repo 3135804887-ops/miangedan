@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-060 报价引擎与 Entitlement（`task/TASK-060-billing-entitlements` 分支）：
+  - `services/billing` 首次业务实现（FR-031）：权益模型（免费 60 分钟幂等、
+    单项目包、Pro 月额度/结转 ≤1 账期/余额 ≤2×月额度、加油包）、
+    Balance/CanReserve（余额校验只在开始前）；
+  - 报价状态机 DRAFT → PRESENTED → ACCEPTED；开始前计划修改重新报价
+    （版本递增）；接受后计费版本冻结，冻结后拒绝重新报价；
+  - 迁移 `0060_billing_entitlements.sql`；DATA-MODEL 增加 billing_freezes。
+  - 服务正常、异常、幂等、冻结、结转上限测试齐备（新增 7 用例）。
+    （TASK-060、FR-031、BILLING-STATE-MACHINE）
 - TASK-055 数据导出与删除（`task/TASK-055-export-deletion` 分支）：
   - 新 Go 模块 `services/export`（FR-040，RETENTION-MATRIX）：导出任务异步
     创建/执行/进度可查，导出物必带训练用途标记；account/project 范围、幂等；
