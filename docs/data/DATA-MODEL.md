@@ -102,6 +102,7 @@
 | `refunds` | 退款（TASK-062/063） | refund_id PK、order_id FK、amount、reason、kind（user_request/system_fault/compensation/duplicate_charge）、status、approver_pair_json NULL、reject_reason、refunded_at、created_at | refunds(order_id)；refunds(status, created_at)（审批队列） |
 | `subscriptions` | 订阅（TASK-064） | subscription_id PK、user_id FK、plan_code、status、period_start、period_end、auto_renew、carryover_seconds、consent_price_cents、consent_monthly_seconds（自动续费单独勾选条款） | subscriptions(user_id, status)；subscriptions(period_end, status)（到期任务） |
 | `renewal_events` | 续费扣款前提醒（TASK-064） | renewal_id PK、subscription_id FK、period_start/period_end、monthly_seconds、price_cents、status（reminded/charged/failed）、reminded_at、charged_at、idempotency_key UNIQUE | renewal_events(subscription_id, period_start) UNIQUE；renewal_events(status, created_at) |
+| `invoices` | 发票/收据（TASK-065） | invoice_id PK、order_id FK UNIQUE、kind（invoice/receipt）、number、currency、subtotal_cents、tax_json（税费明示行）、total_cents、status（issued/cancelled）、cancelled_at | invoices(user_id, created_at) |
 
 ### 5.5 机构族
 

@@ -1981,6 +1981,68 @@ paths:
       responses:
         '200': { description: 订单详情, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/orders/{orderId}/invoice:
+    get:
+      tags: [billing]
+      operationId: getInvoice
+      summary: 发票/收据（中国区合规发票；国际区税费明示收据）
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 票据详情, content: { application/json: { schema: { $ref: '#/components/schemas/Invoice' } } } }
+        '404': { description: 未开票, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [billing]
+      operationId: issueInvoice
+      summary: 为已支付订单开票/开收据（幂等；同一订单一份）
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201': { description: 已开票, content: { application/json: { schema: { $ref: '#/components/schemas/Invoice' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orders/{orderId}/invoice/cancel:
+    post:
+      tags: [billing]
+      operationId: cancelInvoice
+      summary: 作废发票（中国区合规；仅 issued 可作废；收据不可作废）
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: 已作废, content: { application/json: { schema: { $ref: '#/components/schemas/Invoice' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/pricing/{region}:
+    get:
+      tags: [billing]
+      operationId: getRegionalPricing
+      summary: 区域定价配置（币种、每分钟价格、税率、票据类型）
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Region' }
+      responses:
+        '200': { description: 区域定价, content: { application/json: { schema: { $ref: '#/components/schemas/RegionalPricing' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/usage-ledger:
     get:
       tags: [billing]
@@ -3339,6 +3401,37 @@ components:
         approver_pair: { type: ['array', 'null'], items: { type: string }, description: 双人审批对（同一审批人去重） }
         created_at: { type: string, format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
+    TaxLine:
+      type: object
+      required: [name, rate_percent, amount]
+      properties:
+        name: { type: string }
+        rate_percent: { type: number, description: 税率百分比（如 6、19） }
+        amount: { $ref: '#/components/schemas/Money' }
+    Invoice:
+      type: object
+      required: [invoice_id, order_id, kind, number, status, total, created_at]
+      properties:
+        invoice_id: { type: string, format: uuid }
+        order_id: { type: string, format: uuid }
+        kind: { enum: [invoice, receipt], description: cn 合规发票 / eu、intl 税费明示收据 }
+        number: { type: string, description: 发票号码或收据编号 }
+        status: { enum: [issued, cancelled] }
+        subtotal: { $ref: '#/components/schemas/Money' }
+        tax_lines: { type: array, items: { $ref: '#/components/schemas/TaxLine' } }
+        total: { $ref: '#/components/schemas/Money' }
+        created_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    RegionalPricing:
+      type: object
+      required: [region, currency, per_minute_cents, tax_rate, tax_label, invoice_kind]
+      properties:
+        region: { $ref: '#/components/schemas/Region' }
+        currency: { type: string }
+        per_minute_cents: { type: integer, minimum: 0 }
+        tax_rate: { type: number, description: 税率（如 0.06、0.19、0） }
+        tax_label: { type: string }
+        invoice_kind: { enum: [invoice, receipt] }
     UsageLedgerEntry:
       type: object
       required: [entry_id, entry_type, occurred_at, balance_after_seconds]

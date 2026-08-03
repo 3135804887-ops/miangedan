@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-065 发票与税费（`task/TASK-065-invoices` 分支）：
+  - `services/billing` 票据（FR-033，US-06 场景 11）：区域定价配置
+    （cn CNY/6% 增值税/合规发票；eu EUR/19% VAT/收据；intl USD/0% 明示税费/收据）；
+  - IssueInvoice 幂等（同一订单一份，价税合计一致）；中国区发票含发票号码与
+    增值税行且可作废（合规）；国际区税费明示收据。
+  - 迁移 `0064_invoices.sql`；openapi 增加 invoice/cancel/pricing 端点与
+    Invoice/TaxLine/RegionalPricing schema；contracts 已重新生成。
+  - 服务正常、异常、幂等、区域合规测试齐备（新增 5 用例），gofmt/vet 通过。
+    （TASK-065、FR-033、BILLING-STATE-MACHINE §7）
 - TASK-064 Pro 订阅生命周期（`task/TASK-064-pro-subscription` 分支）：
   - `services/billing` 订阅（FR-033，US-06 场景 5）：自动续费单独勾选并记录同意
     条款（价格/权益变化须重新同意）；扣款前提醒（PrepareRenewal）+ 7 天窗口

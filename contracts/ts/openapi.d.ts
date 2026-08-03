@@ -1529,6 +1529,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orders/{orderId}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发票/收据（中国区合规发票；国际区税费明示收据） */
+        get: operations["getInvoice"];
+        put?: never;
+        /** 为已支付订单开票/开收据（幂等；同一订单一份） */
+        post: operations["issueInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/{orderId}/invoice/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 作废发票（中国区合规；仅 issued 可作废；收据不可作废） */
+        post: operations["cancelInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pricing/{region}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 区域定价配置（币种、每分钟价格、税率、票据类型） */
+        get: operations["getRegionalPricing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/usage-ledger": {
         parameters: {
             query?: never;
@@ -2926,6 +2978,43 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             data_region?: components["schemas"]["Region"];
+        };
+        TaxLine: {
+            name: string;
+            /** @description 税率百分比（如 6、19） */
+            rate_percent: number;
+            amount: components["schemas"]["Money"];
+        };
+        Invoice: {
+            /** Format: uuid */
+            invoice_id: string;
+            /** Format: uuid */
+            order_id: string;
+            /**
+             * @description cn 合规发票 / eu、intl 税费明示收据
+             * @enum {unknown}
+             */
+            kind: "invoice" | "receipt";
+            /** @description 发票号码或收据编号 */
+            number: string;
+            /** @enum {unknown} */
+            status: "issued" | "cancelled";
+            subtotal?: components["schemas"]["Money"];
+            tax_lines?: components["schemas"]["TaxLine"][];
+            total: components["schemas"]["Money"];
+            /** Format: date-time */
+            created_at: string;
+            data_region?: components["schemas"]["Region"];
+        };
+        RegionalPricing: {
+            region: components["schemas"]["Region"];
+            currency: string;
+            per_minute_cents: number;
+            /** @description 税率（如 0.06、0.19、0） */
+            tax_rate: number;
+            tax_label: string;
+            /** @enum {unknown} */
+            invoice_kind: "invoice" | "receipt";
         };
         UsageLedgerEntry: {
             /** Format: uuid */
@@ -6495,6 +6584,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Order"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 票据详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            /** @description 未开票 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    issueInvoice: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已开票 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    cancelInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已作废 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegionalPricing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                region: components["schemas"]["Region"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 区域定价 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionalPricing"];
                 };
             };
             default: components["responses"]["Error"];

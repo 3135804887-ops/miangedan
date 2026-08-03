@@ -26,6 +26,12 @@ type Store interface {
 	GetRenewalByID(dataRegion, renewalID string) (RenewalRecord, error)
 	UpdateRenewalRecord(RenewalRecord) error
 	ListRenewalsBySubscription(dataRegion, subscriptionID string) ([]RenewalRecord, error)
+	// TASK-065 发票/收据（区域定价配置；同一订单一份；幂等）。
+	SaveInvoice(Invoice, string) error
+	GetInvoiceByIdempotencyKey(dataRegion, key string) (Invoice, error)
+	GetInvoiceByOrder(dataRegion, orderID string) (Invoice, error)
+	ListInvoicesByUser(dataRegion, userID string) ([]Invoice, error)
+	UpdateInvoice(Invoice) error
 	// TASK-061 秒级账本（追加式；幂等键唯一）。
 	AppendLedger(LedgerEntry) error
 	GetLedgerByIdempotencyKey(dataRegion, key string) (LedgerEntry, error)

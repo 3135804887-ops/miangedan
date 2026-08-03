@@ -3,8 +3,8 @@
 | 字段 | 内容 |
 |---|---|
 | 源契约 | `docs/api/openapi.yaml` |
-| 源契约最后提交 | `43d0170de58372cb9ac8a26665e3c37e9bb9a048` |
-| 源契约内容 SHA-256 | `05d7a33011cbc97ff22e95065698fa5d2ed9ddfade0d0c1991c6a7cbacbc2546` |
+| 源契约最后提交 | `d83bf50e235871a621149c343f80f2e29e6b3174` |
+| 源契约内容 SHA-256 | `68e45fcc48d1c481e03e289a7041e890b7e11c7c389fe5d37408f7de769a74bf` |
 | 生成物 | `contracts/ts/openapi.d.ts` |
 | 生成命令 | `pnpm api:generate` |
 | 校验命令 | `pnpm api:check` |
