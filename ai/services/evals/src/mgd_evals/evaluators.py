@@ -17,6 +17,7 @@ if str(_ORCHESTRATOR_SRC) not in sys.path:
     sys.path.insert(0, str(_ORCHESTRATOR_SRC))
 
 from mgd_orchestrator.handoff_generator import HandoffGenerator
+from mgd_orchestrator.report_generator import ReportGenerator
 from mgd_orchestrator.safety_pipeline import ContentSafetyPipeline
 
 
@@ -105,6 +106,30 @@ def safety_evaluator(row: dict[str, Any], _expected: Mapping[str, Any]) -> EvalO
     )
 
 
+def report_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOutcome:
+    """报告生成评测器（REPORT-SPEC 第 7 节：Schema 合法/免责声明/文字等价）。"""
+    case_id = str(row["case_id"])
+    failures: list[str] = []
+    try:
+        result = ReportGenerator().generate(cast(dict[str, Any], row["input"]["report_input"]))
+        text = json.dumps(result.report, ensure_ascii=False)
+        failures += _check_expected(expected, text)
+        if result.report["training_use_disclaimer"] != "模拟训练结果，不代表真实企业录用结论":
+            failures.append("训练用途声明缺失")
+        if result.report["modules"]["radar"]["status"] != "ok":
+            failures.append("雷达模块失败")
+        if not result.report["modules"]["radar"]["content"]["text_equivalent"]:
+            failures.append("雷达文字等价缺失")
+    except Exception as exc:
+        failures.append(f"报告生成异常：{exc}")
+    return EvalOutcome(
+        case_id=case_id,
+        passed=not failures,
+        failures=tuple(failures),
+        summary="report" if not failures else "report:failed",
+    )
+
+
 def generic_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOutcome:
     """通用契约评测器：预期内容包含/排除与标记断言。"""
     case_id = str(row["case_id"])
@@ -131,4 +156,6 @@ def auto_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOutc
         return handoff_evaluator(row, expected)
     if scenario in {"prompt_injection", "protected_attribute"}:
         return safety_evaluator(row, expected)
+    if scenario == "report_generation":
+        return report_evaluator(row, expected)
     return None

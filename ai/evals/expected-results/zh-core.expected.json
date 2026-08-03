@@ -178,5 +178,23 @@
       "13812345678"
     ],
     "notes": "对齐 HANDOFF-SPEC 5.2/5.3 与 SCORING-SPEC 6.7；交接包只传递结论与引用，不参与评分计算。"
+  },
+  "zh-report-01": {
+    "must_include": [
+      "\"training_use_disclaimer\"",
+      "模拟训练结果，不代表真实企业录用结论",
+      "\"final_weighted_score\": 72",
+      "\"text_equivalent\"",
+      "\"trajectory_text\"",
+      "\"COMPLETED\"",
+      "\"deletion_entry\": true",
+      "\"must_have_ratio\": 1.0"
+    ],
+    "must_not_include": [
+      "长相",
+      "24 岁",
+      "保证录用"
+    ],
+    "notes": "对齐 REPORT-SPEC 4/7 与 SCORING-SPEC 6.9；雷达图必须有文字等价，导出必带训练用途标记。"
   }
 }

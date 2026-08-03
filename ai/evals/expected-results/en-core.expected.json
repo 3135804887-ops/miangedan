@@ -99,5 +99,20 @@
       "详细地址"
     ],
     "notes": "Aligned with HANDOFF-SPEC sections 6 and 10; compression never sacrifices factual integrity."
+  },
+  "en-report-01": {
+    "must_include": [
+      "\"training_use_disclaimer\"",
+      "模拟训练结果，不代表真实企业录用结论",
+      "\"final_weighted_score\": 76",
+      "\"text_equivalent\"",
+      "\"COMPLETED\"",
+      "\"deletion_entry\": true"
+    ],
+    "must_not_include": [
+      "guaranteed offer",
+      "长相"
+    ],
+    "notes": "Aligned with REPORT-SPEC 4/7; full report with radar text equivalent and training-use disclaimer."
   }
 }
