@@ -31,8 +31,9 @@ var (
 
 // Service 为评分服务（独立、可重复、可解释、版本冻结；追加式 ScoreVersion）。
 type Service struct {
-	store Store
-	now   func() time.Time
+	store   Store
+	now     func() time.Time
+	rubrics *RubricRegistry
 }
 
 // NewService 创建评分服务。
@@ -41,6 +42,11 @@ func NewService(store Store) (*Service, error) {
 		return nil, fmt.Errorf("%w: 缺少存储", ErrInvalidInput)
 	}
 	return &Service{store: store, now: time.Now}, nil
+}
+
+// SetRubricRegistry 注入版本化量表注册表（TASK-044；未注入时不校验版本）。
+func (s *Service) SetRubricRegistry(registry *RubricRegistry) {
+	s.rubrics = registry
 }
 
 // Score 执行单轮评分（SCORING-SPEC 6.1-6.7）。
@@ -54,7 +60,7 @@ func (s *Service) Score(_ context.Context, actor Actor, in Input) (result Result
 			err = nil
 		}
 	}()
-	if err := validateInput(actor, in); err != nil {
+	if err := s.validateInput(actor, in); err != nil {
 		return Result{}, err
 	}
 	if in.IsFormalReview {
@@ -113,7 +119,7 @@ func (s *Service) ListVersions(
 }
 
 // ---- 校验 ----
-func validateInput(actor Actor, in Input) error {
+func (s *Service) validateInput(actor Actor, in Input) error {
 	if err := region.ValidateDataRegion(actor.DataRegion); err != nil {
 		return err
 	}
@@ -150,6 +156,14 @@ func validateInput(actor Actor, in Input) error {
 	}
 	if strings.TrimSpace(in.RubricVersion) == "" {
 		return fmt.Errorf("%w: rubric_version 必填（冻结量表版本）", ErrInvalidInput)
+	}
+	if s.rubrics != nil {
+		if _, err := s.rubrics.Get(in.RubricVersion); err != nil {
+			return err
+		}
+		if err := s.rubrics.ValidateWeights(in.RubricVersion, in.DimensionWeights); err != nil {
+			return err
+		}
 	}
 	if in.AttemptKind != AttemptInitial && in.AttemptKind != AttemptFormalRetry {
 		return fmt.Errorf("%w: attempt_kind 必须为 initial | formal_retry", ErrInvalidInput)

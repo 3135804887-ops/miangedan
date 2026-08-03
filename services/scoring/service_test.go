@@ -22,6 +22,11 @@ func newTestService(t *testing.T) (*Service, *MemoryStore) {
 	if err != nil {
 		t.Fatalf("创建评分服务失败: %v", err)
 	}
+	registry, err := LoadDefaultRubricRegistry()
+	if err != nil {
+		t.Fatalf("加载默认量表失败: %v", err)
+	}
+	svc.SetRubricRegistry(registry)
 	return svc, store
 }
 

@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-044 量表/权重版本化与公平性监控（`task/TASK-044-rubric-fairness` 分支）：
+  - `services/scoring` 新增 `RubricRegistry`（FR-038 部分）：加载
+    `config/rubrics/v1/default.yaml`（六维权重/锚点/覆盖率阈值），版本唯一
+    不可覆盖、未知版本 fail-closed；冻结权重校验（总和 100、单维 ±5，
+    0 权重重分配允许）；活跃正式会话固定版本；历史分数保留各自
+    rubric_version，版本升级不改写历史（幂等重放返回原版本结果）。
+  - `FairnessMonitor` 公平性监控：语言/口音/岗位族/年限段/输入模式/便利设置
+    切分聚合（计数、通过率、均分、维度均值），快照确定性排序、标签最小化。
+  - 服务/注册表/监控测试齐备；gofmt/vet 通过。
+    （TASK-044、FR-038、SCORING-SPEC 10.4）
 - TASK-043 正式复核服务（`task/TASK-043-formal-review` 分支）：
   - `services/scoring` 扩展正式复核（FR-025，SCORING-SPEC 6.10）：每次正式尝试
     仅一次自动复核（SC-EC-17），二次请求拒绝（409 state_conflict）；复核输入与
