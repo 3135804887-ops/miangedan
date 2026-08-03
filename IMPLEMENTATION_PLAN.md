@@ -600,6 +600,19 @@
 > entitlement）。服务（billing 6 用例 + room 5 用例）全绿，gofmt/vet 通过。
 > （TASK-061、FR-032、BILLING-STATE-MACHINE §5.3/§6）
 
+> **任务状态（2026-08-03 更新）**：TASK-062 已实现（FR-033，US-06 场景 4）——
+> `services/billing` 区域化支付集成：Order 状态机（ORDER_CREATED → PAYMENT_PENDING →
+> PAID；PAYMENT_FAILED 保留计划可重发起；PAYMENT_TIMEOUT 保持处理中），创建订单幂等
+> 键去重；支付回调 HMAC-SHA256 验签 + ±5 分钟时间戳重放窗口 + payment_event_id 去重
+> （同一事件重复回调无副作用）；支付成功只记一次权益与一次扣款；成功未到账保持
+> PAYMENT_PENDING 由对账任务按 provider_txn_id 收敛（ReconcileOrder）；检测到重复扣款
+> 自动原路退回（Refund REFUNDED + 账本冲正原因）+ 写 Incident；状态不明禁止重复发起
+> 扣款（ErrPaymentPendingBlocked）。迁移 `0062_payment_orders.sql`（orders/payment_events/
+> refunds/incidents）；openapi 回调补充 data_region，Order 增加 refunded_total。
+> 服务正常、异常、幂等、重复回调、重复扣款、签名/重放、对账收敛测试齐备（新增 6 用例），
+> gofmt/vet 通过。
+> （TASK-062、FR-033、BILLING-STATE-MACHINE §5.2/§8/§9）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。

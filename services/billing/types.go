@@ -166,6 +166,84 @@ type Meter struct {
 	DataRegion         string
 }
 
+// Order 为一次支付订单（BILLING-STATE-MACHINE 5.2；同一订单只记一次权益和一次扣款）。
+type Order struct {
+	OrderID          string
+	UserID           string
+	QuoteID          string
+	ProjectID        string
+	Status           string
+	AmountCents      int
+	Currency         string
+	PaymentMethod    string
+	Provider         string
+	ProviderTxnID    string
+	RefundedCents    int
+	ProgressNote     string
+	AutoRenewConsent bool
+	DataRegion       string
+	CreatedAt        time.Time
+	PaidAt           *time.Time
+	IdempotencyKey   string
+}
+
+// PaymentEvent 为支付回调去重记录（provider + payment_event_id 唯一）。
+type PaymentEvent struct {
+	PaymentEventID string
+	Provider       string
+	OrderID        string
+	EventType      string
+	PayloadHash    string
+	DataRegion     string
+	ProcessedAt    time.Time
+}
+
+// Incident 为事故与破窗记录（重复扣款、故障、发布回滚、补偿等）。
+type Incident struct {
+	IncidentID string
+	Kind       string
+	Severity   string
+	Region     string
+	Summary    string
+	DataRegion string
+	CreatedAt  time.Time
+}
+
+// 退款状态（BILLING-STATE-MACHINE 5.4）。
+const (
+	RefundRequested = "REFUND_REQUESTED"
+	RefundReviewing = "REFUND_REVIEWING"
+	RefundApproved  = "REFUND_APPROVED"
+	Refunded        = "REFUNDED"
+	RefundRejected  = "REFUND_REJECTED"
+)
+
+// 退款/补偿类型。
+const (
+	RefundKindUserRequest     = "user_request"
+	RefundKindSystemFault     = "system_fault"
+	RefundKindCompensation    = "compensation"
+	RefundKindDuplicateCharge = "duplicate_charge"
+)
+
+// Refund 为一笔退款（大额/人工补偿双人审批；冲正条目记录原因）。
+type Refund struct {
+	RefundID       string
+	OrderID        string
+	UserID         string
+	AmountCents    int
+	Currency       string
+	Reason         string
+	Kind           string
+	Status         string
+	RejectReason   string
+	ApproverPair   []string
+	DataRegion     string
+	IdempotencyKey string
+	CreatedAt      time.Time
+	RefundedAt     *time.Time
+}
+
 // ReserveInput 为每轮开始前预留请求。
 type ReserveInput struct {
 	ProjectID        string

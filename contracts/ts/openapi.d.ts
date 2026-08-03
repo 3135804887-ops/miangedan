@@ -2799,6 +2799,8 @@ export interface components {
             /** @enum {unknown} */
             status: "ORDER_CREATED" | "PAYMENT_PENDING" | "PAID" | "PAYMENT_FAILED" | "PAYMENT_TIMEOUT" | "ORDER_CANCELLED";
             total: components["schemas"]["Money"];
+            /** @description 已原路退回金额（重复扣款自动退回后可见） */
+            refunded_total?: number | null;
             /** @description 支付成功未到账时保持处理中的真实进度说明 */
             progress_note?: string | null;
             /** Format: date-time */
@@ -6488,6 +6490,7 @@ export interface operations {
                     order_id: string;
                     /** @enum {unknown} */
                     event_type: "payment_succeeded" | "payment_failed" | "refund_succeeded";
+                    data_region: components["schemas"]["Region"];
                     payload?: {
                         [key: string]: unknown;
                     };

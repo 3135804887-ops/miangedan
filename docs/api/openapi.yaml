@@ -2057,11 +2057,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [payment_event_id, order_id, event_type]
+              required: [payment_event_id, order_id, event_type, data_region]
               properties:
                 payment_event_id: { type: string, description: 支付侧事件唯一 ID（幂等去重） }
                 order_id: { type: string, format: uuid }
                 event_type: { enum: [payment_succeeded, payment_failed, refund_succeeded] }
+                data_region: { $ref: '#/components/schemas/Region' }
                 payload: { type: object, additionalProperties: true }
       responses:
         '200': { description: 已受理（重复事件返回相同应答，无副作用） }
@@ -3207,6 +3208,7 @@ components:
         quote_id: { type: string, format: uuid }
         status: { enum: [ORDER_CREATED, PAYMENT_PENDING, PAID, PAYMENT_FAILED, PAYMENT_TIMEOUT, ORDER_CANCELLED] }
         total: { $ref: '#/components/schemas/Money' }
+        refunded_total: { type: ['integer', 'null'], minimum: 0, description: 已原路退回金额（重复扣款自动退回后可见） }
         progress_note: { type: ['string', 'null'], description: 支付成功未到账时保持处理中的真实进度说明 }
         created_at: { type: string, format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
