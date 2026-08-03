@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-074 机构访问审计与退出即时失效（`task/TASK-074-org-access-audit` 分支）：
+  - `services/org` 审计与失效（FR-034/035，US-07 场景 4）：访问审计列表
+    （privacy_auditor/owner 可见）；退出/被移除 → 分享授权立即撤回、
+    令牌判定失效（IsMemberAccessValid）；机构停用/注销 → InvalidateOrgAccess
+    撤回全部共享链接并写审计；个人记录保留、审计继续存在。
+  - openapi 增加 audits 列表与成员移除端点（OrgAuditEntry schema）；
+    contracts 已重新生成。
+  - 服务正常、异常、退出即时、停用失效、审计可见性测试齐备（新增 4 用例），
+    gofmt/vet 通过。
+    （TASK-074、FR-034/FR-035、DOMAIN-MODEL §6.17）
 - TASK-073 聚合分析（`task/TASK-073-aggregates` 分支）：
   - `services/org` 聚合（FR-036，US-07 场景 3）：岗位类别/能力维度分组、
     完成率、维度均值、提升趋势；细分群体 <10 人隐藏且不返回指标；

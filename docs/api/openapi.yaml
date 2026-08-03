@@ -2297,6 +2297,30 @@ paths:
       responses:
         '200': { description: 成员列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/OrgMember' } } } } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/members/{userId}:
+    delete:
+      tags: [organizations]
+      operationId: removeOrgMember
+      summary: 移除成员（访问与共享链接立即失效；个人记录保留；写审计）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: 已移除 }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/audits:
+    get:
+      tags: [organizations]
+      operationId: listOrgAudits
+      summary: 机构访问审计（谁/何时/访问了什么；privacy_auditor/owner 可见；追加式）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200': { description: 审计列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/OrgAuditEntry' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/orgs/{orgId}/members/{userId}/role:
     post:
       tags: [organizations]
@@ -3620,6 +3644,16 @@ components:
         expires_at: { type: string, format: date-time, description: 到期自动失效 }
         status: { enum: [active, withdrawn] }
         withdrawn_at: { type: ['string', 'null'], format: date-time }
+    OrgAuditEntry:
+      type: object
+      required: [audit_id, actor_id, actor_role, action, occurred_at]
+      properties:
+        audit_id: { type: string, format: uuid }
+        actor_id: { type: string, description: 谁 }
+        actor_role: { enum: [owner, admin, instructor, privacy_auditor, finance, candidate] }
+        action: { type: string, description: 访问了什么/什么操作 }
+        target_ref: { type: ['string', 'null'] }
+        occurred_at: { type: string, format: date-time }
     Assignment:
       type: object
       required: [assignment_id, org_id, title, status]

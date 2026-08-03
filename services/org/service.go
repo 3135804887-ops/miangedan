@@ -266,6 +266,10 @@ func (s *Service) LeaveOrg(
 	if err := s.store.UpdateMember(member); err != nil {
 		return err
 	}
+	// TASK-074：退出后共享链接与在线访问立即失效。
+	if err := s.revokeSharesForUser(orgID, actor.UserID); err != nil {
+		return err
+	}
 	return s.appendAudit(actor, orgID, "org.member.left", actor.UserID)
 }
 

@@ -684,6 +684,17 @@
 > 服务正常、异常、小样本隐藏、类别过滤测试齐备（新增 4 用例），gofmt/vet 通过。
 > （TASK-073、FR-036）
 
+> **任务状态（2026-08-03 更新）**：TASK-074 已实现（FR-034/FR-035，US-07 场景 4）——
+> `services/org` 机构访问审计与退出即时失效：ListAccessAudits（谁/何时/访问了什么，
+> privacy_auditor/owner 可见，追加式 SELECT/INSERT）；退出/被移除 → left_at +
+> 全部分享授权立即撤回（共享链接即时失效），个人记录保留、审计继续存在；
+> 机构停用/注销 → InvalidateOrgAccess 撤回全部共享链接并写审计；
+> IsMemberAccessValid 供令牌失效判定。openapi 增加 audits 列表与成员移除端点
+> （OrgAuditEntry schema）。
+> 服务正常、异常、退出即时、停用失效、审计可见性测试齐备（新增 4 用例），
+> gofmt/vet 通过。
+> （TASK-074、FR-034/FR-035、DOMAIN-MODEL §6.17）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。
