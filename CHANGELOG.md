@@ -20,6 +20,10 @@
   `traceability` 0 失败门禁并挂接 CI 阶段1；补齐 15 个最小用例（新增
   `services/slo` 模块覆盖 NFR-001~003，evidence/avatar/asr/scoring/orchestrator/parsing
   补持久化阻塞、建连/回应/评分/报告/解析/计划预算用例）。
+- TASK-051 核对完成：报告雷达图文字/表格等价（report.schema.json `text_equivalent`
+  必填 + 生成器实现 + 测试断言）与导出训练用途标记（报告 `training_use_disclaimer`
+  + export `TrainingUseDisclaimer`/`TrainingMarker`）均已由 TASK-050/055 覆盖，
+  无残留缺口，仅同步实施计划状态与依据。
 
 ### Added
 
