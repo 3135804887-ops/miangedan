@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-045 评分稳定性回归（`task/TASK-045-stability-regression` 分支）：
+  - `services/scoring` 新增 `RunStabilityRegression`（硬门槛）：冻结输入基线 +
+    200 次受控微扰重复评分（锚点带内插值 ±1、4% 扰动率、固定种子可复现），
+    六维逐维维度差 ≤3 占比（取最差维度）与及格结论一致率；
+  - 门槛：维度差 ≤3 比例 ≥95%、及格一致率 ≥98%（SCORING-SPEC 第 10 节）；
+  - `cmd/stability` 生成 `ai/evals/reports/stability.json`（report_kind=stability，
+    含 config/metrics/thresholds/passed），TASK-036 框架
+    `validate_stability_report` 校验（Python 握手测试）；实测 1.0/1.0 达标，
+    报告提交入库。Go 4 用例 + evals 2 用例全绿，gofmt/vet 通过。
+    （TASK-045、SCORING-SPEC 10、TASK-036）
 - TASK-036 AI 评测框架（`task/TASK-036-eval-framework` 分支）：
   - 新 Python 包 `ai/services/evals`（`mgd_evals`）：黄金集可重复运行并产出
     JSON 报告（`ai/evals/reports/<stem>.eval.json`）；数据集与预期结果对齐校验；
