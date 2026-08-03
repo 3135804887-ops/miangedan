@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/3135804887-ops/miangedan/blob/main/ai/evals/providers/scorecard.schema.json",
+  "title": "Provider evaluation scorecard (OD-01)",
+  "description": "Six-dimension, 100-point scorecard for a capability-region-vendor candidate in Phase 0 provider evaluation. Red-line items veto the candidate regardless of score.",
+  "type": "object",
+  "required": [
+    "scorecard_kind",
+    "capability",
+    "region",
+    "vendor",
+    "role",
+    "status",
+    "dimensions"
+  ],
+  "properties": {
+    "scorecard_kind": {
+      "const": "provider_eval_scorecard"
+    },
+    "capability": {
+      "enum": ["webrtc_sfu", "asr", "tts", "llm", "avatar"]
+    },
+    "region": {
+      "enum": ["cn", "eu", "intl"]
+    },
+    "vendor": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "role": {
+      "enum": ["primary", "secondary"]
+    },
+    "status": {
+      "enum": ["pre_selection", "measured", "signed"]
+    },
+    "synthetic": {
+      "const": true
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "performance",
+        "quality",
+        "compliance",
+        "licensing",
+        "replaceability",
+        "cost"
+      ],
+      "properties": {
+        "performance": {
+          "$ref": "#/$defs/dimension"
+        },
+        "quality": {
+          "$ref": "#/$defs/dimension"
+        },
+        "compliance": {
+          "$ref": "#/$defs/dimension"
+        },
+        "licensing": {
+          "$ref": "#/$defs/dimension"
+        },
+        "replaceability": {
+          "$ref": "#/$defs/dimension"
+        },
+        "cost": {
+          "$ref": "#/$defs/dimension"
+        }
+      }
+    },
+    "score": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "red_lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule", "verdict"],
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": ["pass", "fail"]
+          },
+          "measured_ms": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "samples_ref": {
+      "type": ["string", "null"]
+    },
+    "measured_at": {
+      "type": ["string", "null"]
+    },
+    "measured_by": {
+      "type": ["string", "null"]
+    }
+  },
+  "$defs": {
+    "dimension": {
+      "type": "object",
+      "required": ["score", "weight", "status"],
+      "properties": {
+        "score": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "evidence_ref": {
+          "type": ["string", "null"]
+        },
+        "status": {
+          "enum": ["pending", "desk_research", "measured", "signed"]
+        }
+      }
+    }
+  }
+}

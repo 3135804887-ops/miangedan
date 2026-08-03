@@ -1,0 +1,14 @@
+{
+  "kind": "provider_eval_session_manifest",
+  "synthetic": true,
+  "generated_by": "scripts/generate_sessions.py",
+  "counts": {
+    "zh-CN": 22,
+    "en-US": 6
+  },
+  "sources": [
+    "C:\\Users\\Administrator\\Documents\\Codex\\2026-08-02\\3135804887-ops-miangedan-https-github-com\\work\\miangedan\\ai\\evals\\datasets\\zh-core.jsonl",
+    "C:\\Users\\Administrator\\Documents\\Codex\\2026-08-02\\3135804887-ops-miangedan-https-github-com\\work\\miangedan\\ai\\evals\\datasets\\en-core.jsonl",
+    "C:\\Users\\Administrator\\Documents\\Codex\\2026-08-02\\3135804887-ops-miangedan-https-github-com\\work\\miangedan\\fixtures\\synthetic\\transcripts\\transcript-zh-01.json"
+  ]
+}
