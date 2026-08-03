@@ -13,6 +13,11 @@ type MemoryStore struct {
 	invitations  map[string]Invitation
 	invIDem      map[string]Invitation
 	audits       map[string][]AuditEntry
+	assignments  map[string]Assignment
+	assignIDem   map[string]Assignment
+	assignByOrg  map[string][]Assignment
+	assignMember map[string]AssignmentMember
+	assignMemBy  map[string][]AssignmentMember
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -25,6 +30,11 @@ func NewMemoryStore() *MemoryStore {
 		invitations:  make(map[string]Invitation),
 		invIDem:      make(map[string]Invitation),
 		audits:       make(map[string][]AuditEntry),
+		assignments:  make(map[string]Assignment),
+		assignIDem:   make(map[string]Assignment),
+		assignByOrg:  make(map[string][]Assignment),
+		assignMember: make(map[string]AssignmentMember),
+		assignMemBy:  make(map[string][]AssignmentMember),
 	}
 }
 
@@ -175,6 +185,96 @@ func (m *MemoryStore) ListAudits(dataRegion, orgID string) ([]AuditEntry, error)
 	defer m.mu.RUnlock()
 	items := m.audits[dataRegion+"|"+orgID]
 	out := make([]AuditEntry, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// SaveAssignment 保存训练任务。
+func (m *MemoryStore) SaveAssignment(a Assignment, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.assignments[a.DataRegion+"|"+a.AssignmentID] = a
+	if idemKey != "" {
+		m.assignIDem[a.DataRegion+"|"+idemKey] = a
+	}
+	m.assignByOrg[a.DataRegion+"|"+a.OrgID] = append(m.assignByOrg[a.DataRegion+"|"+a.OrgID], a)
+	return nil
+}
+
+// GetAssignmentByID 按 ID 查询任务。
+func (m *MemoryStore) GetAssignmentByID(dataRegion, assignmentID string) (Assignment, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	a, ok := m.assignments[dataRegion+"|"+assignmentID]
+	if !ok {
+		return Assignment{}, ErrNotFound
+	}
+	return a, nil
+}
+
+// GetAssignmentByIdempotencyKey 幂等键查询任务。
+func (m *MemoryStore) GetAssignmentByIdempotencyKey(dataRegion, key string) (Assignment, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	a, ok := m.assignIDem[dataRegion+"|"+key]
+	if !ok {
+		return Assignment{}, ErrNotFound
+	}
+	return a, nil
+}
+
+// UpdateAssignment 更新任务状态。
+func (m *MemoryStore) UpdateAssignment(a Assignment) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.assignments[a.DataRegion+"|"+a.AssignmentID] = a
+	return nil
+}
+
+// ListAssignments 列出机构任务。
+func (m *MemoryStore) ListAssignments(dataRegion, orgID string) ([]Assignment, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.assignByOrg[dataRegion+"|"+orgID]
+	out := make([]Assignment, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// SaveAssignmentMember 保存任务-成员状态。
+func (m *MemoryStore) SaveAssignmentMember(member AssignmentMember) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.assignMember[member.AssignmentID+"|"+member.UserID] = member
+	m.assignMemBy[member.AssignmentID] = append(m.assignMemBy[member.AssignmentID], member)
+	return nil
+}
+
+// GetAssignmentMember 查询任务-成员状态。
+func (m *MemoryStore) GetAssignmentMember(assignmentID, userID string) (AssignmentMember, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	member, ok := m.assignMember[assignmentID+"|"+userID]
+	if !ok {
+		return AssignmentMember{}, ErrNotFound
+	}
+	return member, nil
+}
+
+// UpdateAssignmentMember 更新任务-成员状态。
+func (m *MemoryStore) UpdateAssignmentMember(member AssignmentMember) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.assignMember[member.AssignmentID+"|"+member.UserID] = member
+	return nil
+}
+
+// ListAssignmentMembers 列出任务成员。
+func (m *MemoryStore) ListAssignmentMembers(assignmentID string) ([]AssignmentMember, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.assignMemBy[assignmentID]
+	out := make([]AssignmentMember, len(items))
 	copy(out, items)
 	return out, nil
 }

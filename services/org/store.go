@@ -18,4 +18,14 @@ type Store interface {
 	ListInvitations(dataRegion, orgID string) ([]Invitation, error)
 	AppendAudit(AuditEntry) error
 	ListAudits(dataRegion, orgID string) ([]AuditEntry, error)
+	// TASK-071 训练任务与模板（禁止项由服务层强制；成员状态默认最小可见）。
+	SaveAssignment(Assignment, string) error
+	GetAssignmentByID(dataRegion, assignmentID string) (Assignment, error)
+	GetAssignmentByIdempotencyKey(dataRegion, key string) (Assignment, error)
+	UpdateAssignment(Assignment) error
+	ListAssignments(dataRegion, orgID string) ([]Assignment, error)
+	SaveAssignmentMember(AssignmentMember) error
+	GetAssignmentMember(assignmentID, userID string) (AssignmentMember, error)
+	UpdateAssignmentMember(AssignmentMember) error
+	ListAssignmentMembers(assignmentID string) ([]AssignmentMember, error)
 }

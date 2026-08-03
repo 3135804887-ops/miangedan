@@ -2408,6 +2408,28 @@ paths:
       responses:
         '200': { description: 任务详情（默认最小可见）, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/assignments/{assignmentId}/publish:
+    post:
+      tags: [organizations]
+      operationId: publishAssignment
+      summary: 发布训练任务（draft → published；写审计）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200': { description: 已发布, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/orgs/{orgId}/assignments/{assignmentId}/close:
+    post:
+      tags: [organizations]
+      operationId: closeAssignment
+      summary: 关闭训练任务（published → closed；写审计）
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200': { description: 已关闭, content: { application/json: { schema: { $ref: '#/components/schemas/Assignment' } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/assignments/{assignmentId}/shares:
     post:
       tags: [organizations]
