@@ -61,6 +61,13 @@ def test_funasr_default_model() -> None:
     assert backend._model_name == FunasrBackend.DEFAULT_MODEL
 
 
+def test_edge_tts_default_voice() -> None:
+    from mgd_selfhost.tts import EdgeTtsBackend
+
+    backend = EdgeTtsBackend()
+    assert backend._voice_name == EdgeTtsBackend.DEFAULT_VOICE
+
+
 @pytest.mark.skipif(
     not (HAS_WHISPER and HAS_PIPER and HAS_VOICE),
     reason="需要 asr-whisper/tts-piper 扩展与 piper 音色文件",

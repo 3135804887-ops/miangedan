@@ -12,7 +12,7 @@
 ## 后端矩阵
 
 - ASR：`whisper`（默认，faster-whisper CPU int8）；`funasr`（SenseVoiceSmall，CPU 回合级转写，中文质量优先；可换 paraformer-zh 等 ModelScope 模型）。
-- TTS：`piper`（默认，zh_CN-huayan-medium，CPU 即时）；`cosyvoice`（GPU 预留，CosyVoice 2）。
+- TTS：`piper`（默认，zh_CN-huayan-medium，CPU 即时）；`edge`（edge-tts 神经音色，本地开发/演示音质更好；非官方接口 + 境外数据，禁止 cn 区生产）；`cosyvoice`（GPU 预留，CosyVoice 2）。
 
 ## 安装与运行
 
@@ -20,6 +20,8 @@
 cd ai/services/selfhost
 pip install -e ".[dev,asr-whisper,tts-piper]"
 $env:SELFHOST_ASR_BACKEND="funasr"  # 切到 FunASR（需先装 asr-funasr 扩展与 CPU 版 torch）
+$env:SELFHOST_TTS_BACKEND="edge"    # 切到 edge-tts（需先装 tts-edge 扩展；仅本地开发/演示）
+$env:SELFHOST_TTS_VOICE_NAME="zh-CN-XiaoxiaoNeural"
 $env:SELFHOST_TTS_VOICE_DIR="<piper 音色目录>"
 python -m mgd_selfhost.main
 ```
@@ -36,7 +38,7 @@ python -m mgd_selfhost.main
 
 - `SELFHOST_HOST` / `SELFHOST_PORT`：监听地址（默认 127.0.0.1:8000）。
 - `SELFHOST_ASR_BACKEND` / `SELFHOST_ASR_MODEL`：ASR 后端与模型（whisper 默认 small；funasr 默认 `iic/SenseVoiceSmall`，可换 paraformer-zh 等）。
-- `SELFHOST_TTS_BACKEND` / `SELFHOST_TTS_VOICE_DIR` / `SELFHOST_TTS_VOICE_NAME`：TTS 后端、音色目录与音色名。
+- `SELFHOST_TTS_BACKEND` / `SELFHOST_TTS_VOICE_DIR` / `SELFHOST_TTS_VOICE_NAME`：TTS 后端（piper/edge/cosyvoice）、音色目录与音色名（edge 默认 zh-CN-XiaoxiaoNeural）。
 
 ## 测试
 

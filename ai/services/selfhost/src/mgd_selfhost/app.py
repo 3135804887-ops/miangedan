@@ -35,18 +35,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     @app.post("/v1/asr/transcribe")
-    async def transcribe(
-        file: UploadFile = File(...), language: str | None = None
-    ) -> dict[str, str]:
+    def transcribe(file: UploadFile = File(...), language: str | None = None) -> dict[str, str]:
         suffix = os.path.splitext(file.filename or "audio.wav")[1] or ".wav"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(await file.read())
+            tmp.write(file.file.read())
             tmp_path = Path(tmp.name)
         text = _run_transcribe(asr_backend, tmp_path, language)
         return {"text": text}
 
     @app.post("/v1/tts/synthesize")
-    async def synthesize(text: str = Form(...)) -> Response:
+    def synthesize(text: str = Form(...)) -> Response:
         if not text.strip():
             raise HTTPException(status_code=400, detail="text 不能为空")
         data = _run_tts(tts_backend, text)

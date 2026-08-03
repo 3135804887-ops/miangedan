@@ -18,6 +18,7 @@ dependencies = [
 asr-whisper = ["faster-whisper>=1.1"]
 asr-funasr = ["funasr>=1.4"]
 tts-piper = ["piper-tts>=1.6"]
+tts-edge = ["edge-tts>=7.2", "av>=11"]
 dev = ["ruff>=0.9", "mypy>=1.14", "pytest>=8"]
 
 [tool.setuptools.packages.find]
@@ -44,7 +45,7 @@ strict = true
 mypy_path = ["src"]
 
 [[tool.mypy.overrides]]
-module = ["fastapi.*", "uvicorn.*", "httpx.*", "numpy.*", "soundfile.*", "librosa.*", "funasr.*"]
+module = ["fastapi.*", "uvicorn.*", "httpx.*", "numpy.*", "soundfile.*", "librosa.*", "funasr.*", "edge_tts.*", "av.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
