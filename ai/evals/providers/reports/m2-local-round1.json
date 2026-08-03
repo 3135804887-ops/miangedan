@@ -26,6 +26,26 @@
     "asr_similarity_avg": 0.965,
     "asr_similarity_min": 0.821
   },
+  "blind_review": {
+    "status": "completed",
+    "reviewer": "项目负责人",
+    "reviewed_at": "2026-08-04",
+    "method": "人工 MOS 1-5（只听音频，不看 golden）",
+    "avg_mos": 5.0,
+    "scores_by_session": {
+      "prov-zh-CN-zh-normal-01-00": 5.0,
+      "prov-zh-CN-zh-normal-01-01": 5.0,
+      "prov-zh-CN-zh-normal-01-02": 5.0,
+      "prov-zh-CN-zh-normal-01-03": 5.0,
+      "prov-zh-CN-zh-text-01-00": 5.0,
+      "prov-zh-CN-zh-text-01-01": 5.0,
+      "prov-zh-CN-zh-text-01-02": 5.0,
+      "prov-zh-CN-zh-insufficient-01-00": 5.0,
+      "prov-zh-CN-zh-revision-01-00": 5.0,
+      "prov-zh-CN-zh-revision-01-01": 5.0
+    },
+    "notes": "10/10 满分"
+  },
   "quality": [
     {
       "session_id": "prov-zh-CN-zh-normal-01-00",
@@ -137,7 +157,6 @@
     "interrupt_p95",
     "video_720p_24fps",
     "weak_network",
-    "long_session_60min",
-    "tts_mos_blind_review"
+    "long_session_60min"
   ]
 }
