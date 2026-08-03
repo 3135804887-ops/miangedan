@@ -15,6 +15,19 @@
 
 ### Added
 
+- TASK-040 评分服务（`task/TASK-040-scoring-service` 分支）：
+  - 新 Go 模块 `services/scoring`（FR-021）：SCORING-SPEC 6.1-6.7 伪代码逐条实现
+    ——六维证据状态机、锚点映射与相邻锚点插值（引用缺失回退下锚点）、覆盖率 ≥0.5、
+    关键转写 unrecoverable → 评估未完成、沟通维度 voice 公式、60 分双门槛
+    （总分 ≥60 且全部关键维度 ≥60，取整后比较）、非关键弱项/未覆盖归一化、
+    正式重试锁定沿用/新分替换/矛盾解锁重评、idempotency_key 幂等（NFR-006）、
+    服务故障降级 scoring_service_failure 不判失败且恢复可重算（SC-EC-18）。
+  - HTTP：`/v1/projects/{projectId}/rounds/{sequence}/result` 与 `/scores` 分页落地，
+    `/review` 为 TASK-043 501 占位；openapi ScoreResult 补充 gate_result /
+    incomplete_reason；scoring-input schema 增加 coverage_assessments 冻结判定结构；
+    DOMAIN-MODEL §6.12 同步；go.work 与 CI golangci 矩阵登记 scoring。
+  - SC-EC-01~08/13/14/18/20/24 边界案例回归 + 正常/异常/幂等/故障恢复测试齐备
+    （服务 20 用例 + HTTP 6 用例）。（TASK-040、FR-021、SCORING-SPEC、NFR-006）
 - TASK-035 提示注入防护与内容安全管道（`task/TASK-035-safety-pipeline` 分支）：
   - `ai/services/orchestrator` 新增 `mgd_orchestrator.safety_pipeline`（P0 注入风险，
     US-02 场景 5）：以 `config/safety/policy.yaml` 为唯一事实源；简历/JD/网页/自由文本/

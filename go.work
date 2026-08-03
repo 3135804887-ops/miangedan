@@ -1,10 +1,10 @@
 go 1.26
 
 use (
+	./services/adminapi
 	./services/asr
 	./services/avatar
 	./services/backup
-	./services/adminapi
 	./services/billing
 	./services/consent
 	./services/evidence
@@ -18,6 +18,7 @@ use (
 	./services/provider
 	./services/region
 	./services/room
+	./services/scoring
 	./services/secretref
 	./services/source
 	./services/temporal
