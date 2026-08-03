@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-063 退款与补偿（`task/TASK-063-refunds` 分支）：
+  - `services/billing` 退款流程（FR-033，US-06 场景 3）：小额用户退款自动执行、
+    大额（≥¥500 等值）与人工补偿双人审批（同一审批人去重、不可自批）、
+    系统故障自动全额执行、拒绝说明原因且可申诉；
+  - 执行退款幂等（原子 MarkRefundExecuted），账本追加 refund 冲正条目记录原因，
+    订单累计 refunded_cents；退款不影响评分/复核/解锁。
+  - openapi 增加 Refund schema 与 approve/reject/appeal 端点；contracts 已重新生成。
+  - 服务正常、异常、幂等、并发双人审批、拒绝申诉测试齐备（新增 6 用例），
+    gofmt/vet 通过。
+    （TASK-063、FR-033、BILLING-STATE-MACHINE §5.4/§8）
 - TASK-062 区域化支付集成（`task/TASK-062-payment-orders` 分支）：
   - `services/billing` 支付订单（FR-033，US-06 场景 4）：Order 状态机
     （PAYMENT_PENDING → PAID / PAYMENT_FAILED / PAYMENT_TIMEOUT）、创建订单幂等键去重、

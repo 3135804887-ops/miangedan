@@ -613,6 +613,15 @@
 > gofmt/vet 通过。
 > （TASK-062、FR-033、BILLING-STATE-MACHINE §5.2/§8/§9）
 
+> **任务状态（2026-08-03 更新）**：TASK-063 已实现（FR-033，US-06 场景 3）——
+> `services/billing` 退款与补偿：小额用户退款自动执行；大额（≥¥500 等值）与人工补偿
+> 双人审批（同一审批人去重、不可自批、并发审批原子去重）；系统故障自动全额执行；
+> 拒绝说明原因、用户可申诉；执行退款幂等（MarkRefundExecuted 原子），账本追加
+> refund 冲正条目记录原因，订单累计 refunded_cents；退款不影响评分/复核/解锁。
+> openapi 增加 Refund schema 与 approve/reject/appeal 端点；contracts 已重新生成。
+> 服务正常、异常、幂等、并发双人审批、拒绝申诉测试齐备（新增 6 用例），gofmt/vet 通过。
+> （TASK-063、FR-033、BILLING-STATE-MACHINE §5.4/§8）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。

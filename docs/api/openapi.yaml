@@ -1997,7 +1997,7 @@ paths:
     post:
       tags: [billing]
       operationId: requestRefund
-      summary: 申请退款（系统故障自动返还除外；大额双人审批；不影响评分与解锁）
+      summary: 申请退款（系统故障自动执行；大额或人工补偿双人审批；不影响评分与解锁）
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -2010,8 +2010,75 @@ paths:
               properties:
                 order_id: { type: string, format: uuid }
                 reason: { type: string }
+                kind: { enum: [user_request, system_fault, compensation], default: user_request }
       responses:
-        '202': { description: 退款任务已创建（异步，可查真实进度）, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        '201': { description: 退款已受理（小额/系统故障直接 REFUNDED；大额进入 REFUND_REVIEWING）, content: { application/json: { schema: { $ref: '#/components/schemas/Refund' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/refunds/{refundId}/approve:
+    post:
+      tags: [billing]
+      operationId: approveRefund
+      summary: 双人审批（两名不同审批人后自动执行；同一审批人重复无效）
+      parameters:
+        - name: refundId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approver_id]
+              properties:
+                approver_id: { type: string, description: 审批人身份（后台令牌注入，禁止自批） }
+      responses:
+        '200': { description: 审批结果, content: { application/json: { schema: { $ref: '#/components/schemas/Refund' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/refunds/{refundId}/reject:
+    post:
+      tags: [billing]
+      operationId: rejectRefund
+      summary: 拒绝退款并说明原因（用户可申诉）
+      parameters:
+        - name: refundId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: 已拒绝, content: { application/json: { schema: { $ref: '#/components/schemas/Refund' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/refunds/{refundId}/appeal:
+    post:
+      tags: [billing]
+      operationId: appealRefund
+      summary: 被拒后退款申诉（重新进入审批；仅本人可申诉）
+      parameters:
+        - name: refundId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: 已重新进入审批, content: { application/json: { schema: { $ref: '#/components/schemas/Refund' } } } }
         default: { $ref: '#/components/responses/Error' }
   /v1/subscription:
     get:
@@ -3210,6 +3277,20 @@ components:
         total: { $ref: '#/components/schemas/Money' }
         refunded_total: { type: ['integer', 'null'], minimum: 0, description: 已原路退回金额（重复扣款自动退回后可见） }
         progress_note: { type: ['string', 'null'], description: 支付成功未到账时保持处理中的真实进度说明 }
+        created_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    Refund:
+      type: object
+      required: [refund_id, order_id, status, amount, reason, created_at]
+      properties:
+        refund_id: { type: string, format: uuid }
+        order_id: { type: string, format: uuid }
+        status: { enum: [REFUND_REQUESTED, REFUND_REVIEWING, REFUND_APPROVED, REFUNDED, REFUND_REJECTED] }
+        kind: { enum: [user_request, system_fault, compensation, duplicate_charge] }
+        amount: { $ref: '#/components/schemas/Money' }
+        reason: { type: string }
+        reject_reason: { type: ['string', 'null'] }
+        approver_pair: { type: ['array', 'null'], items: { type: string }, description: 双人审批对（同一审批人去重） }
         created_at: { type: string, format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
     UsageLedgerEntry:

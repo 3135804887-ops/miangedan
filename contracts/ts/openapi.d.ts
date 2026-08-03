@@ -1555,8 +1555,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 申请退款（系统故障自动返还除外；大额双人审批；不影响评分与解锁） */
+        /** 申请退款（系统故障自动执行；大额或人工补偿双人审批；不影响评分与解锁） */
         post: operations["requestRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/refunds/{refundId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 双人审批（两名不同审批人后自动执行；同一审批人重复无效） */
+        post: operations["approveRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/refunds/{refundId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝退款并说明原因（用户可申诉） */
+        post: operations["rejectRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/refunds/{refundId}/appeal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 被拒后退款申诉（重新进入审批；仅本人可申诉） */
+        post: operations["appealRefund"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2803,6 +2854,24 @@ export interface components {
             refunded_total?: number | null;
             /** @description 支付成功未到账时保持处理中的真实进度说明 */
             progress_note?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            data_region?: components["schemas"]["Region"];
+        };
+        Refund: {
+            /** Format: uuid */
+            refund_id: string;
+            /** Format: uuid */
+            order_id: string;
+            /** @enum {unknown} */
+            status: "REFUND_REQUESTED" | "REFUND_REVIEWING" | "REFUND_APPROVED" | "REFUNDED" | "REFUND_REJECTED";
+            /** @enum {unknown} */
+            kind?: "user_request" | "system_fault" | "compensation" | "duplicate_charge";
+            amount: components["schemas"]["Money"];
+            reason: string;
+            reject_reason?: string | null;
+            /** @description 双人审批对（同一审批人去重） */
+            approver_pair?: string[] | null;
             /** Format: date-time */
             created_at: string;
             data_region?: components["schemas"]["Region"];
@@ -6399,17 +6468,110 @@ export interface operations {
                     /** Format: uuid */
                     order_id: string;
                     reason: string;
+                    /**
+                     * @default user_request
+                     * @enum {unknown}
+                     */
+                    kind?: "user_request" | "system_fault" | "compensation";
                 };
             };
         };
         responses: {
-            /** @description 退款任务已创建（异步，可查真实进度） */
-            202: {
+            /** @description 退款已受理（小额/系统故障直接 REFUNDED；大额进入 REFUND_REVIEWING） */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AsyncTask"];
+                    "application/json": components["schemas"]["Refund"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    approveRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refundId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 审批人身份（后台令牌注入，禁止自批） */
+                    approver_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 审批结果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refund"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    rejectRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refundId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已拒绝 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refund"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    appealRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refundId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已重新进入审批 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Refund"];
                 };
             };
             default: components["responses"]["Error"];
