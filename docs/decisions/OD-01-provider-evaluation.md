@@ -169,6 +169,8 @@
 
 ### M2 实测验收（OD-01 第 6 节）
 
+- 第一轮本地实测（2026-08-03）：ASR 回合级 P95 798ms、P50 368ms，10 条合成样本平均相似度 0.965；TTS（edge-tts）整段合成 P95 约 4.3s；LLM（DeepSeek）3/3 通过。样本与报告见 `ai/evals/providers/samples/` 与 `ai/evals/providers/reports/m2-local-round1.json`。
+- 待浏览器联调轮次：建连、全链路回应（含数字人）、打断、720p/24fps、弱网、60 分钟长会话；TTS MOS 人工盲评（盲评包 `work/m2/audio/` + `review-manifest.json`）。
 - 按 §6 清单实测：建连、全链路回应、打断、ASR 终稿、720p/24fps、弱网、60 分钟长会话；
 - TTS/ASR 质量盲评（MOS/字准率）；评分卡回填；技术/AI/安全三方签字；ADR 入库；OD-01 关闭。
 
