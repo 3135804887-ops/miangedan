@@ -1802,6 +1802,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orgs/invitations/{invitationId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 用户以个人账户接受邀请加入（无影子账户；过期/停用拒绝） */
+        post: operations["acceptOrgInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 机构成员列表（owner/admin/instructor 可看） */
+        get: operations["listOrgMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/members/{userId}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 调整成员角色（owner 仅本人可变更；写审计） */
+        post: operations["setOrgMemberRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 退出机构（个人记录保留；机构访问立即失效由 TASK-074 挂接） */
+        post: operations["leaveOrg"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orgs/{orgId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 机构停用/启用/注销（owner；停用后成员令牌与共享链接失效） */
+        post: operations["setOrgStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/orgs/{orgId}/members/invite": {
         parameters: {
             query?: never;
@@ -3084,6 +3169,36 @@ export interface components {
              * @enum {unknown}
              */
             caller_role: "owner" | "admin" | "instructor" | "privacy_auditor" | "finance" | "candidate" | null;
+        };
+        OrgMember: {
+            /** Format: uuid */
+            org_id: string;
+            /** @description 个人账户 ID（无影子账户） */
+            user_id: string;
+            /** @enum {unknown} */
+            role: "owner" | "admin" | "instructor" | "privacy_auditor" | "finance" | "candidate";
+            /** @enum {unknown} */
+            invite_method?: "link" | "org_email" | "bulk_list" | "sso" | "scim";
+            /** Format: date-time */
+            joined_at: string;
+            /** Format: date-time */
+            left_at?: string | null;
+        };
+        Invitation: {
+            /** Format: uuid */
+            invitation_id: string;
+            /** Format: uuid */
+            org_id: string;
+            /** Format: email */
+            email?: string | null;
+            /** @enum {unknown} */
+            role: "owner" | "admin" | "instructor" | "privacy_auditor" | "finance" | "candidate";
+            /** @enum {unknown} */
+            invite_method: "link" | "org_email" | "bulk_list" | "sso" | "scim";
+            /** @enum {unknown} */
+            status: "pending" | "accepted" | "revoked";
+            /** Format: date-time */
+            expires_at: string;
         };
         Assignment: {
             /** Format: uuid */
@@ -7081,6 +7196,137 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 机构详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    acceptOrgInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已加入 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgMember"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listOrgMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成员列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data_region?: components["schemas"]["Region"];
+                        items?: components["schemas"]["OrgMember"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setOrgMemberRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {unknown} */
+                    role: "owner" | "admin" | "instructor" | "privacy_auditor" | "finance" | "candidate";
+                };
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgMember"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    leaveOrg: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已退出 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setOrgStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: components["parameters"]["OrgId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {unknown} */
+                    status: "active" | "suspended" | "deactivated";
+                };
+            };
+        };
+        responses: {
+            /** @description 已更新 */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-070 机构租户与六类角色（`task/TASK-070-org-tenants` 分支）：
+  - `services/org` 首次业务实现（FR-034，US-07）：机构租户、六类角色权限分离
+    矩阵、邀请适配点（link/org_email/bulk_list/sso/scim）、个人账户加入
+    （无影子账户）、成员角色调整、退出（left_at 保留个人记录）、机构停用/注销；
+  - 全部变更写追加式审计；邀请 14 天有效、幂等键去重、邮箱匹配校验。
+  - 迁移 `0065_org_tenants.sql`；openapi 增加 accept/members/role/leave/status
+    端点与 OrgMember/Invitation schema；contracts 已重新生成。
+  - 服务正常、异常、幂等、角色分离、退出保留测试齐备（新增 6 用例），
+    gofmt/vet 通过。
+    （TASK-070、FR-034、DOMAIN-MODEL §6.16）
 - TASK-065 发票与税费（`task/TASK-065-invoices` 分支）：
   - `services/billing` 票据（FR-033，US-06 场景 11）：区域定价配置
     （cn CNY/6% 增值税/合规发票；eu EUR/19% VAT/收据；intl USD/0% 明示税费/收据）；

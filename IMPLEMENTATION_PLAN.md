@@ -643,6 +643,18 @@
 > 服务正常、异常、幂等、区域合规测试齐备（新增 5 用例），gofmt/vet 通过。
 > （TASK-065、FR-033、BILLING-STATE-MACHINE §7）
 
+> **任务状态（2026-08-03 更新）**：TASK-070 已实现（FR-034，US-07）——
+> `services/org` 首次业务实现：机构租户（创建者以个人账户加入并成为所有者，
+> 无影子账户）；六类角色权限分离矩阵（owner/admin/instructor/privacy_auditor/
+> finance/candidate，财务/审计/教学/管理默认分离）；邀请适配点
+> （link/org_email/bulk_list/sso/scim，14 天有效、幂等键去重、邮箱匹配校验）；
+> 成员加入/列表/角色调整（owner 仅本人可变更）/退出（left_at 保留个人记录）/
+> 机构停用/启用/注销；所有变更写追加式审计。迁移 `0065_org_tenants.sql`
+> （organizations/org_members/org_invitations）；openapi 增加 accept/members/
+> role/leave/status 端点与 OrgMember/Invitation schema。
+> 服务正常、异常、幂等、角色分离、退出保留测试齐备（新增 6 用例），gofmt/vet 通过。
+> （TASK-070、FR-034、DOMAIN-MODEL §6.16）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。

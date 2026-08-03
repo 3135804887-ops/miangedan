@@ -108,8 +108,9 @@
 
 | 表 | 用途 | 关键字段 | 主要索引 |
 |---|---|---|---|
-| `organizations` | 机构租户 | org_id PK、data_region、name、status、seat_limit、created_at | organizations(data_region, status) |
-| `org_members` | 机构成员与角色 | (org_id, user_id) PK、roles（owner/admin/instructor/privacy_auditor/finance/member 分离）、joined_at、left_at | org_members(user_id) |
+| `organizations` | 机构租户（TASK-070） | org_id PK、data_region、name、status（active/suspended/deactivated）、created_by（个人账户，无影子账户）、created_at | organizations(data_region, status) |
+| `org_members` | 机构成员与角色（TASK-070） | (org_id, user_id) PK、role（owner/admin/instructor/privacy_auditor/finance/candidate 分离）、invite_method（link/org_email/bulk_list/sso/scim）、joined_at、left_at | org_members(user_id) |
+| `org_invitations` | 成员邀请（TASK-070） | invitation_id PK、org_id FK、email、role、invite_method、status（pending/accepted/revoked）、expires_at、idempotency_key UNIQUE | org_invitations(org_id, status) |
 | `assignments` | 训练任务 | assignment_id PK、org_id FK、template_json（禁改项由 CHECK/服务层强制）、deadline、status、created_at | assignments(org_id, status) |
 | `assignment_members` | 任务-成员状态 | (assignment_id, user_id) PK、status（invited/accepted/not_started/in_progress/completed/exited）、completed_at、fault_flag | assignment_members(assignment_id, status) |
 | `assignment_shares` | 按任务细粒度授权 | share_id PK、assignment_id FK、user_id FK、scope（radar/total_score/round_results/full_report/transcript/media 子集）、expires_at、withdrawn_at、grant_id FK | assignment_shares(assignment_id, user_id)；assignment_shares(expires_at)（到期失效任务） |
