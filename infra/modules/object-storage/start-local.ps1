@@ -15,10 +15,13 @@ if ($running) {
     exit 0
 }
 
-if (-not (Test-Path $exe)) {
+if (-not (Test-Path $exe) -or (Get-Item $exe).Length -lt 50MB) {
     $url = 'https://dl.min.io/server/minio/release/windows-amd64/minio.exe'
     Write-Output "downloading $url"
-    Invoke-WebRequest -Uri $url -OutFile $exe
+    Invoke-WebRequest -Uri $url -OutFile $exe -TimeoutSec 120
+    if ((Get-Item $exe).Length -lt 50MB) {
+        throw 'minio.exe 下载不完整，请检查网络（dl.min.io 需要可达或走代理）'
+    }
 }
 
 $rootUser = 'minioadmin'
