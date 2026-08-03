@@ -400,11 +400,13 @@ export function RoomView({
       {/* 右列：数字人 + 候选人 + 进度 */}
       <aside className="flex min-h-0 flex-col gap-4">
         <div
-          role="img"
-          aria-label={locale === 'zh-CN' ? '数字面试官视频（始终开启）' : 'Avatar video (always on)'}
           className="relative min-h-56 flex-1 overflow-hidden rounded-2xl bg-[linear-gradient(160deg,var(--mgd-app-brand-ink),var(--mgd-app-brand-from)_55%,var(--mgd-app-brand-to))] shadow-[var(--mgd-app-shadow-lg)]"
         >
-          <div className="absolute inset-0 grid place-items-center">
+          <div
+            role="img"
+            aria-label={locale === 'zh-CN' ? '数字面试官视频（始终开启）' : 'Avatar video (always on)'}
+            className="absolute inset-0 grid place-items-center"
+          >
             <img
               src="/avatars/interviewer-cn.png"
               alt={locale === 'zh-CN' ? '数字面试官形象' : 'Digital interviewer avatar'}
