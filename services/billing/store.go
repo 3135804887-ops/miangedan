@@ -15,4 +15,10 @@ type Store interface {
 	GetFreeze(dataRegion, projectID string) (Freeze, error)
 	SaveSubscription(ProSubscription, string) error
 	GetSubscription(dataRegion, userID string) (ProSubscription, error)
+	// TASK-061 秒级账本（追加式；幂等键唯一）。
+	AppendLedger(LedgerEntry) error
+	GetLedgerByIdempotencyKey(dataRegion, key string) (LedgerEntry, error)
+	GetLedgerByProject(dataRegion, projectID string) ([]LedgerEntry, error)
+	SaveMeter(Meter) error
+	GetMeter(dataRegion, sessionID string) (Meter, error)
 }

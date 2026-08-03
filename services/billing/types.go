@@ -123,3 +123,55 @@ type ProSubscription struct {
 	AutoRenew        bool
 	DataRegion       string
 }
+
+// 账本条目类型（usage_ledger.entry_type 对齐；追加式，冲正以 reversal 实现）。
+const (
+	EntryReserve  = "reserve"
+	EntryConsume  = "consume"
+	EntryRelease  = "release"
+	EntryRefund   = "refund"
+	EntryReversal = "reversal"
+)
+
+// LedgerEntry 为一条秒级使用账本记录（只增不改）。
+type LedgerEntry struct {
+	EntryID        string
+	UserID         string
+	ProjectID      string
+	RoundSequence  int
+	AttemptID      string
+	SessionID      string
+	EntryType      string
+	Seconds        int
+	Reason         string
+	BalanceAfter   int
+	IdempotencyKey string
+	DataRegion     string
+	CreatedAt      time.Time
+}
+
+// Meter 为会话计量状态（只计 LIVE 秒数；故障/等待/降级后不计）。
+type Meter struct {
+	SessionID          string
+	AttemptID          string
+	ProjectID          string
+	RoundSequence      int
+	Status             string // capturing | stopped
+	StartedAt          *time.Time
+	StoppedAt          *time.Time
+	AccumulatedSeconds int
+	ReservationSeconds int
+	Settled            bool
+	Refunded           bool
+	DataRegion         string
+}
+
+// ReserveInput 为每轮开始前预留请求。
+type ReserveInput struct {
+	ProjectID        string
+	RoundSequence    int
+	AttemptID        string
+	SessionID        string
+	EstimatedSeconds int
+	IdempotencyKey   string
+}

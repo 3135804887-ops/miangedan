@@ -15,6 +15,9 @@ type MemoryStore struct {
 	quotesByProj  map[string][]Quote
 	freezes       map[string]Freeze
 	subscriptions map[string]ProSubscription
+	ledger        map[string][]LedgerEntry
+	ledgerIDem    map[string]LedgerEntry
+	meters        map[string]Meter
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -27,6 +30,9 @@ func NewMemoryStore() *MemoryStore {
 		quotesByProj:  make(map[string][]Quote),
 		freezes:       make(map[string]Freeze),
 		subscriptions: make(map[string]ProSubscription),
+		ledger:        make(map[string][]LedgerEntry),
+		ledgerIDem:    make(map[string]LedgerEntry),
+		meters:        make(map[string]Meter),
 	}
 }
 
@@ -166,4 +172,54 @@ func (m *MemoryStore) GetSubscription(dataRegion, userID string) (ProSubscriptio
 		return ProSubscription{}, ErrNotFound
 	}
 	return s, nil
+}
+
+// AppendLedger 追加账本条目（幂等键唯一由服务层保证）。
+func (m *MemoryStore) AppendLedger(e LedgerEntry) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.ledger[e.DataRegion+"|"+e.ProjectID] =
+		append(m.ledger[e.DataRegion+"|"+e.ProjectID], e)
+	m.ledgerIDem[e.DataRegion+"|"+e.IdempotencyKey] = e
+	return nil
+}
+
+// GetLedgerByIdempotencyKey 幂等键查询账本条目。
+func (m *MemoryStore) GetLedgerByIdempotencyKey(dataRegion, key string) (LedgerEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	e, ok := m.ledgerIDem[dataRegion+"|"+key]
+	if !ok {
+		return LedgerEntry{}, ErrNotFound
+	}
+	return e, nil
+}
+
+// GetLedgerByProject 列出项目账本（创建时间升序）。
+func (m *MemoryStore) GetLedgerByProject(dataRegion, projectID string) ([]LedgerEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.ledger[dataRegion+"|"+projectID]
+	out := make([]LedgerEntry, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// SaveMeter 保存计量状态。
+func (m *MemoryStore) SaveMeter(meter Meter) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.meters[meter.DataRegion+"|"+meter.SessionID] = meter
+	return nil
+}
+
+// GetMeter 查询计量状态。
+func (m *MemoryStore) GetMeter(dataRegion, sessionID string) (Meter, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	meter, ok := m.meters[dataRegion+"|"+sessionID]
+	if !ok {
+		return Meter{}, ErrNotFound
+	}
+	return meter, nil
 }

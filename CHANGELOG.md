@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-061 秒级 UsageLedger（`task/TASK-061-usage-ledger` 分支）：
+  - `services/billing` 账本（FR-032）：Reserve（开始前预留、不足阻止、消费顺序
+    免费→项目包→Pro→加油包）、Start/StopMetering（只计 LIVE 秒）、Settle
+    （实际扣减 + 冲正释放）、RefundFull（系统责任全额返还）；追加式账本 +
+    幂等键；
+  - `services/room` 挂接点闭环：创建会话预留+计量、结束结算、降级接受停止计量、
+    降级拒绝全额返还、暂停/恢复停止/开始计量、余额不足 402。
+  - 迁移 `0061_usage_ledger_entries.sql`（保留基线 usage_ledger 一致性索引）。
+  - billing 6 用例 + room 5 用例全绿，gofmt/vet 通过。
+    （TASK-061、FR-032、BILLING-STATE-MACHINE §5.3/§6）
 - TASK-060 报价引擎与 Entitlement（`task/TASK-060-billing-entitlements` 分支）：
   - `services/billing` 首次业务实现（FR-031）：权益模型（免费 60 分钟幂等、
     单项目包、Pro 月额度/结转 ≤1 账期/余额 ≤2×月额度、加油包）、

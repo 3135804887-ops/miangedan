@@ -23,10 +23,16 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/billing`；启
   计费版本冻结）；开始前计划修改 → `RecalculateQuote`（版本递增）；开始后冻结
   拒绝重新报价（ErrQuoteFrozen）。
 - 迁移 `0060_billing_entitlements.sql`；DATA-MODEL 增加 billing_freezes。
+- **秒级 UsageLedger**（TASK-061，FR-032）：`Reserve`（每轮开始前预留，不足
+  阻止开始；消费顺序 免费→项目包（限本项目）→Pro→加油包）、`StartMetering`/
+  `StopMetering`（只计 LIVE 秒；故障/等待/重连/认证暂停与降级后不计）、
+  `Settle`（按实际扣减 + 冲正释放未使用预留；用户主动退出同规则）、
+  `RefundFull`（系统责任自动全额返还本轮预留，冲正条目）；
+  账本追加式（reserve/consume/reversal），幂等键去重，逐笔可查。
 
 ## 规划（后续任务）
 
-- TASK-061 秒级 UsageLedger；TASK-062 支付集成；TASK-063 退款；
+- TASK-062 支付集成；TASK-063 退款；
   TASK-064 Pro 订阅；TASK-065 发票/收据。
 
 红线：付费永不影响评分；重复扣费为 0；系统故障自动全额返还（TASK-061/063 落地）。
