@@ -577,6 +577,17 @@
 | TASK-064 | Pro 订阅：月度时长、最多结转一个账期、余额 ≤2 倍月额度、到期当前轮可完成 | FR-033 | TASK-062 | US-06 场景 5 通过 |
 | TASK-065 | 发票/收据、税费展示、区域定价配置 | FR-033 | TASK-062 | 中国区合规发票；国际区税费明示 |
 
+> **任务状态（2026-08-03 更新）**：TASK-060 已实现（FR-031，US-06 场景 1）——
+> `services/billing` 首次业务实现：权益模型（免费 60 分钟幂等发放、单项目包、
+> Pro 订阅月额度/结转 ≤1 账期/总余额 ≤2×月额度、时长加油包）与
+> `Balance`/`CanReserve`（余额校验只在每轮开始前，已开始轮次不中断）；
+> 报价引擎 Quote 状态机（DRAFT → PRESENTED → ACCEPTED，开始前计划修改 →
+> RECALCULATED → PRESENTED 版本递增；接受后计费版本冻结 billing_freezes，
+> 冻结后拒绝重新报价）；区域化合成定价（OD-02 未决前确定性可测）。
+> 迁移 `0060_billing_entitlements.sql`；DATA-MODEL 增加 billing_freezes。
+> 服务正常、异常、幂等、冻结、结转上限测试齐备（新增 7 用例），gofmt/vet 通过。
+> （TASK-060、FR-031、BILLING-STATE-MACHINE）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。
