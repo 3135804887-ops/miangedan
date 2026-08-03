@@ -113,7 +113,7 @@
 | `org_invitations` | 成员邀请（TASK-070） | invitation_id PK、org_id FK、email、role、invite_method、status（pending/accepted/revoked）、expires_at、idempotency_key UNIQUE | org_invitations(org_id, status) |
 | `assignments` | 训练任务（TASK-071） | assignment_id PK、org_id FK、template_json（禁止项无对应列，服务层白名单强制）、deadline、status（draft/published/closed）、org_credit_seconds | assignments(org_id, status) |
 | `assignment_members` | 任务-成员状态（TASK-071） | (assignment_id, user_id) PK、status（not_started/in_progress/completed/exited）、completed_at、fault_flag、org_credit_used_seconds | assignment_members(assignment_id, status)；assignment_members(user_id) |
-| `assignment_shares` | 按任务细粒度授权 | share_id PK、assignment_id FK、user_id FK、scope（radar/total_score/round_results/full_report/transcript/media 子集）、expires_at、withdrawn_at、grant_id FK | assignment_shares(assignment_id, user_id)；assignment_shares(expires_at)（到期失效任务） |
+| `assignment_shares` | 按任务细粒度授权（TASK-072） | share_id PK、assignment_id FK、user_id FK、data_categories（六类封闭枚举子集）、expires_at、status（active/withdrawn）、withdrawn_at、idempotency_key UNIQUE | assignment_shares(assignment_id, user_id)；assignment_shares(expires_at)（到期失效任务） |
 
 ### 5.6 治理族
 

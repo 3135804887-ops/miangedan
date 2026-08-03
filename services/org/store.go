@@ -28,4 +28,12 @@ type Store interface {
 	GetAssignmentMember(assignmentID, userID string) (AssignmentMember, error)
 	UpdateAssignmentMember(AssignmentMember) error
 	ListAssignmentMembers(assignmentID string) ([]AssignmentMember, error)
+	// TASK-072 按任务细粒度结果授权（范围+有效期+可撤回）。
+	SaveShare(Share, string) error
+	GetShareByID(dataRegion, shareID string) (Share, error)
+	GetShareByIdempotencyKey(dataRegion, key string) (Share, error)
+	UpdateShare(Share) error
+	ListSharesByUser(dataRegion, userID, assignmentID string) ([]Share, error)
+	ListSharesByAssignment(dataRegion, assignmentID string) ([]Share, error)
+	ListActiveShares(dataRegion string) ([]Share, error)
 }

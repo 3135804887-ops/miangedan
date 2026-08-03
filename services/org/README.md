@@ -34,7 +34,15 @@ TASK-001 工程骨架 + TASK-002 区域自检：最小入口 `cmd/org`；启动�
   机构额度消耗），不暴露个人结果。
 - 迁移 `0066_assignments.sql`（assignments/assignment_members）。
 
+## 已实现（TASK-072，FR-035）
+
+- **按任务细粒度结果授权**：六类封闭枚举范围（total_score/radar/round_results/
+  full_report/transcript/media）+ 有效期 + 可撤回（幂等）；机构侧访问校验写
+  AccessAudit；撤回/到期在线访问立即失效（ExpireShares 到期扫描）。
+- **"已完成未共享"展示**：任务摘要仅计数 ResultShared/ResultNotShared，
+  不显示失败。
+- 迁移 `0067_assignment_shares.sql`。
+
 ## 规划（后续任务）
 
-- TASK-072 按任务细粒度结果授权；TASK-073 聚合分析（<10 人隐藏）；
-  TASK-074 访问审计与退出即时失效。
+- TASK-073 聚合分析（<10 人隐藏）；TASK-074 访问审计与退出即时失效。

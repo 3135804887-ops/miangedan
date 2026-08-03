@@ -2454,6 +2454,15 @@ paths:
       responses:
         '201': { description: 授权已创建, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentGrant' } } } }
         default: { $ref: '#/components/responses/Error' }
+    get:
+      tags: [organizations]
+      operationId: listAssignmentShares
+      summary: 用户在具体任务上的授权列表（范围+有效期；撤回/到期可见）
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200': { description: 授权列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/AssignmentShare' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/assignments/{assignmentId}/shares/{shareId}:
     delete:
       tags: [organizations]
@@ -3599,6 +3608,18 @@ components:
         invite_method: { enum: [link, org_email, bulk_list, sso, scim] }
         status: { enum: [pending, accepted, revoked] }
         expires_at: { type: string, format: date-time }
+    AssignmentShare:
+      type: object
+      required: [share_id, assignment_id, data_categories, expires_at, status]
+      properties:
+        share_id: { type: string, format: uuid }
+        assignment_id: { type: string, format: uuid }
+        data_categories:
+          type: array
+          items: { enum: [total_score, radar, round_results, full_report, transcript, media] }
+        expires_at: { type: string, format: date-time, description: 到期自动失效 }
+        status: { enum: [active, withdrawn] }
+        withdrawn_at: { type: ['string', 'null'], format: date-time }
     Assignment:
       type: object
       required: [assignment_id, org_id, title, status]

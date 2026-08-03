@@ -18,6 +18,10 @@ type MemoryStore struct {
 	assignByOrg  map[string][]Assignment
 	assignMember map[string]AssignmentMember
 	assignMemBy  map[string][]AssignmentMember
+	shares       map[string]Share
+	shareIDem    map[string]Share
+	sharesByUser map[string][]Share
+	sharesByAsg  map[string][]Share
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -35,6 +39,10 @@ func NewMemoryStore() *MemoryStore {
 		assignByOrg:  make(map[string][]Assignment),
 		assignMember: make(map[string]AssignmentMember),
 		assignMemBy:  make(map[string][]AssignmentMember),
+		shares:       make(map[string]Share),
+		shareIDem:    make(map[string]Share),
+		sharesByUser: make(map[string][]Share),
+		sharesByAsg:  make(map[string][]Share),
 	}
 }
 
@@ -276,5 +284,83 @@ func (m *MemoryStore) ListAssignmentMembers(assignmentID string) ([]AssignmentMe
 	items := m.assignMemBy[assignmentID]
 	out := make([]AssignmentMember, len(items))
 	copy(out, items)
+	return out, nil
+}
+
+// SaveShare 保存分享授权。
+func (m *MemoryStore) SaveShare(sh Share, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.shares[sh.DataRegion+"|"+sh.ShareID] = sh
+	if idemKey != "" {
+		m.shareIDem[sh.DataRegion+"|"+idemKey] = sh
+	}
+	m.sharesByUser[sh.DataRegion+"|"+sh.UserID+"|"+sh.AssignmentID] =
+		append(m.sharesByUser[sh.DataRegion+"|"+sh.UserID+"|"+sh.AssignmentID], sh)
+	m.sharesByAsg[sh.DataRegion+"|"+sh.AssignmentID] =
+		append(m.sharesByAsg[sh.DataRegion+"|"+sh.AssignmentID], sh)
+	return nil
+}
+
+// GetShareByID 按分享 ID 查询。
+func (m *MemoryStore) GetShareByID(dataRegion, shareID string) (Share, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	sh, ok := m.shares[dataRegion+"|"+shareID]
+	if !ok {
+		return Share{}, ErrNotFound
+	}
+	return sh, nil
+}
+
+// GetShareByIdempotencyKey 幂等键查询分享。
+func (m *MemoryStore) GetShareByIdempotencyKey(dataRegion, key string) (Share, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	sh, ok := m.shareIDem[dataRegion+"|"+key]
+	if !ok {
+		return Share{}, ErrNotFound
+	}
+	return sh, nil
+}
+
+// UpdateShare 更新分享状态（撤回/到期）。
+func (m *MemoryStore) UpdateShare(sh Share) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.shares[sh.DataRegion+"|"+sh.ShareID] = sh
+	return nil
+}
+
+// ListSharesByUser 列出用户在任务上的分享。
+func (m *MemoryStore) ListSharesByUser(dataRegion, userID, assignmentID string) ([]Share, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.sharesByUser[dataRegion+"|"+userID+"|"+assignmentID]
+	out := make([]Share, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// ListSharesByAssignment 列出任务的分享。
+func (m *MemoryStore) ListSharesByAssignment(dataRegion, assignmentID string) ([]Share, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.sharesByAsg[dataRegion+"|"+assignmentID]
+	out := make([]Share, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// ListActiveShares 列出区域全部有效分享（到期扫描）。
+func (m *MemoryStore) ListActiveShares(dataRegion string) ([]Share, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]Share, 0)
+	for _, sh := range m.shares {
+		if sh.DataRegion == dataRegion && sh.Status == ShareActive {
+			out = append(out, sh)
+		}
+	}
 	return out, nil
 }
