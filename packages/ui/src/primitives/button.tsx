@@ -8,7 +8,7 @@
  * - 目标尺寸：primary ≥44px，min ≥24px
  */
 
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 import { ErrorIcon } from '../a11y/status-icons.tsx';
 import {
@@ -22,7 +22,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
 export interface ButtonProps
   extends InteractiveBaseProps,
-    Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'disabled' | 'aria-disabled' | 'className'> {
+    Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'disabled' | 'aria-disabled'> {
   readonly children: ReactNode;
   readonly variant?: ButtonVariant;
   readonly targetSize?: TargetSize;
@@ -47,12 +47,14 @@ export function Button({
   errorMessage,
   ...rest
 }: ButtonProps): ReactNode {
-  assertDisabledReason(controlId, disabled, disabledReason);
+  const generatedId = useId().replaceAll(':', '');
+  const cid = controlId ?? `btn-${generatedId}`;
+  assertDisabledReason(cid, disabled, disabledReason);
 
   const inert = disabled || loading;
   const describedByIds = [
-    disabled && disabledReason !== undefined ? `${controlId}-disabled-reason` : undefined,
-    errorMessage !== undefined ? `${controlId}-error` : undefined,
+    disabled && disabledReason !== undefined ? `${cid}-disabled-reason` : undefined,
+    errorMessage !== undefined ? `${cid}-error` : undefined,
   ].filter((id): id is string => id !== undefined);
 
   return (
@@ -60,9 +62,9 @@ export function Button({
       <button
         {...rest}
         type={rest.type ?? 'button'}
-        data-mgd-control={controlId}
+        data-mgd-control={cid}
         data-mgd-state={inert ? (loading ? 'loading' : 'disabled') : 'default'}
-        className={['mgd-button', VARIANT_CLASS[variant], TARGET_SIZE_CLASS[targetSize]].join(' ')}
+        className={['mgd-button', VARIANT_CLASS[variant], TARGET_SIZE_CLASS[targetSize], rest.className ?? ''].filter(Boolean).join(' ')}
         disabled={inert}
         aria-disabled={inert ? true : undefined}
         aria-busy={loading ? true : undefined}
@@ -78,8 +80,8 @@ export function Button({
 
       {disabled && disabledReason !== undefined ? (
         <span
-          id={`${controlId}-disabled-reason`}
-          data-mgd-disabled-reason={controlId}
+          id={`${cid}-disabled-reason`}
+          data-mgd-disabled-reason={cid}
           className="mgd-button__reason text-caption text-neutral-600"
         >
           {disabledReason}

@@ -41,6 +41,7 @@ type Service struct {
 	store Store
 	idem  IdempotencyStore
 	flow  *FlowConfig
+	gen   PlanGenerator
 	now   func() time.Time
 }
 
@@ -49,7 +50,53 @@ func NewService(store Store, idem IdempotencyStore, flow *FlowConfig) (*Service,
 	if store == nil || idem == nil || flow == nil {
 		return nil, fmt.Errorf("%w: 缺少存储/幂等存储/流程配置", ErrInvalidInput)
 	}
-	return &Service{store: store, idem: idem, flow: flow, now: time.Now}, nil
+	return &Service{store: store, idem: idem, flow: flow, gen: StubPlanGenerator{}, now: time.Now}, nil
+}
+
+// SetPlanGenerator 替换计划生成器（测试/真实 AI 适配层接入点；默认合成桩）。
+func (s *Service) SetPlanGenerator(gen PlanGenerator) {
+	if gen != nil {
+		s.gen = gen
+	}
+}
+
+// GeneratePlanDraft 生成计划草稿（TASK-033）：材料确认后可生成，草稿进入 PLAN_REVIEW；
+// 不安全内容（PII 复述/注入）fail-closed，不进入房间。
+func (s *Service) GeneratePlanDraft(ctx context.Context, actor Actor, projectID string, idemKey string) (PlanVersion, error) {
+	if err := actor.validate(); err != nil {
+		return PlanVersion{}, err
+	}
+	return idempotent(s, "plan-gen|"+actor.UserID+"|"+actor.DataRegion+"|", idemKey, func() (PlanVersion, error) {
+		proj, err := s.store.GetProject(actor.UserID, actor.DataRegion, projectID)
+		if err != nil {
+			return PlanVersion{}, err
+		}
+		switch proj.Status {
+		case StatusMaterialReview, StatusPlanReview, StatusPlanFailed:
+		default:
+			return PlanVersion{}, fmt.Errorf("%w: 项目状态 %s 不允许生成计划（需材料确认）", ErrStateConflict, proj.Status)
+		}
+		draft, err := s.gen.Generate(ctx, actor, proj)
+		if err != nil {
+			proj.Status = StatusPlanFailed
+			_ = s.store.UpdateProject(proj)
+			return PlanVersion{}, err
+		}
+		if err := CheckPlanSafety(draft); err != nil {
+			proj.Status = StatusPlanFailed
+			_ = s.store.UpdateProject(proj)
+			return PlanVersion{}, err
+		}
+		if err := s.store.SavePlan(draft); err != nil {
+			return PlanVersion{}, err
+		}
+		proj.Status = StatusPlanReview
+		proj.PlanVersion = draft.PlanVersion
+		if err := s.store.UpdateProject(proj); err != nil {
+			return PlanVersion{}, err
+		}
+		return draft, nil
+	})
 }
 
 // idempotent 按幂等键执行写操作：仅显式幂等键启用缓存，重复键返回首次结果（NFR-006）；

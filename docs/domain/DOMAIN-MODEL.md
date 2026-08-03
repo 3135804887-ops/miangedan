@@ -231,6 +231,47 @@ erDiagram
 | 职责 | 实时会话房间的媒体面准入凭证（SEC-003），与业务令牌相互隔离 |
 | 规则 | 分钟级 TTL、一次性（nonce 消费）、可吊销（按 nonce 粒度，重连/转移后新令牌不受旧吊销影响）；claims 仅含 session_id/device_id/data_region/nonce/exp，不含业务身份；签发密钥经 `*_REF` 独立注入；会话状态见 INTERVIEW-STATE-MACHINE 6.2 |
 
+### 6.20 Transcript / TurnState（双向字幕与回合冻结，TASK-023）
+
+| 实体 | 要点 |
+|---|---|
+| Transcript | 会话内单条字幕/转写：`kind`（`partial` 仅展示 / `final` 正式文本）、原始 ASR 文本与修订文本双版本；修订状态机 `none → submitted → accepted/rejected`；冻结后禁止改写（FR-018） |
+| TurnState | 回合冻结边界：进入下一主问题（`turn.completed`）后冻结，冻结后修订一律 `rejected(window_closed)`；原始 ASR 仅诊断，评分证据使用修订文本 |
+
+规则：`partial` 不入证据账本；`final` 在 `turn.completed` 前完成持久化（NFR-005）；修订以 `revision_id` 幂等；同一 `utterance_id` 的修订在冻结时统一升级为 `accepted`。
+
+### 6.21 SessionToolEvent（岗位工具事件，TASK-024）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 会话内岗位工具（代码/白板/案例/作品集）的使用事件（`tool.event`），进入证据账本供报告与复核引用（FR-019） |
+| 关键字段 | `tool_event_id`、`tool_key`（封闭枚举）、`event_type`（edit/run/annotate/submit）、`content_ref`（对象存储引用，非内联大对象） |
+| 规则 | 仅计划中已配置工具可激活与产生事件（正式房间不临时加载）；`tool_event_id` 幂等；事件只追加不更新/删除 |
+
+### 6.22 SessionFaultControls（故障暂停与文字降级，TASK-025）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 系统故障暂停计时、3 分钟重连窗口、数字人持续故障时的文字降级询问（FR-020） |
+| 关键字段 | `paused_at`/`paused_seconds`（暂停只增不减）、`downgrade_status`（none/prompted/accepted/rejected）、`downgrade_prompt_id`、`text_degraded_at`、`end_reason` |
+| 规则 | 暂停段不计费不判失败；接受降级 → TEXT_DEGRADED（故障点起不计数字人额度）；拒绝降级 → ENDED + EVALUATION_INCOMPLETE（不是失败）+ 系统责任全额返还（TASK-061 挂接）；所有操作幂等 |
+
+### 6.23 EvidenceEvent（证据事件流水，TASK-026）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 问题实际播放内容、回答、修订、工具事件四类证据的细粒度追加式流水（NFR-005），供评分/复核/报告引用 |
+| 关键字段 | `evidence_id`、`kind`（question_played/answer/revision/tool_event）、`event_id`（幂等）、`payload_json`、`content_hash`（SHA-256） |
+| 规则 | 只追加不更新/删除（ADR-0004）；`event_id` 幂等去重；`content_hash` 与载荷一致性校验 fail-closed；下一主问题前完成上一有效回答持久化 |
+
+### 6.24 SessionPreCheck（会前检查冻结，TASK-027）
+
+| 要点 | 内容 |
+|---|---|
+| 职责 | 会前输入模式（语音/文字/摄像头/工具）与便利设置的冻结确认（FR-015、FR-016） |
+| 关键字段 | `input_modes`（封闭枚举）、`accommodations`（计划冻结枚举）、`device_report`（摄像头/麦克风/网络评级）、`frozen` |
+| 规则 | 摄像头/麦克风可关不扣分；数字人音视频始终开启（无关闭选项）；确认后不可修改（会前冻结）；便利设置不视为评分弱点 |
+
 | 要点 | 内容 |
 |---|---|
 | AccessAudit | 追加式敏感访问记录（谁、何时、何种角色、访问了什么、授权依据）；管理员不可删除；敏感访问通知用户 |

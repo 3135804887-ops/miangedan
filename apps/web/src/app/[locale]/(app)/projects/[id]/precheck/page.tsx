@@ -1,24 +1,44 @@
-/** SCR-07 路由壳（批次 0 建立，页面内容在后续批次落地）。 */
+/** SCR-07 会前检查：设备/网络/数字人检测、便利设置冻结、额度预留说明。 */
 
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { RouteShell } from '../../../../../../components/route-shell.tsx';
+import { PrecheckView } from '../../../../../../components/precheck-view.tsx';
 
-export default async function Scr07PrecheckPage({
+export default async function PrecheckPage({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }): Promise<ReactNode> {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('common');
-
+  const t = await getTranslations({ locale, namespace: 'common' });
   return (
-    <RouteShell
-      scrId="SCR-07"
-      title={t('pages.scr07Precheck')}
-      notice={t('pages.shellNotice')}
+    <PrecheckView
+      locale={locale as 'zh-CN' | 'en-US'}
+      labels={{
+        kicker: t('precheck.kicker'),
+        title: t('precheck.title'),
+        desc: t('precheck.desc'),
+        camera: t('precheck.camera'),
+        mic: t('precheck.mic'),
+        network: t('precheck.network'),
+        speaker: t('precheck.speaker'),
+        avatar: t('precheck.avatar'),
+        checking: t('precheck.checking'),
+        passed: t('precheck.passed'),
+        failed: t('precheck.failed'),
+        retryItem: t('precheck.retryItem'),
+        cameraOff: t('precheck.cameraOff'),
+        micOff: t('precheck.micOff'),
+        networkPoor: t('precheck.networkPoor'),
+        accommodations: t('precheck.accommodations'),
+        accommodationsHint: t('precheck.accommodationsHint'),
+        freeze: t('precheck.freeze'),
+        entitlement: t('precheck.entitlement'),
+        entitlementHint: t('precheck.entitlementHint'),
+        entitlementInsufficient: t('precheck.entitlementInsufficient'),
+      }}
     />
   );
 }

@@ -1,16 +1,18 @@
 /**
- * 根布局（需求 B0-2 第 2 条）：输出 <html lang>、skip-link、全局导航与页脚。
- * 导航项在全部页面顺序一致（ACCESSIBILITY 第 4.3 节「一致导航」）。
+ * 根布局：html lang、全局 Provider（next-intl + Toast）。
+ * 页面级导航由 (public) / (app) / (room) 路由组布局各自提供。
  */
 
 import { isLocale, SUPPORTED_LOCALES, type Locale } from '@mgd/i18n';
+import { ToastProvider } from '@mgd/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { Link } from '../../i18n/navigation.ts';
+import { loadMessages } from '../../i18n/messages.ts';
+import { MockBootstrap } from '../../components/mock-bootstrap.tsx';
 import '../globals.css';
 
 export function generateStaticParams(): Array<{ locale: Locale }> {
@@ -24,10 +26,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'common' });
-
   return {
-    title: t('brand.name'),
+    title: { default: t('brand.name'), template: `%s · ${t('brand.name')}` },
     description: t('brand.tagline'),
+    applicationName: t('brand.name'),
   };
 }
 
@@ -39,55 +41,23 @@ interface LayoutProps {
 export default async function LocaleLayout({ children, params }: LayoutProps): Promise<ReactNode> {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
+  const messages = await loadMessages(locale);
 
   return (
     <html lang={locale}>
       <body>
-        <NextIntlClientProvider>
-          <a className="mgd-skip-link" href="#main-content">
-            {t('nav.skipToContent')}
-          </a>
-
-          <header className="mgd-site-header">
-            <nav className="mgd-global-nav mgd-shell" aria-label={t('nav.primaryLabel')}>
-              <Link className="mgd-brand" href="/" aria-label={t('brand.name')}>
-                <span className="mgd-brand__copy">
-                  <strong className="mgd-brand__name">{t('brand.name')}</strong>
-                  <small className="mgd-brand__tagline">{t('brand.tagline')}</small>
-                </span>
-              </Link>
-              <ul className="mgd-primary-links">
-                <li>
-                  <Link href="/"><span aria-hidden="true">01</span>{t('nav.landing')}</Link>
-                </li>
-                <li>
-                  <Link href="/dashboard"><span aria-hidden="true">02</span>{t('nav.dashboard')}</Link>
-                </li>
-                <li>
-                  <Link href="/library"><span aria-hidden="true">03</span>{t('nav.library')}</Link>
-                </li>
-                <li>
-                  <Link href="/billing"><span aria-hidden="true">04</span>{t('nav.billing')}</Link>
-                </li>
-                <li>
-                  <Link href="/settings"><span aria-hidden="true">05</span>{t('nav.settings')}</Link>
-                </li>
-              </ul>
-            </nav>
-          </header>
-
-          {/* 宽度约束交给 (app) / (room) 路由组布局，房间页需要全宽 */}
-          <main id="main-content" className="mgd-main">{children}</main>
-
-          <footer className="mgd-site-footer" aria-label={t('nav.footerLabel')}>
-            <div className="mgd-shell mgd-site-footer__inner">
-              <p><strong>{t('brand.name')}</strong></p>
-              <p>{t('brand.tagline')}</p>
-            </div>
-          </footer>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <ToastProvider>
+            <MockBootstrap />
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:shadow-[var(--mgd-app-shadow-lg)]"
+            >
+              {locale === 'zh-CN' ? '跳到主内容' : 'Skip to main content'}
+            </a>
+            {children}
+          </ToastProvider>
         </NextIntlClientProvider>
       </body>
     </html>

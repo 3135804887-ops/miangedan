@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -14,20 +15,43 @@ type MemoryStore struct {
 	revoked  map[string]bool
 	nonceSes map[string]string
 	idem     map[string][]byte
+	// TASK-023：字幕与回合冻结。
+	transcripts map[string]Transcript
+	turns       map[string]TurnState
+	// TASK-024：工具事件。
+	toolEvents map[string][]ToolEvent
+	// TASK-027：会前冻结。
+	prechecks map[string]PreCheck
 }
 
 // NewMemoryStore 创建空内存存储。
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		sessions: make(map[string]Session),
-		consumed: make(map[string]bool),
-		revoked:  make(map[string]bool),
-		nonceSes: make(map[string]string),
-		idem:     make(map[string][]byte),
+		sessions:    make(map[string]Session),
+		consumed:    make(map[string]bool),
+		revoked:     make(map[string]bool),
+		nonceSes:    make(map[string]string),
+		idem:        make(map[string][]byte),
+		transcripts: make(map[string]Transcript),
+		turns:       make(map[string]TurnState),
+		toolEvents:  make(map[string][]ToolEvent),
+		prechecks:   make(map[string]PreCheck),
 	}
 }
 
 func sessionKey(dataRegion, sessionID string) string {
+	return dataRegion + "|" + sessionID
+}
+
+func transcriptKey(dataRegion, sessionID, utteranceID string) string {
+	return dataRegion + "|" + sessionID + "|" + utteranceID
+}
+
+func turnKey(dataRegion, sessionID string, turnIndex int) string {
+	return dataRegion + "|" + sessionID + "|" + strconv.Itoa(turnIndex)
+}
+
+func toolKey(dataRegion, sessionID string) string {
 	return dataRegion + "|" + sessionID
 }
 
@@ -74,6 +98,97 @@ func (m *MemoryStore) ListSessionsByProject(dataRegion, projectID string) ([]Ses
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
 	return out, nil
+}
+
+// SaveTranscript 保存字幕/转写（同一 utterance 覆盖为最新版本）。
+func (m *MemoryStore) SaveTranscript(t Transcript) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.transcripts[transcriptKey(t.DataRegion, t.SessionID, t.UtteranceID)] = t
+	return nil
+}
+
+// GetTranscript 读取单条字幕/转写。
+func (m *MemoryStore) GetTranscript(dataRegion, sessionID, utteranceID string) (Transcript, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	t, ok := m.transcripts[transcriptKey(dataRegion, sessionID, utteranceID)]
+	if !ok {
+		return Transcript{}, ErrNotFound
+	}
+	return t, nil
+}
+
+// ListTranscripts 列出会话全部字幕/转写（按创建时间升序）。
+func (m *MemoryStore) ListTranscripts(dataRegion, sessionID string) ([]Transcript, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	prefix := dataRegion + "|" + sessionID + "|"
+	var out []Transcript
+	for k, t := range m.transcripts {
+		if len(k) > len(prefix) && k[:len(prefix)] == prefix {
+			out = append(out, t)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
+	return out, nil
+}
+
+// SaveTurn 保存回合冻结状态。
+func (m *MemoryStore) SaveTurn(t TurnState) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.turns[turnKey(t.DataRegion, t.SessionID, t.TurnIndex)] = t
+	return nil
+}
+
+// GetTurn 读取回合冻结状态；不存在返回 ErrNotFound。
+func (m *MemoryStore) GetTurn(dataRegion, sessionID string, turnIndex int) (TurnState, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	t, ok := m.turns[turnKey(dataRegion, sessionID, turnIndex)]
+	if !ok {
+		return TurnState{}, ErrNotFound
+	}
+	return t, nil
+}
+
+// SaveToolEvent 保存工具事件（幂等键由服务层去重）。
+func (m *MemoryStore) SaveToolEvent(ev ToolEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := toolKey(ev.DataRegion, ev.SessionID)
+	m.toolEvents[key] = append(m.toolEvents[key], ev)
+	return nil
+}
+
+// ListToolEvents 列出会话工具事件。
+func (m *MemoryStore) ListToolEvents(dataRegion, sessionID string) ([]ToolEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.toolEvents[toolKey(dataRegion, sessionID)]
+	out := make([]ToolEvent, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// SavePreCheck 保存会前冻结配置（同会话覆盖）。
+func (m *MemoryStore) SavePreCheck(pc PreCheck) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.prechecks[sessionKey(pc.DataRegion, pc.SessionID)] = pc
+	return nil
+}
+
+// GetPreCheck 读取会前冻结配置；不存在返回 ErrNotFound。
+func (m *MemoryStore) GetPreCheck(dataRegion, sessionID string) (PreCheck, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	pc, ok := m.prechecks[sessionKey(dataRegion, sessionID)]
+	if !ok {
+		return PreCheck{}, ErrNotFound
+	}
+	return pc, nil
 }
 
 // RecordNonce 记录 nonce 所属会话（吊销定位用）。

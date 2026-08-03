@@ -42,6 +42,71 @@ export {
 } from './patterns/state-view.tsx';
 
 export {
+  IconAlert,
+  IconArrowLeft,
+  IconArrowRight,
+  IconBill,
+  IconCamera,
+  IconCameraOff,
+  IconCertificate,
+  IconChart,
+  IconCheck,
+  IconClipboard,
+  IconClock,
+  IconCode,
+  IconCopy,
+  IconDashboard,
+  IconDownload,
+  IconEdit,
+  IconExternal,
+  IconFile,
+  IconGlobe,
+  IconHome,
+  IconKeyboard,
+  IconLock,
+  IconLogout,
+  IconMenu,
+  IconMessage,
+  IconMic,
+  IconMicOff,
+  IconOrg,
+  IconPlan,
+  IconPlay,
+  IconPlus,
+  IconRadar,
+  IconRefresh,
+  IconSearch,
+  IconSettings,
+  IconShield,
+  IconSparkle,
+  IconStop,
+  IconTools,
+  IconTrash,
+  IconUpload,
+  IconUser,
+  IconUsers,
+  IconWhiteboard,
+  IconWifi,
+  IconX,
+  type IconProps,
+} from './primitives/icons.tsx';
+
+export { Card, CardBody, CardHeader, StatCard, type CardProps } from './patterns/card.tsx';
+export { PageHeader } from './patterns/page-header.tsx';
+export { EmptyState } from './patterns/empty-state.tsx';
+export {
+  AppShell,
+  type NavGroup,
+  type NavItem,
+} from './patterns/app-shell.tsx';
+export { Tabs, type TabItem } from './patterns/tabs.tsx';
+export { Indeterminate, Progress } from './patterns/progress.tsx';
+export { ToastProvider, useToast, type ToastInput } from './patterns/toast.tsx';
+export { DataTable, type Column } from './patterns/data-table.tsx';
+export { Avatar } from './patterns/avatar.tsx';
+export { Tint, type TintTone } from './patterns/tint.tsx';
+
+export {
   collectControls,
   findForbiddenControls,
   FORBIDDEN_CONTROL_PATTERNS,

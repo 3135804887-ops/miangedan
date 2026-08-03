@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 技术基线 | Go（控制面服务，每服务一个模块，经根 `go.work` 统一工作区） |
-| 拥有任务 | TASK-016 ~ TASK-018 |
+| 拥有任务 | TASK-016 ~ TASK-018、TASK-033 |
 | 追踪 | IMPLEMENTATION_PLAN.md；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.1 节 |
 
 ## 当前状态
@@ -15,7 +15,9 @@
   冻结规则：确认后量表/轮次权重/轮次列表/覆盖方案冻结，开始后编辑返回 `state_conflict`；
   不完整计划（缺覆盖方案或量表）确认返回 `plan_incomplete`（422）。
   轮次边界与类型注册来自 `config/interview-flows/v1/default.yaml`（`MGD_FLOW_CONFIG` 可覆盖）。
-- 计划生成（`plan:generate`）由 TASK-033 落地，当前返回 501 占位；
+- 计划生成（`plan:generate`）TASK-033 已落地：材料确认后返回 201 草稿（PLAN_REVIEW、
+  Frozen=false），合成生成器 + PII/注入安全过滤（CheckPlanSafety fail-closed），
+  RoundConfig 含 question_coverage_plan；真实 LLM 生成经 TASK-030 适配层接入；
   材料派生筛选（company/job_title）随 TASK-018 落地；计费版本冻结（quote_id）随 TASK-060/061。
 - 当前存储为内存实现（`memory_store.go`），生产持久化随数据平台接入；迁移
   `services/migrate/migrations/0016_interview_projects.sql` 已落地表结构与追加式约束。

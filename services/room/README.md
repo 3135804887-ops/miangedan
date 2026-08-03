@@ -1,10 +1,10 @@
-# services/room — 实时会话房间（TASK-020）
+# services/room — 实时会话房间（TASK-020、TASK-023）
 
 | 字段 | 内容 |
 |---|---|
 | 技术基线 | Go 1.26（控制面共享服务，依赖 services/project 与 services/region） |
-| 拥有任务 | TASK-020（EPIC-03）；媒体链路（数字人/ASR/字幕）随 TASK-021~027 |
-| 追踪 | FR-013、NFR-007；SEC-003；docs/domain/INTERVIEW-STATE-MACHINE.md 6.2；docs/api/realtime-events.md |
+| 拥有任务 | TASK-020、TASK-023（EPIC-03）；媒体链路（数字人/ASR）随 TASK-021~022 |
+| 追踪 | FR-013、FR-018、NFR-005/NFR-007；SEC-003；docs/domain/INTERVIEW-STATE-MACHINE.md 6.2；docs/api/realtime-events.md |
 
 ## 职责
 
@@ -17,6 +17,26 @@
   reconnect 3 分钟窗口（超窗 `reconnect_expired`）、设备安全转移（原设备令牌立即失效）。
 - **房间提供方适配**：`Provider` 供应商中立契约 + 合成桩（ADR-0003；LiveKit 为技术基线，
   真实接入随供应商选型）。
+- **双向字幕与修订**（TASK-023、FR-018）：ASR 临时/最终文本追加（partial 仅展示不入证据；
+  final 为正式文本）、修订状态机（none → submitted → accepted/rejected）、回合冻结边界
+  （`turn.completed` 后修订一律 `rejected(window_closed)`；原始 ASR 仅诊断、修订文本为评分证据）、
+  `revision_id` 幂等与冻结前持久化顺序保证（NFR-005）。端点：
+  `/v1/sessions/{id}/transcripts`、`/v1/sessions/{id}/revisions`、
+  `/v1/sessions/{id}/turns/{turnIndex}/freeze`。
+- **岗位工具**（TASK-024、FR-019）：四类工具封闭枚举（code_editor/whiteboard/
+  case_materials/portfolio），激活仅限计划已配置工具（正式房间不临时加载），
+  工具事件（edit/run/annotate/submit）以 `tool_event_id` 幂等入证据账本；
+  端点：`/v1/sessions/{id}/tools`、`/v1/sessions/{id}/tools/{toolKey}/activate`、
+  `/v1/sessions/{id}/tools/{toolKey}/events`。
+- **故障控制**（TASK-025、FR-020）：暂停/恢复计时（暂停段不计费不判失败，paused_seconds
+  只增不减）、数字人持续故障降级询问（prompt_id 幂等）、接受降级 → TEXT_DEGRADED（故障点起
+  不计数字人额度）、拒绝降级 → ENDED + 评估未完成（不是失败）+ 系统责任全额返还（TASK-061
+  挂接点）；3 分钟重连窗口由 TASK-020 提供。端点：
+  `/v1/sessions/{id}/timer/pause|resume`、`/v1/sessions/{id}/downgrade/offer|accept|decline`。
+- **会前冻结**（TASK-027、FR-015/016）：输入模式（voice/text/camera/job_tool）与便利设置
+  会前冻结（pre_check_passed → AVATAR_CONNECTING）；摄像头/麦克风可关不扣分；数字人音视频
+  始终开启；冻结后不可修改；端点：`/v1/sessions/{id}/precheck/freeze`、
+  `/v1/sessions/{id}/precheck`。
 
 ## 用法
 

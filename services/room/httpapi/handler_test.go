@@ -58,6 +58,51 @@ func (a *appAdapter) ReconnectSession(ctx context.Context, actor project.Actor, 
 func (a *appAdapter) DeviceTransferSession(ctx context.Context, actor project.Actor, id, device string, confirm bool, key string) (room.SessionCreated, error) {
 	return a.svc.DeviceTransferSession(ctx, actor, id, device, confirm, key)
 }
+func (a *appAdapter) AppendTranscript(ctx context.Context, actor project.Actor, id string, in room.AppendTranscriptInput) (room.Transcript, error) {
+	return a.svc.AppendTranscript(ctx, actor, id, in)
+}
+func (a *appAdapter) SubmitRevision(ctx context.Context, actor project.Actor, id string, in room.RevisionInput, key string) (room.Transcript, error) {
+	return a.svc.SubmitRevision(ctx, actor, id, in, key)
+}
+func (a *appAdapter) FreezeTurn(ctx context.Context, actor project.Actor, id string, turn int, key string) (room.FreezeTurnResult, error) {
+	return a.svc.FreezeTurn(ctx, actor, id, turn, key)
+}
+func (a *appAdapter) ListTranscripts(ctx context.Context, actor project.Actor, id string) ([]room.Transcript, error) {
+	return a.svc.ListTranscripts(ctx, actor, id)
+}
+func (a *appAdapter) GetTurn(ctx context.Context, actor project.Actor, id string, turn int) (room.TurnState, error) {
+	return a.svc.GetTurn(ctx, actor, id, turn)
+}
+func (a *appAdapter) ActivateTool(ctx context.Context, actor project.Actor, id string, in room.ActivateToolInput) (room.ToolActivation, error) {
+	return a.svc.ActivateTool(ctx, actor, id, in)
+}
+func (a *appAdapter) RecordToolEvent(ctx context.Context, actor project.Actor, id string, in room.ToolEvent, key string) (room.ToolEvent, error) {
+	return a.svc.RecordToolEvent(ctx, actor, id, in, key)
+}
+func (a *appAdapter) ListToolEvents(ctx context.Context, actor project.Actor, id string) ([]room.ToolEvent, error) {
+	return a.svc.ListToolEvents(ctx, actor, id)
+}
+func (a *appAdapter) PauseTimer(ctx context.Context, actor project.Actor, id string, reason room.TimerPauseReason, key string) (room.Session, error) {
+	return a.svc.PauseTimer(ctx, actor, id, reason, key)
+}
+func (a *appAdapter) ResumeTimer(ctx context.Context, actor project.Actor, id, key string) (room.Session, error) {
+	return a.svc.ResumeTimer(ctx, actor, id, key)
+}
+func (a *appAdapter) OfferDowngrade(ctx context.Context, actor project.Actor, id, key string) (string, error) {
+	return a.svc.OfferDowngrade(ctx, actor, id, key)
+}
+func (a *appAdapter) AcceptDowngrade(ctx context.Context, actor project.Actor, id, prompt, key string) (room.Session, error) {
+	return a.svc.AcceptDowngrade(ctx, actor, id, prompt, key)
+}
+func (a *appAdapter) DeclineDowngrade(ctx context.Context, actor project.Actor, id, prompt, key string) (room.Session, error) {
+	return a.svc.DeclineDowngrade(ctx, actor, id, prompt, key)
+}
+func (a *appAdapter) FreezePreCheck(ctx context.Context, actor project.Actor, id string, in room.FreezePreCheckInput, key string) (room.PreCheck, error) {
+	return a.svc.FreezePreCheck(ctx, actor, id, in, key)
+}
+func (a *appAdapter) GetPreCheck(ctx context.Context, actor project.Actor, id string) (room.PreCheck, error) {
+	return a.svc.GetPreCheck(ctx, actor, id)
+}
 
 func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()
@@ -88,9 +133,17 @@ func newTestHandler(t *testing.T) http.Handler {
 
 func doJSON(t *testing.T, h http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
+	return doJSONWithKey(t, h, method, path, body, "")
+}
+
+func doJSONWithKey(t *testing.T, h http.Handler, method, path, body, idemKey string) *httptest.ResponseRecorder {
+	t.Helper()
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	req.Header.Set("Authorization", "Bearer synthetic-valid-token")
 	req.Header.Set("Content-Type", "application/json")
+	if idemKey != "" {
+		req.Header.Set("Idempotency-Key", idemKey)
+	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec

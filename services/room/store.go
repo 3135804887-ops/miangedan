@@ -6,6 +6,18 @@ type Store interface {
 	GetSession(dataRegion, sessionID string) (Session, error)
 	UpdateSession(Session) error
 	ListSessionsByProject(dataRegion, projectID string) ([]Session, error)
+	// TASK-023 字幕与回合冻结存储。
+	SaveTranscript(Transcript) error
+	GetTranscript(dataRegion, sessionID, utteranceID string) (Transcript, error)
+	ListTranscripts(dataRegion, sessionID string) ([]Transcript, error)
+	SaveTurn(TurnState) error
+	GetTurn(dataRegion, sessionID string, turnIndex int) (TurnState, error)
+	// TASK-024 工具事件存储。
+	SaveToolEvent(ToolEvent) error
+	ListToolEvents(dataRegion, sessionID string) ([]ToolEvent, error)
+	// TASK-027 会前冻结存储。
+	SavePreCheck(PreCheck) error
+	GetPreCheck(dataRegion, sessionID string) (PreCheck, error)
 }
 
 // IdempotencyStore 为写操作幂等键存储（NFR-006）。

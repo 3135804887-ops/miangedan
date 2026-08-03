@@ -26,6 +26,7 @@ type Application interface {
 	DeleteProject(context.Context, project.Actor, string, string) (project.DeletionTask, error)
 	DuplicateProject(context.Context, project.Actor, string, string, string) (project.Project, error)
 	GetPlan(context.Context, project.Actor, string) (project.PlanVersion, error)
+	GeneratePlanDraft(context.Context, project.Actor, string, string) (project.PlanVersion, error)
 	EditPlan(context.Context, project.Actor, string, int, []project.RoundConfig, string) (project.PlanVersion, error)
 	ConfirmPlan(context.Context, project.Actor, string, int, []string, string, string) (project.Project, error)
 	SaveLibraryEntry(context.Context, project.Actor, project.LibraryKind, string, int, string, string, string) (project.LibraryEntry, error)
@@ -464,9 +465,20 @@ func (h *handler) duplicateProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toProjectJSON(proj))
 }
 
-func (h *handler) generatePlan(w http.ResponseWriter, _ *http.Request) {
-	// 计划生成链路（AI 生成 + 安全过滤）由 TASK-033 实现；TASK-016 阶段返回明确占位。
-	writeError(w, http.StatusNotImplemented, "plan_generation_pending", "计划生成由 TASK-033 落地")
+func (h *handler) generatePlan(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	plan, err := h.app.GeneratePlanDraft(r.Context(), actor, r.PathValue("projectId"), r.Header.Get("Idempotency-Key"))
+	if err != nil {
+		status, code, msg := mapError(err)
+		writeError(w, status, code, msg)
+		return
+	}
+	writeJSON(w, http.StatusCreated, toPlanJSON(plan))
 }
 
 func (h *handler) getPlan(w http.ResponseWriter, r *http.Request) {

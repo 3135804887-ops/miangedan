@@ -15,13 +15,86 @@
 
 ### Added
 
+- TASK-023 双向字幕与转写修订（`task/TASK-023-captions-revision` 分支）：
+  - `services/room` 扩展字幕/转写能力（FR-018）：ASR 临时/最终文本追加（partial 仅展示，
+    不入证据账本）、修订状态机（none → submitted → accepted/rejected）、回合冻结边界
+    （`turn.completed` 后修订一律 `rejected(window_closed)`；原始 ASR 仅诊断、修订文本为评分证据）、
+    `revision_id` 幂等与冻结前持久化顺序保证（NFR-005）。
+  - openapi 新增 `/v1/sessions/{sessionId}/transcripts`、`/v1/sessions/{sessionId}/revisions`、
+    `/v1/sessions/{sessionId}/turns/{turnIndex}/freeze` 契约与 `Transcript` schema；
+    迁移 `0023_session_transcripts.sql`；DOMAIN-MODEL §6.20、DATA-MODEL、realtime-events 同步；
+    服务/HTTP 正常、异常、窗口竞态、幂等测试齐备。（TASK-023、FR-018、NFR-005）
+- TASK-024 岗位工具与工具事件证据（`task/TASK-024-job-tools` 分支）：
+  - `services/room` 扩展岗位工具（FR-019）：四类工具封闭枚举、激活校验（仅计划已配置工具，
+    正式房间不临时加载）、工具事件（edit/run/annotate/submit）以 `tool_event_id` 幂等入证据账本。
+  - openapi 新增 `/v1/sessions/{sessionId}/tools` 与工具激活/事件端点及 `ToolEvent` schema；
+    迁移 `0024_session_tool_events.sql`；DOMAIN-MODEL §6.21、DATA-MODEL、realtime-events 同步；
+    服务/HTTP 正常、异常、未配置拒绝、幂等测试齐备。（TASK-024、FR-019、NFR-005）
+- TASK-025 故障暂停计时与文字降级（`task/TASK-025-fault-downgrade` 分支）：
+  - `services/room` 扩展故障控制（FR-020）：暂停计时（timer.paused/resumed；暂停段不计费
+    不判失败，paused_seconds 只增不减）、降级询问（avatar.downgrade_prompted，prompt_id 幂等）、
+    接受降级（TEXT_DEGRADED；故障点起不计数字人额度，TASK-061 挂接）、拒绝降级
+    （ENDED + EVALUATION_INCOMPLETE 不是失败；系统责任全额返还挂接；设备释放）。
+  - openapi 新增 `/v1/sessions/{sessionId}/timer/*`、`/v1/sessions/{sessionId}/downgrade/*`
+    端点并扩展 Session schema；迁移 `0025_session_fault_controls.sql`；
+    DOMAIN-MODEL §6.22、DATA-MODEL、INTERVIEW-STATE-MACHINE 同步；
+    服务/HTTP 正常、异常、幂等测试齐备。（TASK-025、FR-020、NFR-005）
+- TASK-026 追加式证据账本写入管道（`task/TASK-026-evidence-pipeline` 分支）：
+  - 新 Go 模块 `services/evidence`（仅依赖 region）：问题实际播放/回答/修订/工具事件四类证据
+    只追加写入；`event_id` 幂等去重（NFR-006）、`content_hash` 一致性校验 fail-closed、
+    无更新/删除路径（ADR-0004）、列表只读副本。
+  - 迁移 `0026_evidence_events.sql`；DOMAIN-MODEL §6.23、DATA-MODEL、realtime-events 同步；
+    CI golangci 矩阵登记 evidence；正常/异常/幂等/只读红线测试齐备。
+    （TASK-026、NFR-005、NFR-006）
+- TASK-027 输入模式与便利设置会前冻结（`task/TASK-027-precheck-freeze` 分支）：
+  - `services/room` 扩展会前检查（FR-015/FR-016）：输入模式与便利设置会前冻结
+    （session.pre_check_passed → AVATAR_CONNECTING）；摄像头/麦克风可关不扣分；
+    数字人音视频始终开启；冻结后不可修改；设备报告校验 fail-closed。
+  - openapi 新增 `/v1/sessions/{sessionId}/precheck/freeze`、`/v1/sessions/{sessionId}/precheck`
+    端点及 `PreCheck` schema；迁移 `0027_session_prechecks.sql`；
+    DOMAIN-MODEL §6.24、DATA-MODEL、SCREEN-SPEC 同步；
+    服务/HTTP 正常、异常、重复冻结、幂等测试齐备。（TASK-027、FR-015、FR-016）
+- TASK-031 提示词注册表（`task/TASK-031-prompt-registry` 分支）：
+  - `ai/services/orchestrator` 新增 `prompt_registry`（FR-038 部分）：解析 `ai/prompts/*.md`
+    契约元数据；四层组装（system/developer/session/data）与不可信数据边界；
+    注入模式检测（命中即标记不执行）；输出 JSON Schema 校验（fail-closed）；版本固定。
+  - pyproject 登记 jsonschema 依赖；pytest 9 用例、ruff、mypy(strict) 全绿。
+    （TASK-031、FR-038、PROMPT-POLICY）
+- TASK-032 面试官决策图（`task/TASK-032-interviewer-graph` 分支）：
+  - `ai/services/orchestrator` 新增 `interviewer_graph`（FR-012）：与 LangGraph StateGraph
+    语义对齐的确定性迷你引擎（节点/条件边/编译/调用/检查点恢复）；覆盖点推进、动态追问
+    （预算内且不越出已确认覆盖点）、打断策略（avatar_stopped → 聆听）、工具白名单
+    （拒绝后终止请求，无死循环）；图只产出建议不写业务状态；重放安全（NFR-006）。
+  - pytest 15 用例、ruff、mypy(strict) 全绿。（TASK-032、FR-012、NFR-006）
+- TASK-033 计划生成链路（`task/TASK-033-plan-generation` 分支）：
+  - `ai/services/orchestrator` 新增 `plan_generator`：来源融合（可信来源/通用模板回退 +
+    AI 推导标记）、轮次建议（默认 3 轮、1-5 轮与 10-60 分钟边界、权重和 100）、
+    PII/注入安全过滤与重生成 ≤2 次、单轮失败只重试失败模块、interview-plan Schema 校验。
+  - `services/project` 新增 `PlanGenerator` 接口 + 合成实现与 `CheckPlanSafety`
+    （PII 复述/注入 fail-closed，不安全内容不进入房间）；`/v1/projects/{id}/plan:generate`
+    由 501 占位落地为 201 草稿（PLAN_REVIEW、Frozen=false）；RoundConfig 增加
+    `question_coverage_plan` 结构。Go 服务/HTTP 正常、异常、幂等、安全过滤测试齐备。
+    （TASK-033、FR-009、FR-011、US-02 场景 5）
 - frontend-global-pages 批次 0：建立 pnpm 11.18.0 单锁文件工作区、`apps/web` 的
   `/{locale}` 路由壳（SCR-01 ~ SCR-16）、全局错误/404/加载边界、设计令牌、领域状态枚举、
   双语运行时与 UI 基础组件；提交由 `docs/api/openapi.yaml` 生成并带来源标记的
   `contracts/ts` 类型，接入阶段 2 的 lint/typecheck/i18n/令牌/API 漂移检查、阶段 3 的
   Vitest/axe/隐私与幂等测试、阶段 6 的生产构建与 bundle 密钥扫描。
   语言前缀路由与 Storybook 等价测试按前端规格的两项偏离说明执行；媒体与业务页仍为后续批次
-  的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+   的显式静态壳，不接真实后端或媒体供应商。（frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
+- frontend-batch-1~4 完全重构（`task/frontend-batch-1-4-full-pages` 分支）：
+  - 路由壳全部替换为真实业务页面（SCR-01~17）：落地页、邮箱验证码/第三方登录、工作台
+    （统计/筛选/状态机徽标/操作）、创建项目（双栏上传+JD+样例）、解析校对（低置信度/
+    敏感字段/降级同意）、计划（轮次编辑/冻结/报价）、会前检查（设备/便利设置）、实时房间
+    （字幕修订/工具/控制栏 + SCR-09 故障暂停/重连/降级覆盖层）、轮次结果三态、报告
+    （SVG 雷达+表格等价+逐题证据）、练习（不改分标识）、资产四分区、账户隐私（六类授权
+    中心/导出删除）、购买额度（报价/流水/订单/自动续费）、机构端 7 页、运营后台 7 分区。
+  - 设计系统升级：品牌渐变、分层表面/阴影/圆角/动效/打印样式；`@mgd/ui` 新增 34 图标与
+    Card/PageHeader/AppShell/Tabs/Toast/Progress/EmptyState/StatCard/DataTable/Avatar/Tint；
+    i18n 扩展至 626 键 × 2 语言；Mock_Layer 覆盖全部页面组（合成数据标注）。
+  - 前端 100 测试全绿（新增工作台筛选/房间红线/状态徽标用例）；ESLint、TypeScript strict、
+    i18n 键门禁、令牌门禁、生产构建全部通过；断点令牌改为字面值输出以兼容 Turbopack。
+    （frontend-batch-1~4、SCR-01~17、FR-028、NFR-006）
 - TASK-022 流式 ASR、回合检测与打断防重叠（`task/TASK-022-streaming-asr` 分支）：
   - 新增 `services/asr` Go 模块（FR-017）：双向流式识别契约 `Provider.OpenStream`
     （音频帧 → partial/final，合成桩）、回合检测 `TurnDetector`（静音窗口断点 → final，

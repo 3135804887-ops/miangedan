@@ -233,6 +233,22 @@
 > frontend-batch-1 ~ 4 分别落地 SCR-01 ~ 07、SCR-08/09、SCR-10 ~ 15、SCR-16/17。
 > （frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
 
+> **前端交付追踪（frontend-batch-1~4 完全重构，2026-08-02）**：路由壳已全部替换为真实业务页面——
+> 应用级设计系统升级（品牌靛蓝→紫渐变、分层表面、阴影层级、圆角、动效、打印样式），
+> `@mgd/ui` 新增 34 个内联 SVG 图标与 Card/PageHeader/AppShell/Tabs/Toast/Progress/
+> EmptyState/StatCard/DataTable/Avatar/Tint 组件；i18n 扩展至 626 键 × 2 语言；
+> Mock_Layer 覆盖身份/工作台/计划/会话/结果/报告/练习/资产/设置/购买/机构/后台全部页面组。
+> SCR-01~17 全部页面实现：落地页（品牌 hero/特性/样例演示）、邮箱验证码+第三方登录、
+> 工作台（统计/筛选/状态机徽标/操作）、创建项目（双栏上传+JD+样例填充）、解析校对
+> （低置信度/敏感字段排除/缺失降级同意）、计划（轮次编辑/覆盖方案/冻结/报价）、会前检查
+> （设备检测/便利设置/输入开关）、实时房间（字幕修订/工具区/控制栏 + SCR-09 故障暂停/
+> 重连/降级/退出覆盖层）、轮次结果三态、完整报告（SVG 雷达+表格等价+逐题证据）、练习
+> （不改分标识）、资产四分区、账户与隐私（六类授权中心/导出删除）、购买额度（报价/流水/
+> 订单/自动续费）、机构端 7 页、运营后台 7 分区（默认脱敏/无改分控件）。
+> 页面级测试（工作台筛选/房间红线文案与覆盖层/状态徽标）新增，前端 100 测试全绿；
+> ESLint（含领域状态字面量与令牌硬编码门禁）、TypeScript strict、i18n 键门禁、
+> 令牌门禁、生产构建全部通过。（frontend-batch-1~4、SCR-01~17、FR-028、NFR-006）
+
 ### EPIC-03 实时链路（房间、媒体、数字人、证据管道）
 
 目标：低延迟、可恢复、证据完整的实时面试链路；控制面与媒体面分离。
@@ -248,6 +264,54 @@
 | TASK-026 | 追加式证据账本写入管道（问题实际播放内容、回答、修订、工具事件） | NFR-005 | TASK-003 | 下一主问题前完成上一有效回答持久化；无更新/删除路径 |
 | TASK-027 | 输入模式（语音/文字/摄像头/工具）与便利设置会前冻结 | FR-015、FR-016 | TASK-020 | 摄像头/麦克风可关，数字人音视频始终开启 |
 
+> **任务状态（2026-08-02 更新）**：TASK-023 已实现：`services/room` 扩展双向字幕与转写修订
+> （FR-018）——ASR 临时/最终文本追加（partial 仅展示不入证据；final 为正式文本）、修订状态机
+> （none → submitted → accepted/rejected）、回合冻结边界（`turn.completed` 后修订一律
+> `rejected(window_closed)`，原始 ASR 仅诊断、修订文本为评分证据）、按 `revision_id` 幂等与
+> 冻结前持久化顺序保证（NFR-005）。API 为 `/v1/sessions/{id}/transcripts`、
+> `/v1/sessions/{id}/revisions`、`/v1/sessions/{id}/turns/{turnIndex}/freeze`；
+> 迁移为 `0023_session_transcripts.sql`；DOMAIN-MODEL §6.20、DATA-MODEL、openapi、
+> realtime-events 同步；服务/HTTP 正常、异常、窗口竞态、幂等测试齐备。（TASK-023、FR-018、NFR-005）
+
+> **任务状态（2026-08-02 更新）**：TASK-024 已实现：`services/room` 扩展岗位工具
+> （FR-019）——四类工具（code_editor/whiteboard/case_materials/portfolio）封闭枚举、
+> 激活校验（仅计划中已配置工具，正式房间不临时加载）、工具事件（edit/run/annotate/submit）
+> 以 `tool_event_id` 幂等入证据账本（content_ref 对象存储引用，非内联大对象）。
+> API 为 `/v1/sessions/{id}/tools`、`/v1/sessions/{id}/tools/{toolKey}/activate`、
+> `/v1/sessions/{id}/tools/{toolKey}/events`；迁移为 `0024_session_tool_events.sql`；
+> DOMAIN-MODEL §6.21、DATA-MODEL、openapi、realtime-events 同步；
+> 服务/HTTP 正常、异常、未配置拒绝、幂等测试齐备。（TASK-024、FR-019、NFR-005）
+
+> **任务状态（2026-08-02 更新）**：TASK-025 已实现：`services/room` 扩展故障控制
+> （FR-020）——暂停计时（`timer.paused/resumed`，LIVE → PAUSED_SYSTEM/AUTH_PAUSED/RECONNECTING，
+> 暂停段不计费不判失败，`paused_seconds` 只增不减）、数字人持续故障降级询问
+> （`avatar.downgrade_prompted` → prompt_id 幂等）、接受降级（TEXT_DEGRADED，故障点起不计
+> 数字人额度——TASK-061 挂接点）、拒绝降级（ENDED + EVALUATION_INCOMPLETE 语义 +
+> 系统责任全额返还挂接 + 设备释放）。3 分钟重连窗口由 TASK-020 提供。API 为
+> `/v1/sessions/{id}/timer/*`、`/v1/sessions/{id}/downgrade/*`；迁移为
+> `0025_session_fault_controls.sql`；DOMAIN-MODEL §6.22、DATA-MODEL、openapi、
+> INTERVIEW-STATE-MACHINE 同步；服务/HTTP 正常、异常、幂等测试齐备。
+> （TASK-025、FR-020、NFR-005）
+
+> **任务状态（2026-08-02 更新）**：TASK-026 已实现：`services/evidence` 新 Go 模块
+> （仅依赖 services/region，登记 go.work 与 CI golangci 矩阵）提供追加式证据账本写入管道
+> （NFR-005）——问题实际播放内容/回答/修订/工具事件四类证据（kind 封闭枚举）、`event_id`
+> 幂等去重（NFR-006）、`content_hash` 与载荷一致性校验（fail-closed）、无更新/删除路径
+> （ADR-0004）、列表只读副本；`turn.completed` 前完成上一有效回答持久化的顺序保证由
+> TASK-023 冻结边界消费。迁移为 `0026_evidence_events.sql`；DOMAIN-MODEL §6.23、
+> DATA-MODEL、realtime-events 同步；正常/异常/幂等/只读红线测试齐备。
+> （TASK-026、NFR-005、NFR-006）
+
+> **任务状态（2026-08-02 更新）**：TASK-027 已实现：`services/room` 扩展会前检查
+> （FR-015、FR-016）——输入模式（voice/text/camera/job_tool 封闭枚举）与便利设置
+> （对齐 project.Accommodations 计划冻结枚举）会前冻结（`session.pre_check_passed` →
+> AVATAR_CONNECTING）；摄像头/麦克风可关不扣分、数字人音视频始终开启（无关闭选项）、
+> 冻结后不可修改（幂等键重放返回首次结果）；设备报告（camera/mic/网络评级）校验
+> fail-closed。API 为 `/v1/sessions/{id}/precheck/freeze`、`/v1/sessions/{id}/precheck`；
+> 迁移为 `0027_session_prechecks.sql`；DOMAIN-MODEL §6.24、DATA-MODEL、openapi、
+> SCREEN-SPEC 同步；服务/HTTP 正常、异常、重复冻结、幂等测试齐备。
+> （TASK-027、FR-015、FR-016）
+
 ### EPIC-04 AI 编排（供应商适配、提示词、面试官图、交接、安全）
 
 目标：概率性 AI 决策与确定性业务状态严格分离；LLM 无权直接改变业务状态。
@@ -261,6 +325,38 @@
 | TASK-034 | 跨轮交接包生成、上下文压缩与事实完整性校验 | 跨轮交接规则 | TASK-016、TASK-031 | 按 `docs/ai/HANDOFF-SPEC.md`；禁止重复问题清单生效 |
 | TASK-035 | 提示注入防护与内容安全管道（简历/JD/网页均视为不可信数据） | P0 风险（注入） | TASK-030 | 红队注入用例全部阻断；模型无密钥访问 |
 | TASK-036 | AI 评测框架：黄金集、回归门槛、公平性切分 | 评分硬门槛 | TASK-031 | `ai/evals/` 数据集可重复运行并产出报告 |
+
+> **任务状态（2026-08-02 更新）**：TASK-031 已实现：`ai/services/orchestrator` 新增
+> `mgd_orchestrator.prompt_registry`（FR-038 部分）——从 `ai/prompts/*.md` 解析全部契约
+> 元数据（prompt_id/version/layer/output_schema/safety_policy/status），四层组装
+> （system/developer/session/data，data 层以 `<<<UNTRUSTED_DATA>>>` 边界包裹，
+> 下层永不覆盖上层指令）、注入模式检测（中文/英文基线，命中即标记不执行）、输出 JSON Schema
+> 校验（引用 `ai/schemas/*.json`，fail-closed，不通过不可进入房间）、版本固定
+> （活跃正式会话固定开始版本，不匹配拒绝）。依赖 `jsonschema` 登记于 pyproject；
+> pytest 9 用例（加载/版本/分层/注入/输出校验正常与拒绝）全绿，ruff/mypy(strict) 通过。
+> （TASK-031、FR-038 部分、PROMPT-POLICY）
+
+> **任务状态（2026-08-02 更新）**：TASK-032 已实现：`ai/services/orchestrator` 新增
+> `mgd_orchestrator.interviewer_graph`（FR-012）——与 LangGraph StateGraph 语义对齐的
+> 确定性迷你图引擎（add_node/add_conditional_edges/compile/invoke，零外部依赖，
+> 生产可同构迁移 LangGraph）：覆盖点推进（按计划冻结范围顺序推进）、动态追问
+> （weak/partial 回答在预算内追问，question_id 不越出已确认覆盖点，预算用尽后推进）、
+> 打断策略（voice/button → avatar_stopped → 聆听，未播放内容不入证据）、工具使用
+> （白名单外拒绝并终止请求，杜绝死循环）、检查点快照/恢复（重放安全，NFR-006）；
+> 图节点只产出建议，不直接写业务状态（确定性状态由 Temporal 工作流控制）。
+> pytest 15 用例（推进/追问边界/打断/工具白名单/恢复/非收敛保护）全绿，
+> ruff/mypy(strict) 通过。（TASK-032、FR-012、NFR-006）
+
+> **任务状态（2026-08-02 更新）**：TASK-033 已实现：计划生成链路（FR-009/FR-011，
+> US-02 场景 5）——`ai/services/orchestrator` 新增 `mgd_orchestrator.plan_generator`
+> （来源融合：可信来源引用/无来源回退通用模板并标记 AI 推导；轮次建议默认 3 轮、
+> 1-5 轮与 10-60 分钟边界、六维权重和 100；PII/注入安全过滤与重生成 ≤2 次；
+> 单轮失败只重试失败模块；输出对齐 interview-plan schema）；
+> `services/project` 新增 `PlanGenerator` 接口与合成 `StubPlanGenerator`、`CheckPlanSafety`
+> （PII/注入 fail-closed），`/v1/projects/{id}/plan:generate` 由 501 占位落地为
+> 材料确认后返回 201 草稿（进入 PLAN_REVIEW，Frozen=false），RoundConfig 增加
+> `question_coverage_plan` 结构。Go 服务/HTTP 正常、异常、幂等、安全过滤测试齐备；
+> Python 22 用例全绿，ruff/mypy(strict) 通过。（TASK-033、FR-009、FR-011、PROMPT-POLICY）
 
 ### EPIC-05 评分与复核
 

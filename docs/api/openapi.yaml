@@ -1446,6 +1446,318 @@ paths:
       responses:
         '200': { description: 已转移（返回新设备短期房间令牌）, content: { application/json: { schema: { $ref: '#/components/schemas/SessionCreated' } } } }
         default: { $ref: '#/components/responses/Error' }
+  # ---- TASK-023 双向字幕与转写修订（FR-018） ----
+  /v1/sessions/{sessionId}/transcripts:
+    post:
+      tags: [sessions]
+      operationId: appendTranscript
+      summary: 追加 ASR 临时/最终字幕（partial 仅展示；final 为正式转写，回合冻结后拒绝追加）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [turn_index, utterance_id, kind, text, language, confidence]
+              properties:
+                turn_index: { type: integer, minimum: 1 }
+                utterance_id: { type: string, format: uuid }
+                kind: { type: string, enum: [partial, final] }
+                text: { type: string, minLength: 1 }
+                language: { type: string }
+                confidence: { type: number, minimum: 0, maximum: 1 }
+      responses:
+        '200': { description: 已追加/覆盖展示文本, content: { application/json: { schema: { $ref: '#/components/schemas/Transcript' } } } }
+        '409': { description: 回合已冻结（revision_window_closed）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    get:
+      tags: [sessions]
+      operationId: listTranscripts
+      summary: 会话全部字幕与转写（原始 ASR 与修订双版本；原始仅诊断）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: 字幕列表（按 created_at 升序）
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Transcript' } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/revisions:
+    post:
+      tags: [sessions]
+      operationId: submitTranscriptRevision
+      summary: 提交转写修订（transcript.revision.submitted；进入下一主问题后一律 rejected(window_closed)）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision_id, utterance_id, turn_index, revised_text]
+              properties:
+                revision_id: { type: string, format: uuid }
+                utterance_id: { type: string, format: uuid }
+                turn_index: { type: integer, minimum: 1 }
+                revised_text: { type: string, minLength: 1 }
+      responses:
+        '200': { description: 修订已提交（冻结后随回合升级为 accepted）, content: { application/json: { schema: { $ref: '#/components/schemas/Transcript' } } } }
+        '409': { description: 修订窗口已关闭（revision_window_closed）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/turns/{turnIndex}/freeze:
+    post:
+      tags: [sessions]
+      operationId: freezeTurn
+      summary: 冻结回合（turn.completed；上一有效回答已持久化后发出；冻结后修订窗口关闭）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - { name: turnIndex, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200':
+          description: 回合已冻结（含 final/修订计数）
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session_id, turn_index, frozen_at, final_count, revised_count]
+                properties:
+                  session_id: { type: string, format: uuid }
+                  turn_index: { type: integer }
+                  frozen_at: { type: string, format: date-time }
+                  final_count: { type: integer }
+                  revised_count: { type: integer }
+        '409': { description: 回合已冻结或状态冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/turns/{turnIndex}:
+    get:
+      tags: [sessions]
+      operationId: getTurnState
+      summary: 回合冻结状态（客户端续传游标）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - { name: turnIndex, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200':
+          description: 回合状态
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session_id, turn_index, frozen]
+                properties:
+                  session_id: { type: string, format: uuid }
+                  turn_index: { type: integer }
+                  frozen: { type: boolean }
+                  frozen_at: { type: ['string', 'null'], format: date-time }
+        default: { $ref: '#/components/responses/Error' }
+  # ---- TASK-024 岗位工具（FR-019） ----
+  /v1/sessions/{sessionId}/tools:
+    get:
+      tags: [sessions]
+      operationId: listToolEvents
+      summary: 会话工具事件（入证据账本；供报告与复核引用）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: 工具事件列表（按 created_at 升序）
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/ToolEvent' } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/tools/{toolKey}/activate:
+    post:
+      tags: [sessions]
+      operationId: activateSessionTool
+      summary: 激活岗位工具（tool.activated；仅允许计划中已配置工具，正式房间不临时加载）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - { name: toolKey, in: path, required: true, schema: { type: string, enum: [code_editor, whiteboard, case_materials, portfolio] } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                preconfig_ref: { type: string, description: 计划冻结时配置引用 }
+      responses:
+        '200':
+          description: 已激活
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session_id, tool_key, activated_at]
+                properties:
+                  session_id: { type: string, format: uuid }
+                  tool_key: { type: string }
+                  preconfig_ref: { type: string }
+                  activated_at: { type: string, format: date-time }
+        '409': { description: 未配置工具（tool_not_configured）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/tools/{toolKey}/events:
+    post:
+      tags: [sessions]
+      operationId: recordToolEvent
+      summary: 记录工具事件（tool.event；幂等键 tool_event_id；事件入证据账本）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - { name: toolKey, in: path, required: true, schema: { type: string, enum: [code_editor, whiteboard, case_materials, portfolio] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tool_event_id, event_type, content_ref]
+              properties:
+                tool_event_id: { type: string, format: uuid }
+                event_type: { type: string, enum: [edit, run, annotate, submit] }
+                content_ref: { type: string, description: 对象存储引用，非内联大对象 }
+      responses:
+        '200': { description: 事件已入库, content: { application/json: { schema: { $ref: '#/components/schemas/ToolEvent' } } } }
+        '409': { description: 未配置工具或会话状态冲突, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  # ---- TASK-025 故障暂停与文字降级（FR-020） ----
+  /v1/sessions/{sessionId}/timer/pause:
+    post:
+      tags: [sessions]
+      operationId: pauseSessionTimer
+      summary: 暂停计时（timer.paused；系统故障/重连/令牌暂停；暂停段不计费不影响评分）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, enum: [system_fault, reconnect, auth_paused] }
+      responses:
+        '200': { description: 已暂停, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '409': { description: 状态冲突或会话已结束, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/timer/resume:
+    post:
+      tags: [sessions]
+      operationId: resumeSessionTimer
+      summary: 恢复计时（timer.resumed；累计暂停秒数；恢复 LIVE）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { description: 已恢复, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '409': { description: 未处于暂停态（timer_not_paused）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/downgrade/offer:
+    post:
+      tags: [sessions]
+      operationId: offerTextDowngrade
+      summary: 数字人持续故障时询问是否降级文字面试（avatar.downgrade_prompted；幂等返回同一 prompt_id）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 已发起询问
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [prompt_id]
+                properties:
+                  prompt_id: { type: string, format: uuid }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/downgrade/accept:
+    post:
+      tags: [sessions]
+      operationId: acceptTextDowngrade
+      summary: 同意降级（TEXT_DEGRADED；故障点起不计数字人额度；口语项按文字模式规则）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt_id]
+              properties:
+                prompt_id: { type: string, format: uuid }
+      responses:
+        '200': { description: 已降级, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/downgrade/decline:
+    post:
+      tags: [sessions]
+      operationId: declineTextDowngrade
+      summary: 拒绝降级（ENDED；项目 EVALUATION_INCOMPLETE 不是失败；系统责任全额返还预留额度）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt_id]
+              properties:
+                prompt_id: { type: string, format: uuid }
+      responses:
+        '200': { description: 已结束（评估未完成）, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  # ---- TASK-027 会前检查与输入模式冻结（FR-015/FR-016） ----
+  /v1/sessions/{sessionId}/precheck/freeze:
+    post:
+      tags: [sessions]
+      operationId: freezeSessionPreCheck
+      summary: 冻结会前配置（session.pre_check_passed；摄像头/麦克风可关，数字人音视频始终开启；冻结后不可修改）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input_modes, accommodations, device_report]
+              properties:
+                input_modes: { type: array, minItems: 1, items: { type: string, enum: [voice, text, camera, job_tool] } }
+                accommodations: { type: array, items: { type: string, enum: [text_only, mixed_input, slower_avatar_speech, repeat_questions, extended_time, silence_threshold_adjusted, no_proactive_interruption, reduced_motion, tool_keyboard_alternative] } }
+                device_report:
+                  type: object
+                  required: [camera_ok, mic_ok, network_rated]
+                  properties:
+                    camera_ok: { type: boolean }
+                    mic_ok: { type: boolean }
+                    network_rated: { type: string, enum: [good, fair, poor] }
+      responses:
+        '200': { description: 已冻结（会话进入 AVATAR_CONNECTING）, content: { application/json: { schema: { $ref: '#/components/schemas/PreCheck' } } } }
+        '409': { description: 已冻结或状态冲突（precheck_frozen/state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/sessions/{sessionId}/precheck:
+    get:
+      tags: [sessions]
+      operationId: getSessionPreCheck
+      summary: 会前冻结配置（输入模式/便利设置/设备报告）
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200': { description: 会前配置, content: { application/json: { schema: { $ref: '#/components/schemas/PreCheck' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
   # ============================== scores ==============================
   /v1/projects/{projectId}/rounds/{sequence}/result:
@@ -2700,10 +3012,60 @@ components:
         room_status: { enum: [ROOM_CREATED, PRE_CHECK, AVATAR_CONNECTING, LIVE, PAUSED_SYSTEM, RECONNECTING, DOWNGRADE_PROMPTED, TEXT_DEGRADED, AUTH_PAUSED, ENDED] }
         elapsed_seconds: { type: integer, minimum: 0, description: 正式计时（暂停与重连不计） }
         billable_seconds: { type: integer, minimum: 0, description: 计费秒数（仅数字人已连接且 LIVE） }
+        paused_seconds: { type: integer, minimum: 0, description: 累计暂停秒数（不计费不判失败） }
+        downgrade_status: { type: string, enum: [none, prompted, accepted, rejected] }
+        downgrade_prompt_id: { type: ['string', 'null'], format: uuid }
+        text_degraded_at: { type: ['string', 'null'], format: date-time }
+        end_reason: { type: ['string', 'null'], enum: [completed, user_exit, unrecoverable, downgrade_rejected] }
+        ended_at: { type: ['string', 'null'], format: date-time }
         current_turn_index: { type: ['integer', 'null'], minimum: 0 }
         input_modes_used: { type: array, items: { enum: [voice, text, camera, job_tool] } }
         reconnect_deadline_at: { type: ['string', 'null'], format: date-time, description: 3 分钟重连窗口截止 }
         data_region: { $ref: '#/components/schemas/Region' }
+    Transcript:
+      type: object
+      required: [session_id, turn_index, utterance_id, kind, text, language, revision_state, frozen, created_at, updated_at]
+      properties:
+        session_id: { type: string, format: uuid }
+        turn_index: { type: integer, minimum: 1 }
+        utterance_id: { type: string, format: uuid }
+        kind: { enum: [partial, final] }
+        text: { type: string, description: 原始 ASR 文本（仅诊断；评分使用修订文本） }
+        language: { type: string }
+        confidence: { type: ['number', 'null'], minimum: 0, maximum: 1 }
+        revised_text: { type: ['string', 'null'], description: 修订文本（accepted 后成为评分证据） }
+        revision_id: { type: ['string', 'null'], format: uuid }
+        revision_state: { enum: [none, submitted, accepted, rejected] }
+        revision_rejected_reason: { type: ['string', 'null'], enum: [window_closed, conflict] }
+        frozen: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ToolEvent:
+      type: object
+      required: [session_id, tool_key, tool_event_id, event_type, content_ref, created_at]
+      properties:
+        session_id: { type: string, format: uuid }
+        tool_key: { type: string, enum: [code_editor, whiteboard, case_materials, portfolio] }
+        tool_event_id: { type: string, format: uuid }
+        event_type: { type: string, enum: [edit, run, annotate, submit] }
+        content_ref: { type: string }
+        created_at: { type: string, format: date-time }
+    PreCheck:
+      type: object
+      required: [session_id, input_modes, accommodations, device_report, frozen]
+      properties:
+        session_id: { type: string, format: uuid }
+        input_modes: { type: array, items: { type: string, enum: [voice, text, camera, job_tool] } }
+        accommodations: { type: array, items: { type: string } }
+        device_report:
+          type: object
+          required: [camera_ok, mic_ok, network_rated]
+          properties:
+            camera_ok: { type: boolean }
+            mic_ok: { type: boolean }
+            network_rated: { type: string, enum: [good, fair, poor] }
+        frozen: { type: boolean }
+        frozen_at: { type: ['string', 'null'], format: date-time }
     ScoreResult:
       type: object
       required: [score_id, score_version, round_sequence, result_status, data_region]

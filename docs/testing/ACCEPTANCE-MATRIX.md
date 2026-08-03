@@ -53,18 +53,18 @@
 | FR-006 | 恶意文件检测 | TC-FR-006-N01 病毒/宏（DOC、DOCX）/压缩炸弹/伪装/损坏/加密矩阵全部在无网络、一次性、只读根文件系统、无凭证沙箱内扫描并以稳定具体原因拒绝 | TC-FR-006-A01 沙箱证明不完整时 fail-closed；扫描超时/扫描器暂时不可用保留隔离原件并只重试扫描步骤，重复重试无副作用；安全拒绝不可重试并清除隔离对象 | security、manual_review | EPIC-02 / TASK-012 |
 | FR-007 | 公开流程来源 | TC-FR-007-N01 按公司/岗位/级别/地区返回来源链接/日期/类型/可信度；同幂等键重复检索只落一次（NFR-006），可重试错误按退避重试后成功 | TC-FR-007-A01 断网或来源失效时回退通用模板并标记 AI 推导；不可重试错误不重试直接回退 | integration、ai_eval | EPIC-02 / TASK-015 |
 | FR-008 | 来源优先级 | TC-FR-008-N01 官方来源优先排序，经验内容标记非官方；仅候选人经验/失效/低可信时回退通用模板且标记 AI 推导 | TC-FR-008-A01 无可信来源时内容不得冒充企业事实（P0），通用模板不携带外部链接 | unit、ai_eval | EPIC-02 / TASK-015 |
-| FR-009 | 轮次与时长边界 | TC-FR-009-N01 默认 3 轮；用户合法调整为 1–5 轮、10–60 分钟 | TC-FR-009-A01 0 轮/6 轮/70 分钟等越界配置被 contract 拒绝 | e2e、contract | EPIC-02 / TASK-016 |
+| FR-009 | 轮次与时长边界 | TC-FR-009-N01 默认 3 轮；用户合法调整为 1–5 轮、10–60 分钟（TASK-033 生成器边界测试） | TC-FR-009-A01 0 轮/6 轮/70 分钟等越界配置被 contract 拒绝 | e2e、contract、unit | EPIC-02 / TASK-016、TASK-033 |
 | FR-010 | 轮次编辑 | TC-FR-010-N01 增删重排、角色/重点/难度/风格/头像/声音/工具保存生效 | TC-FR-010-A01 修改统一评分算法/60 分门槛/解锁逻辑被拒 | e2e、contract | EPIC-02 / TASK-016 |
-| FR-011 | 开始前冻结 | TC-FR-011-N01 确认后量表/权重/流程/版本/覆盖方案冻结 | TC-FR-011-A01 开始后修改冻结项返回 state_conflict | contract、integration | EPIC-02 / TASK-016 |
+| FR-011 | 开始前冻结 | TC-FR-011-N01 确认后量表/权重/流程/版本/覆盖方案冻结 | TC-FR-011-A01 开始后修改冻结项返回 state_conflict | contract、integration、unit | EPIC-02 / TASK-016、TASK-033 |
 | FR-012 | 混合问题策略 | TC-FR-012-N01 预生成主线 + 会中按实际回答动态追问 | TC-FR-012-A01 追问越出已确认范围时被决策图拦截重选 | ai_eval | EPIC-04 / TASK-032 |
 | FR-013 | 数字人实时入会 | TC-FR-013-N01 数字人以 WebRTC 视频+音频参与者加入，建连达标 | TC-FR-013-A01 静态头像/预录视频/纯文字替代被验收检测判不合规 | e2e、performance | EPIC-03 / TASK-020、021 |
 | FR-014 | 角色库与人格 | TC-FR-014-N01 角色来自固定授权 2D 库，人格/背景/风格动态生成 | TC-FR-014-A01 每场生成新脸或未授权克隆请求被拒 | integration、security | EPIC-03 / TASK-021 |
-| FR-015 | 四类输入 | TC-FR-015-N01 语音/摄像头/文字/岗位工具四通道均可作答 | TC-FR-015-A01 单通道故障时其余通道可继续完成面试 | e2e、integration | EPIC-03 / TASK-027 |
-| FR-016 | 设备开关规则 | TC-FR-016-N01 关闭摄像头/麦克风面试继续，数字人音视频始终开启 | TC-FR-016-A01 数字人视频或音频中断立即进入故障流程 | e2e、integration | EPIC-03 / TASK-027 |
+| FR-015 | 四类输入 | TC-FR-015-N01 语音/摄像头/文字/岗位工具四通道均可作答（TASK-027 会前冻结测试） | TC-FR-015-A01 单通道故障时其余通道可继续完成面试（模式枚举校验 fail-closed） | e2e、integration、unit | EPIC-03 / TASK-027 |
+| FR-016 | 设备开关规则 | TC-FR-016-N01 关闭摄像头/麦克风面试继续，数字人音视频始终开启（TASK-027 冻结语义测试） | TC-FR-016-A01 数字人视频或音频中断立即进入故障流程（TASK-025 暂停/降级） | e2e、integration、unit | EPIC-03 / TASK-027 |
 | FR-017 | 打断与回合 | TC-FR-017-N01 语音打断/停止按钮至停止发声 P95 ≤500ms | TC-FR-017-A01 重叠说话场景检测并避免，无法判断时询问是否答完 | performance、e2e | EPIC-03 / TASK-022 |
-| FR-018 | 字幕与修订 | TC-FR-018-N01 双向字幕实时展示，窗口内修订确认为评分证据 | TC-FR-018-A01 进入下一主问题后修订被拒（回合已冻结） | e2e、contract | EPIC-03 / TASK-023 |
-| FR-019 | 岗位工具 | TC-FR-019-N01 代码/白板/案例/作品集事件全量入证据账本 | TC-FR-019-A01 正式房间临时加载未配置工具被拒 | integration、contract | EPIC-03 / TASK-024 |
-| FR-020 | 故障与降级 | TC-FR-020-N01 故障暂停计时、保存状态、自动重连成功恢复 | TC-FR-020-A01 重连无效询问降级：同意继续/拒绝评估未完成且返还 | integration、e2e | EPIC-03 / TASK-025 |
+| FR-018 | 字幕与修订 | TC-FR-018-N01 双向字幕实时展示，窗口内修订确认为评分证据（TASK-023 服务/HTTP 测试） | TC-FR-018-A01 进入下一主问题后修订被拒（回合已冻结，window_closed） | e2e、contract、unit | EPIC-03 / TASK-023 |
+| FR-019 | 岗位工具 | TC-FR-019-N01 代码/白板/案例/作品集事件全量入证据账本（TASK-024 服务/HTTP 测试） | TC-FR-019-A01 正式房间临时加载未配置工具被拒（tool_not_configured） | integration、contract、unit | EPIC-03 / TASK-024 |
+| FR-020 | 故障与降级 | TC-FR-020-N01 故障暂停计时、保存状态、自动重连成功恢复（TASK-025 服务/HTTP 测试） | TC-FR-020-A01 重连无效询问降级：同意继续/拒绝评估未完成且返还（TEXT_DEGRADED/ENDED+EVALUATION_INCOMPLETE） | integration、e2e、unit | EPIC-03 / TASK-025 |
 | FR-021 | 双门槛审核 | TC-FR-021-N01 总分 ≥60 且关键维度 ≥60 判 PASS 并解锁 | TC-FR-021-A01 总分 80 但关键维度 59 判 FAIL 不解锁 | unit、ai_eval | EPIC-05 / TASK-040 |
 | FR-022 | 通过展示 | TC-FR-022-N01 首先展示祝贺文案+摘要+下一轮角色/重点/难度/时长 | TC-FR-022-A01 摘要不含后续轮次完整标准答案（人工审查） | e2e、manual_review | EPIC-06 / TASK-054 |
 | FR-023 | 报告内容 | TC-FR-023-N01 雷达/匹配/逐题证据/轨迹/沟通/工具/训练计划齐全且有文字等价 | TC-FR-023-A01 无 JD 项目不展示岗位匹配百分比 | e2e、unit | EPIC-06 / TASK-050 |

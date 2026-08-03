@@ -111,6 +111,23 @@ type RoundConfig struct {
 	VoiceID                   string
 	RubricBound               bool
 	QuestionCoveragePlanReady bool
+	// CoveragePlan 为问题覆盖方案（question_coverage_plan；TASK-033 生成，确认后冻结）。
+	CoveragePlan *QuestionCoveragePlan
+}
+
+// QuestionCoveragePlan 为单轮问题覆盖方案（ai/schemas/interview-plan.schema.json）。
+type QuestionCoveragePlan struct {
+	CapabilityTargets   []string
+	CoveragePoints      []CoveragePoint
+	BackupQuestionCount int
+}
+
+// CoveragePoint 为单个覆盖点（维度内权重）。
+type CoveragePoint struct {
+	CoverageID        string
+	Dimension         string
+	Description       string
+	WeightInDimension float64
 }
 
 // RoundWeight 为轮次权重（确认后冻结）。

@@ -1067,6 +1067,245 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sessions/{sessionId}/transcripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 会话全部字幕与转写（原始 ASR 与修订双版本；原始仅诊断） */
+        get: operations["listTranscripts"];
+        put?: never;
+        /** 追加 ASR 临时/最终字幕（partial 仅展示；final 为正式转写，回合冻结后拒绝追加） */
+        post: operations["appendTranscript"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 提交转写修订（transcript.revision.submitted；进入下一主问题后一律 rejected(window_closed)） */
+        post: operations["submitTranscriptRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/turns/{turnIndex}/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 冻结回合（turn.completed；上一有效回答已持久化后发出；冻结后修订窗口关闭） */
+        post: operations["freezeTurn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/turns/{turnIndex}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 回合冻结状态（客户端续传游标） */
+        get: operations["getTurnState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 会话工具事件（入证据账本；供报告与复核引用） */
+        get: operations["listToolEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/tools/{toolKey}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 激活岗位工具（tool.activated；仅允许计划中已配置工具，正式房间不临时加载） */
+        post: operations["activateSessionTool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/tools/{toolKey}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 记录工具事件（tool.event；幂等键 tool_event_id；事件入证据账本） */
+        post: operations["recordToolEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/timer/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 暂停计时（timer.paused；系统故障/重连/令牌暂停；暂停段不计费不影响评分） */
+        post: operations["pauseSessionTimer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/timer/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 恢复计时（timer.resumed；累计暂停秒数；恢复 LIVE） */
+        post: operations["resumeSessionTimer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/downgrade/offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 数字人持续故障时询问是否降级文字面试（avatar.downgrade_prompted；幂等返回同一 prompt_id） */
+        post: operations["offerTextDowngrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/downgrade/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 同意降级（TEXT_DEGRADED；故障点起不计数字人额度；口语项按文字模式规则） */
+        post: operations["acceptTextDowngrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/downgrade/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝降级（ENDED；项目 EVALUATION_INCOMPLETE 不是失败；系统责任全额返还预留额度） */
+        post: operations["declineTextDowngrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/precheck/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 冻结会前配置（session.pre_check_passed；摄像头/麦克风可关，数字人音视频始终开启；冻结后不可修改） */
+        post: operations["freezeSessionPreCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/precheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 会前冻结配置（输入模式/便利设置/设备报告） */
+        get: operations["getSessionPreCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{projectId}/rounds/{sequence}/result": {
         parameters: {
             query?: never;
@@ -2303,6 +2542,18 @@ export interface components {
             elapsed_seconds?: number;
             /** @description 计费秒数（仅数字人已连接且 LIVE） */
             billable_seconds: number;
+            /** @description 累计暂停秒数（不计费不判失败） */
+            paused_seconds?: number;
+            /** @enum {string} */
+            downgrade_status?: "none" | "prompted" | "accepted" | "rejected";
+            /** Format: uuid */
+            downgrade_prompt_id?: string | null;
+            /** Format: date-time */
+            text_degraded_at?: string | null;
+            /** @enum {string|null} */
+            end_reason?: "completed" | "user_exit" | "unrecoverable" | "downgrade_rejected" | null;
+            /** Format: date-time */
+            ended_at?: string | null;
             current_turn_index?: number | null;
             input_modes_used?: ("voice" | "text" | "camera" | "job_tool")[];
             /**
@@ -2311,6 +2562,60 @@ export interface components {
              */
             reconnect_deadline_at?: string | null;
             data_region: components["schemas"]["Region"];
+        };
+        Transcript: {
+            /** Format: uuid */
+            session_id: string;
+            turn_index: number;
+            /** Format: uuid */
+            utterance_id: string;
+            /** @enum {unknown} */
+            kind: "partial" | "final";
+            /** @description 原始 ASR 文本（仅诊断；评分使用修订文本） */
+            text: string;
+            language: string;
+            confidence?: number | null;
+            /** @description 修订文本（accepted 后成为评分证据） */
+            revised_text?: string | null;
+            /** Format: uuid */
+            revision_id?: string | null;
+            /** @enum {unknown} */
+            revision_state: "none" | "submitted" | "accepted" | "rejected";
+            /** @enum {string|null} */
+            revision_rejected_reason?: "window_closed" | "conflict" | null;
+            frozen: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ToolEvent: {
+            /** Format: uuid */
+            session_id: string;
+            /** @enum {string} */
+            tool_key: "code_editor" | "whiteboard" | "case_materials" | "portfolio";
+            /** Format: uuid */
+            tool_event_id: string;
+            /** @enum {string} */
+            event_type: "edit" | "run" | "annotate" | "submit";
+            content_ref: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        PreCheck: {
+            /** Format: uuid */
+            session_id: string;
+            input_modes: ("voice" | "text" | "camera" | "job_tool")[];
+            accommodations: string[];
+            device_report: {
+                camera_ok: boolean;
+                mic_ok: boolean;
+                /** @enum {string} */
+                network_rated: "good" | "fair" | "poor";
+            };
+            frozen: boolean;
+            /** Format: date-time */
+            frozen_at?: string | null;
         };
         ScoreResult: {
             /** Format: uuid */
@@ -4977,6 +5282,555 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listTranscripts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 字幕列表（按 created_at 升序） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transcript"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    appendTranscript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    turn_index: number;
+                    /** Format: uuid */
+                    utterance_id: string;
+                    /** @enum {string} */
+                    kind: "partial" | "final";
+                    text: string;
+                    language: string;
+                    confidence: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 已追加/覆盖展示文本 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transcript"];
+                };
+            };
+            /** @description 回合已冻结（revision_window_closed） */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    submitTranscriptRevision: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    revision_id: string;
+                    /** Format: uuid */
+                    utterance_id: string;
+                    turn_index: number;
+                    revised_text: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 修订已提交（冻结后随回合升级为 accepted） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transcript"];
+                };
+            };
+            /** @description 修订窗口已关闭（revision_window_closed） */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    freezeTurn: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                turnIndex: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 回合已冻结（含 final/修订计数） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        session_id: string;
+                        turn_index: number;
+                        /** Format: date-time */
+                        frozen_at: string;
+                        final_count: number;
+                        revised_count: number;
+                    };
+                };
+            };
+            /** @description 回合已冻结或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getTurnState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                turnIndex: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 回合状态 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        session_id: string;
+                        turn_index: number;
+                        frozen: boolean;
+                        /** Format: date-time */
+                        frozen_at?: string | null;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listToolEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 工具事件列表（按 created_at 升序） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolEvent"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    activateSessionTool: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                toolKey: "code_editor" | "whiteboard" | "case_materials" | "portfolio";
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description 计划冻结时配置引用 */
+                    preconfig_ref?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已激活 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        session_id: string;
+                        tool_key: string;
+                        preconfig_ref?: string;
+                        /** Format: date-time */
+                        activated_at: string;
+                    };
+                };
+            };
+            /** @description 未配置工具（tool_not_configured） */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    recordToolEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+                toolKey: "code_editor" | "whiteboard" | "case_materials" | "portfolio";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    tool_event_id: string;
+                    /** @enum {string} */
+                    event_type: "edit" | "run" | "annotate" | "submit";
+                    /** @description 对象存储引用，非内联大对象 */
+                    content_ref: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 事件已入库 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolEvent"];
+                };
+            };
+            /** @description 未配置工具或会话状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    pauseSessionTimer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    reason: "system_fault" | "reconnect" | "auth_paused";
+                };
+            };
+        };
+        responses: {
+            /** @description 已暂停 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description 状态冲突或会话已结束 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    resumeSessionTimer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已恢复 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description 未处于暂停态（timer_not_paused） */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    offerTextDowngrade: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已发起询问 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        prompt_id: string;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    acceptTextDowngrade: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    prompt_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已降级 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    declineTextDowngrade: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    prompt_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已结束（评估未完成） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    freezeSessionPreCheck: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    input_modes: ("voice" | "text" | "camera" | "job_tool")[];
+                    accommodations: ("text_only" | "mixed_input" | "slower_avatar_speech" | "repeat_questions" | "extended_time" | "silence_threshold_adjusted" | "no_proactive_interruption" | "reduced_motion" | "tool_keyboard_alternative")[];
+                    device_report: {
+                        camera_ok: boolean;
+                        mic_ok: boolean;
+                        /** @enum {string} */
+                        network_rated: "good" | "fair" | "poor";
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 已冻结（会话进入 AVATAR_CONNECTING） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreCheck"];
+                };
+            };
+            /** @description 已冻结或状态冲突（precheck_frozen/state_conflict） */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSessionPreCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["parameters"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 会前配置 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreCheck"];
                 };
             };
             default: components["responses"]["Error"];

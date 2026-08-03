@@ -14,6 +14,8 @@ export default tseslint.config(
       '**/.next/**',
       '**/dist/**',
       '**/coverage/**',
+      // 本地开发工作区（临时脚本/浏览器 profile 等）不参与 lint
+      'work/**',
       // 生成物不参与 lint（contracts/README.md 规则 1、令牌生成物同理）
       'contracts/ts/**',
       'packages/design-tokens/generated/**',
