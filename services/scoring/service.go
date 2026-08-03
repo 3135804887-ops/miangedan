@@ -27,6 +27,7 @@ var (
 	ErrScoringFault            = errors.New("scoring service fault")
 	ErrReviewLimit             = errors.New("formal review limit reached")
 	ErrEvidenceMismatch        = errors.New("frozen evidence mismatch")
+	ErrStateConflict           = errors.New("state conflict")
 )
 
 // Service 为评分服务（独立、可重复、可解释、版本冻结；追加式 ScoreVersion）。

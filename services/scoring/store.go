@@ -17,4 +17,9 @@ type Store interface {
 	MarkReview(dataRegion, attemptID string) error
 	SaveReview(dataRegion, idempotencyKey string, r ReviewResult) error
 	GetReviewByIdempotencyKey(dataRegion, idempotencyKey string) (ReviewResult, error)
+	// TASK-053 正式重试：重试尝试登记（新题/锁定/重评范围）。
+	SaveRetryAttempt(RetryAttempt, string) error
+	GetRetryAttemptByIdempotencyKey(dataRegion, idempotencyKey string) (RetryAttempt, error)
+	GetRetryAttempt(dataRegion, attemptID string) (RetryAttempt, error)
+	UpdateRetryStatus(dataRegion, attemptID, status string) error
 }

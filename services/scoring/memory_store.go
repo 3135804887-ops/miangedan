@@ -15,6 +15,7 @@ type MemoryStore struct {
 	inputs    map[string]Input
 	reviews   map[string]int
 	byReview  map[string]ReviewResult
+	retries   map[string]RetryAttempt
 }
 
 // NewMemoryStore 创建空内存评分存储。
@@ -26,6 +27,7 @@ func NewMemoryStore() *MemoryStore {
 		inputs:    make(map[string]Input),
 		reviews:   make(map[string]int),
 		byReview:  make(map[string]ReviewResult),
+		retries:   make(map[string]RetryAttempt),
 	}
 }
 
@@ -184,4 +186,51 @@ func (m *MemoryStore) GetReviewByIdempotencyKey(
 		return ReviewResult{}, ErrNotFound
 	}
 	return r, nil
+}
+
+// SaveRetryAttempt 保存重试尝试（幂等键去重由服务层保证）。
+func (m *MemoryStore) SaveRetryAttempt(a RetryAttempt, idempotencyKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.retries[a.DataRegion+"|"+idempotencyKey] = a
+	m.retries[a.DataRegion+"|attempt|"+a.AttemptID] = a
+	return nil
+}
+
+// GetRetryAttemptByIdempotencyKey 幂等键查询重试尝试。
+func (m *MemoryStore) GetRetryAttemptByIdempotencyKey(
+	dataRegion, idempotencyKey string,
+) (RetryAttempt, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	a, ok := m.retries[dataRegion+"|"+idempotencyKey]
+	if !ok {
+		return RetryAttempt{}, ErrNotFound
+	}
+	return a, nil
+}
+
+// GetRetryAttempt 按尝试 ID 查询。
+func (m *MemoryStore) GetRetryAttempt(dataRegion, attemptID string) (RetryAttempt, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	a, ok := m.retries[dataRegion+"|attempt|"+attemptID]
+	if !ok {
+		return RetryAttempt{}, ErrNotFound
+	}
+	return a, nil
+}
+
+// UpdateRetryStatus 更新重试状态（SCHEDULED → IN_PROGRESS → SCORING → COMPLETED）。
+func (m *MemoryStore) UpdateRetryStatus(dataRegion, attemptID, status string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := dataRegion + "|attempt|" + attemptID
+	a, ok := m.retries[key]
+	if !ok {
+		return ErrNotFound
+	}
+	a.Status = status
+	m.retries[key] = a
+	return nil
 }

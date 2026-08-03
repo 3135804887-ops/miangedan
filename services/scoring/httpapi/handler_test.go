@@ -13,12 +13,13 @@ import (
 )
 
 type stubApp struct {
-	latest  scoring.Result
-	items   []scoring.Result
-	next    string
-	err     error
-	review  scoring.ReviewResult
-	queried []string
+	latest       scoring.Result
+	items        []scoring.Result
+	next         string
+	err          error
+	review       scoring.ReviewResult
+	retryAttempt scoring.RetryAttempt
+	queried      []string
 }
 
 func (s *stubApp) GetLatest(
@@ -48,6 +49,15 @@ func (s *stubApp) Review(
 		return scoring.ReviewResult{}, s.err
 	}
 	return s.review, nil
+}
+
+func (s *stubApp) BeginRetry(
+	_ context.Context, _ scoring.Actor, _ scoring.BeginRetryRequest,
+) (scoring.RetryAttempt, error) {
+	if s.err != nil {
+		return scoring.RetryAttempt{}, s.err
+	}
+	return s.retryAttempt, nil
 }
 
 type stubAuth struct{}
@@ -190,6 +200,42 @@ func TestReviewRequiresIdempotencyKey(t *testing.T) {
 	newTestHandler(&stubApp{}).ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("缺幂等键应 400，实际 %d", rec.Code)
+	}
+}
+
+func TestStartRetryCreated(t *testing.T) {
+	app := &stubApp{retryAttempt: scoring.RetryAttempt{
+		AttemptID: "retry-1", ProjectID: "p1", RoundSequence: 1,
+		Status: scoring.RetryStatusScheduled, DataRegion: "cn",
+	}}
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/projects/p1/rounds/1/retry", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+	req.Header.Set("Idempotency-Key", "retry-idem-001")
+	rec := httptest.NewRecorder()
+	newTestHandler(app).ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("发起重试应 201，实际 %d：%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("响应不是 JSON: %v", err)
+	}
+	if body["status"] != "RETRY_SCHEDULED" || body["attempt_id"] != "retry-1" {
+		t.Fatalf("RetryAttempt 响应异常：%v", body)
+	}
+}
+
+func TestStartRetryConflict(t *testing.T) {
+	handler := newTestHandler(&stubApp{err: scoring.ErrStateConflict})
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/projects/p1/rounds/1/retry", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+	req.Header.Set("Idempotency-Key", "retry-idem-002")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("PASS 轮次重试应 409，实际 %d", rec.Code)
 	}
 }
 

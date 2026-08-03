@@ -515,6 +515,19 @@
 > pytest 78 用例全绿（含教练 10 新用例），ruff/mypy(strict) 通过。
 > （TASK-052、FR-024、training-coach、SCR-12）
 
+> **任务状态（2026-08-03 更新）**：TASK-053 已实现（FR-024，US-04 场景 4；
+> SCORING-SPEC 6.7，DOMAIN-MODEL §6.14）——`services/scoring` 正式重试流：
+> `BeginRetry`（仅 FAIL/EVALUATION_INCOMPLETE 可发起，PASS 拒绝；locked=上轮
+> ≥60 维度、rescope=失败维度∪未覆盖点；状态机 RETRY_SCHEDULED→…→COMPLETED；
+> 幂等）；`SelectRetryQuestions`（新题不重复已通过相同问题：规范化语义去重，
+> direct_contradiction / new_job_scenario_transfer 例外允许主题重验但相同措辞
+> 一律丢弃；全重复候选池拒绝）；`ScoreRetry`（新分替换失败维度旧分、锁定沿用、
+> 矛盾解锁旧+新证据重评、重评维度必须携带新证据引用；历史版本保留不可改写；
+> 未登记尝试拒绝=练习隔离）。HTTP `/v1/.../retry` 落地（201/409/404）；
+> 迁移 `0053_retry_attempts.sql`。服务/HTTP 正常、异常、幂等、语义去重、
+> 矛盾解锁端到端测试齐备（新增 7 用例），gofmt/vet 通过。
+> （TASK-053、FR-024、SCORING-SPEC 6.7、DOMAIN-MODEL 6.14）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。

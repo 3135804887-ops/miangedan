@@ -298,3 +298,47 @@ type ReviewResult struct {
 	Changes  []DimensionChange `json:"changes"`
 	Reason   string            `json:"reason"`
 }
+
+// 正式重试状态（DOMAIN-MODEL §6.14；与 openapi RetryAttempt 对齐）。
+const (
+	RetryStatusScheduled  = "RETRY_SCHEDULED"
+	RetryStatusInProgress = "RETRY_IN_PROGRESS"
+	RetryStatusScoring    = "SCORING"
+	RetryStatusCompleted  = "COMPLETED"
+)
+
+// RetryAttempt 为一次正式重试尝试（新问题；维度锁定；新分替换失败维度旧分）。
+type RetryAttempt struct {
+	AttemptID         string         `json:"attempt_id"`
+	ProjectID         string         `json:"project_id"`
+	RoundSequence     int            `json:"round_sequence"`
+	SourceAttemptID   string         `json:"source_attempt_id"`
+	Status            string         `json:"status"`
+	LockedDimensions  []DimensionKey `json:"locked_dimensions"`
+	RescopeDimensions []DimensionKey `json:"rescope_dimensions"`
+	DataRegion        string         `json:"data_region"`
+	CreatedAt         time.Time      `json:"created_at"`
+}
+
+// SelectRetryQuestionsRequest 为新题选择请求（不重复已通过相同问题）。
+type SelectRetryQuestionsRequest struct {
+	AttemptID             string
+	CandidatePool         []string
+	DoNotRepeat           []string
+	ReverificationReasons []string // direct_contradiction | new_job_scenario_transfer
+}
+
+// RetryQuestionSelection 为新题选择结果（命中的重复题丢弃并重选）。
+type RetryQuestionSelection struct {
+	AttemptID      string   `json:"attempt_id"`
+	Selected       []string `json:"selected"`
+	SkippedRepeats []string `json:"skipped_repeats"`
+}
+
+// RetryResult 为正式重试评分结果（新旧证据替换信息；历史版本保留）。
+type RetryResult struct {
+	Attempt            RetryAttempt           `json:"attempt"`
+	Score              Result                 `json:"score"`
+	ReplacedDimensions []DimensionKey         `json:"replaced_dimensions"`
+	QuestionSelection  RetryQuestionSelection `json:"question_selection,omitempty"`
+}

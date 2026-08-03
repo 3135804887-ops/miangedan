@@ -202,7 +202,7 @@ erDiagram
 | 实体 | 要点 |
 |---|---|
 | Practice | 非评分训练记录（原题/变体、提示、框架、反馈）；**永不写入正式证据链，永不改变分数与解锁** |
-| RetryAttempt | 正式重试：新问题、维度锁定、新分替换失败维度旧分、矛盾解锁重评；与首轮尝试同为"正式尝试"，各允许一次正式复核 |
+| RetryAttempt | 正式重试：新问题、维度锁定、新分替换失败维度旧分、矛盾解锁重评；与首轮尝试同为"正式尝试"，各允许一次正式复核；实现见 `services/scoring`（TASK-053）：BeginRetry/SelectRetryQuestions/ScoreRetry，迁移 `0053_retry_attempts.sql` |
 
 ### 6.15 Entitlement / UsageLedger（权益与账本）
 

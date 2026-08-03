@@ -44,6 +44,16 @@
   - 复核产出新 ScoreVersion（supersedes_score_id 指向原版本），返回原结果/新结果/
     逐维前后对比与原因（SC-EC-16）；全部版本保留，历史分数不可改写；
   - 复核结果是否达标由工作流据 result_status 解锁，评分服务不改业务状态。
+- **正式重试**（TASK-053）：SCORING-SPEC 6.7 / DOMAIN-MODEL §6.14
+  - `BeginRetry`：仅 FAIL / EVALUATION_INCOMPLETE 可发起；locked = 上轮 ≥60
+    维度，rescope = 失败维度 ∪ 未覆盖点对应维度；状态机
+    RETRY_SCHEDULED → … → COMPLETED；幂等；
+  - `SelectRetryQuestions`：新题选择不重复已通过相同问题（语义去重；
+    direct_contradiction / new_job_scenario_transfer 例外允许主题重验，
+    相同措辞一律丢弃）；
+  - `ScoreRetry`：新分替换失败维度旧分、锁定沿用、矛盾解锁旧+新证据重评、
+    新证据引用必须进入结果；历史版本保留不可改写；
+  - HTTP：`/v1/projects/{projectId}/rounds/{sequence}/retry` 落地（201）。
 - **量表/权重版本化与公平性监控**（TASK-044）：FR-038 部分
   - `RubricRegistry`：从 `config/rubrics/v1/default.yaml` 加载（六维默认权重、
     锚点 1→20…5→100、覆盖率阈值），版本唯一不可覆盖；未知版本 fail-closed；
@@ -64,7 +74,7 @@
 
 ## 规划（后续任务）
 
-- TASK-050 报告生成（EPIC-06）。
+- TASK-054 结果流（祝贺/失败阻断/累计复盘）；TASK-055 导出与删除。
 
 评分红线：分数一经冻结不可改写（ADR-0004 追加式）；提示词不产出最终评分；
 练习永不进入本服务；摄像头/便利设置/保护属性/付费状态永远不是评分输入。
