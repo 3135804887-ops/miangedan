@@ -19,6 +19,7 @@ if str(_ORCHESTRATOR_SRC) not in sys.path:
 from mgd_orchestrator.handoff_generator import HandoffGenerator
 from mgd_orchestrator.report_generator import ReportGenerator
 from mgd_orchestrator.safety_pipeline import ContentSafetyPipeline
+from mgd_orchestrator.training_coach import TrainingCoach
 
 
 def _check_expected(expected: Mapping[str, Any], text: str) -> list[str]:
@@ -130,6 +131,41 @@ def report_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOu
     )
 
 
+def coach_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOutcome:
+    """练习隔离评测器（training-coach.md 第 8 节：隔离违规=0、先优势后改进）。"""
+    case_id = str(row["case_id"])
+    failures: list[str] = []
+    inp = cast(dict[str, Any], row["input"])
+    item_data = cast(dict[str, Any], inp["practice_item"])
+    try:
+        training = TrainingCoach()
+        item = training.create_item(
+            dimension=cast(str, inp["critical_dimensions"][0]),
+            practice_type=cast(str, item_data["practice_type"]),
+            failed_question=str(item_data.get("question_summary", "")),
+        )
+        feedback = training.feedback(
+            item=item, user_answer=str(item_data.get("user_work_summary", "ok"))
+        )
+        if item.is_formal_evidence or feedback.is_formal_evidence:
+            failures.append("练习输出必须 is_formal_evidence=false")
+        if "亮点" not in feedback.content or "缺口" not in feedback.content:
+            failures.append("反馈必须为亮点→缺口→下一步")
+        blob = json.dumps(
+            {"item": item.__dict__, "feedback": feedback.__dict__},
+            ensure_ascii=False,
+        )
+        failures += _check_expected(expected, blob)
+    except Exception as exc:
+        failures.append(f"练习生成异常：{exc}")
+    return EvalOutcome(
+        case_id=case_id,
+        passed=not failures,
+        failures=tuple(failures),
+        summary="coach" if not failures else "coach:failed",
+    )
+
+
 def generic_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOutcome:
     """通用契约评测器：预期内容包含/排除与标记断言。"""
     case_id = str(row["case_id"])
@@ -158,4 +194,6 @@ def auto_evaluator(row: dict[str, Any], expected: Mapping[str, Any]) -> EvalOutc
         return safety_evaluator(row, expected)
     if scenario == "report_generation":
         return report_evaluator(row, expected)
+    if scenario == "practice_isolation":
+        return coach_evaluator(row, expected)
     return None

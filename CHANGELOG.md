@@ -15,6 +15,17 @@
 
 ### Added
 
+- TASK-052 AI 教练练习（`task/TASK-052-training-coach` 分支）：
+  - `mgd_orchestrator.training_coach`（FR-024，US-04 场景 3）：原题/变体/框架/
+    示例练习项（变体只关联已考覆盖点，不预演后续轮次）；逐步反馈
+    亮点 → 缺口 → 下一步；练习隔离红线（is_formal_evidence 恒 false、
+    PracticeRecord 独立于正式证据链、永不产生 ScoreVersion）；用户回答注入
+    按数据处理并说明隔离；录用预测/作弊/侮辱阻断重生成 ≤3、危险/骚扰升级；
+    简历/JD 原文不进入练习内容。
+  - zh-core/en-core 新增 practice_isolation 评测用例（zh-practice-01），
+    mgd_evals 增加 coach_evaluator，评测报告重新生成（zh 6/6、en 4/4 全过）；
+    pytest 78 用例全绿，ruff、mypy(strict) 通过。
+    （TASK-052、FR-024、training-coach、SCR-12）
 - TASK-050 报告生成器（`task/TASK-050-report-generator` 分支）：
   - 新增 `docs/ai/REPORT-SPEC.md`（报告契约）；`mgd_orchestrator.report_generator`
     确定性合成实现（FR-023/FR-026）：七类报告模块、分数只读引用、雷达图文字等价、

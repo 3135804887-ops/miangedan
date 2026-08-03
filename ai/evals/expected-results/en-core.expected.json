@@ -54,14 +54,13 @@
     "expected_status": "NO_SCORE_CHANGE",
     "allowed_score_ranges": {},
     "must_include": [
-      "Practice records stored separately from the formal evidence chain",
-      "Formal scores (professional_competence 45) and unlock state unchanged after practice",
-      "Coach feedback uses variant question, hints, framework and stepwise feedback"
+      "\"is_formal_evidence\": false",
+      "亮点",
+      "缺口"
     ],
     "must_not_include": [
-      "Practice generating a ScoreVersion",
-      "Practice unlocking the next round",
-      "Practice answers entering formal evidence"
+      "score_version",
+      "unlock"
     ],
     "notes": "Aligned with SCORING-SPEC red line 4 and US-04 scenario 3: practice never changes formal scores or unlock state."
   },

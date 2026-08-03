@@ -502,6 +502,19 @@
 > pytest 68 用例全绿（含报告 10 新用例），ruff/mypy(strict) 通过。
 > （TASK-050、FR-023、FR-026、REPORT-SPEC）
 
+> **任务状态（2026-08-03 更新）**：TASK-052 已实现（FR-024，US-04 场景 3）——
+> `mgd_orchestrator.training_coach`（对齐 ai/prompts/training-coach.md 与
+> SCREEN-SPEC SCR-12）：原题/变体/框架/示例练习项（变体只关联已考覆盖点，
+> 未知覆盖点降级为维度级并标注非个性化；不泄露后续轮次考点）；逐步反馈
+> 亮点 → 缺口 → 下一步（先优势后改进）；练习隔离红线 is_formal_evidence 恒 false、
+> PracticeRecord 独立于正式证据链、永不产生 ScoreVersion/不改解锁；用户练习回答
+> 注入按数据处理并说明隔离；录用预测/作弊/侮辱阻断重生成 ≤3、危险/骚扰升级人工；
+> 简历/JD 原文不进入练习内容（保护属性零携带）。zh-core/en-core 新增
+> practice_isolation 评测用例（en-practice-01 已有 + zh-practice-01 新增），
+> mgd_evals 增加 coach_evaluator，评测报告重新生成（zh 6/6、en 4/4 全过）。
+> pytest 78 用例全绿（含教练 10 新用例），ruff/mypy(strict) 通过。
+> （TASK-052、FR-024、training-coach、SCR-12）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。
