@@ -153,6 +153,18 @@ func validateInput(actor Actor, in Input) error {
 		len(in.LockedDimensionScores) == 0 && len(in.DimensionsToRescore) == 0 {
 		return fmt.Errorf("%w: formal_retry 必须携带锁定维度分或待重评维度", ErrInvalidInput)
 	}
+	if in.JobMatchInput != nil {
+		if _, err := ComputeJobMatch(in.JobMatchInput); err != nil {
+			return err
+		}
+		if len(in.JobMatchInput.Requirements) > 0 &&
+			!in.JobMatchInput.ResumeAvailable &&
+			in.DimensionWeights[DimExperienceEvidence] > 0 {
+			return fmt.Errorf(
+				"%w: JD-only 模式 experience_evidence 权重必须为 0（SC-EC-21，计划阶段重新分配）",
+				ErrInvalidInput)
+		}
+	}
 	if len(in.CriticalDimensions) == 0 {
 		return fmt.Errorf("%w: critical_dimensions 至少 1 个", ErrInvalidInput)
 	}
@@ -286,7 +298,9 @@ func (s *Service) compute(in Input) (Result, error) {
 		}
 		results[d] = scoredDimension(cps, base)
 	}
-	return s.finish(in, results), nil
+	result := s.finish(in, results)
+	attachJobMatch(in, &result)
+	return result, nil
 }
 
 // scoredDimension 计算普通维度分（6.2-6.3：锚点+插值加权平均，half-up 取整）。
@@ -451,7 +465,7 @@ func (s *Service) incomplete(
 ) Result {
 	reasonCopy := reason
 	notes := summary
-	return Result{
+	result := Result{
 		SchemaVersion:    "1.0.0",
 		ScoringRequestID: in.ScoringRequestID,
 		ProjectID:        in.ProjectID,
@@ -473,6 +487,20 @@ func (s *Service) incomplete(
 			EvidenceSnapshotHash: evidenceSnapshotHash(in),
 		},
 	}
+	attachJobMatch(in, &result)
+	return result
+}
+
+// attachJobMatch 附加岗位匹配度（SCORING-SPEC 6.8；输入已在校验阶段通过）。
+func attachJobMatch(in Input, result *Result) {
+	if in.JobMatchInput == nil {
+		return
+	}
+	jobMatch, err := ComputeJobMatch(in.JobMatchInput)
+	if err != nil {
+		return
+	}
+	result.JobMatch = jobMatch
 }
 
 func (s *Service) faultResult(actor Actor, in Input) Result {

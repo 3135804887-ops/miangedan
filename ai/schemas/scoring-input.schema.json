@@ -125,6 +125,30 @@
     },
     "is_formal_review": { "type": "boolean", "description": "true 表示本次为正式复核重算；输入必须与原始评分完全一致" },
     "original_score_version": { "type": ["integer", "null"], "minimum": 1, "description": "复核时指向被复核的 ScoreVersion" },
+    "job_match_input": {
+      "type": "object",
+      "description": "岗位匹配度输入（SCORING-SPEC 6.8；与面试分数相互独立，不作为解锁因素）",
+      "required": ["requirements", "resume_available"],
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["requirement_id", "bucket", "weight"],
+            "properties": {
+              "requirement_id": { "type": "string" },
+              "bucket": { "enum": ["must_have", "nice_to_have"] },
+              "weight": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "resume_available": { "type": "boolean", "description": "false = JD-only：只按面试证明计算，禁止经历一致性评分" },
+        "proven_by_resume": { "type": "array", "items": { "type": "string" } },
+        "proven_by_interview": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
     "submitted_at": { "type": "string", "format": "date-time" }
   },
   "additionalProperties": false

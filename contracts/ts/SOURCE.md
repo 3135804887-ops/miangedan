@@ -4,7 +4,7 @@
 |---|---|
 | 源契约 | `docs/api/openapi.yaml` |
 | 源契约最后提交 | `6742dc630671bca5f70f8486c1c1d749ec904b19` |
-| 源契约内容 SHA-256 | `bada5a325d2ab784531ba1347c86f630661cbcfb737a3579f744086d91692368` |
+| 源契约内容 SHA-256 | `3061f374843aad3794ad3a43db2b489e0401d460184d42a8d38262016e456724` |
 | 生成物 | `contracts/ts/openapi.d.ts` |
 | 生成命令 | `pnpm api:generate` |
 | 校验命令 | `pnpm api:check` |

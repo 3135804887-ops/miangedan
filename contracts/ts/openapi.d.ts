@@ -2654,7 +2654,21 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             input_mode_notes?: string | null;
+            job_match?: components["schemas"]["JobMatch"];
             data_region: components["schemas"]["Region"];
+        };
+        /** @description 岗位匹配度（SCORING-SPEC 6.8；必备/加分分列，无 JD 不展示百分比） */
+        JobMatch: {
+            must_have: components["schemas"]["MatchBucket"];
+            nice_to_have: components["schemas"]["MatchBucket"];
+            /** @enum {string|null} */
+            not_displayed_reason?: "no_jd" | null;
+        };
+        MatchBucket: {
+            match_ratio: number;
+            proven: string[];
+            unproven: string[];
+            at_risk?: string[];
         };
         /** @description 跨轮交接包（结构事实源为 ai/schemas/handoff-package.schema.json；docs/ai/HANDOFF-SPEC.md） */
         HandoffPackage: {

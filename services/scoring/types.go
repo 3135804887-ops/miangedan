@@ -168,6 +168,7 @@ type Input struct {
 	ContradictionUnlocks  []DimensionKey         `json:"contradiction_unlocks,omitempty"`
 	IsFormalReview        bool                   `json:"is_formal_review"`
 	OriginalScoreVersion  int                    `json:"original_score_version,omitempty"`
+	JobMatchInput         *JobMatchInput         `json:"job_match_input,omitempty"`
 	SubmittedAt           time.Time              `json:"submitted_at"`
 }
 
@@ -218,6 +219,36 @@ type VersionLineage struct {
 	SupersedesScoreID    *string           `json:"supersedes_score_id,omitempty"`
 }
 
+// JobRequirement 为 JD 要求（必备/加分分列；权重来自冻结 JD 快照）。
+type JobRequirement struct {
+	RequirementID string `json:"requirement_id"`
+	Bucket        string `json:"bucket"` // must_have | nice_to_have
+	Weight        int    `json:"weight"`
+}
+
+// JobMatchInput 为岗位匹配度输入（SCORING-SPEC 6.8）。
+type JobMatchInput struct {
+	Requirements      []JobRequirement `json:"requirements"`
+	ResumeAvailable   bool             `json:"resume_available"`
+	ProvenByResume    []string         `json:"proven_by_resume,omitempty"`
+	ProvenByInterview []string         `json:"proven_by_interview,omitempty"`
+}
+
+// MatchBucket 为单个分列的匹配结果。
+type MatchBucket struct {
+	MatchRatio float64  `json:"match_ratio"`
+	Proven     []string `json:"proven"`
+	Unproven   []string `json:"unproven"`
+	AtRisk     []string `json:"at_risk,omitempty"`
+}
+
+// JobMatch 为岗位匹配度输出（与面试分数相互独立；无 JD 不展示百分比）。
+type JobMatch struct {
+	MustHave           MatchBucket `json:"must_have"`
+	NiceToHave         MatchBucket `json:"nice_to_have"`
+	NotDisplayedReason *string     `json:"not_displayed_reason,omitempty"`
+}
+
 // Result 为评分服务输出（ScoreVersion，追加式；对齐 scoring-result.schema.json）。
 type Result struct {
 	SchemaVersion    string            `json:"schema_version"`
@@ -235,6 +266,7 @@ type Result struct {
 	ResultStatus     string            `json:"result_status"`
 	IncompleteReason *string           `json:"incomplete_reason,omitempty"`
 	Explanations     Explanations      `json:"explanations"`
+	JobMatch         *JobMatch         `json:"job_match,omitempty"`
 	VersionLineage   VersionLineage    `json:"version_lineage"`
 	ComputedAt       time.Time         `json:"computed_at"`
 }

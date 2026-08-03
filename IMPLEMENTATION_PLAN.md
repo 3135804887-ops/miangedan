@@ -428,6 +428,18 @@
 > 不进入评分证据（SC-EC-11/12）。SC-EC-09/10/11/12 + 异常（缺语音占比）测试
 > 全绿，gofmt/vet 通过。（TASK-041、SCORING-SPEC 6.4）
 
+> **任务状态（2026-08-03 更新）**：TASK-042 已实现（Job Match 规则，SCORING-SPEC 6.8）——
+> `services/scoring` 新增 `ComputeJobMatch`：必备/加分分列独立计算
+> （match = Σ weight(已证明)/Σ weight(全部)，比例保留 4 位小数）；
+> 已证明 = 简历证据（仅当存在简历）∪ 面试证据引用；无 JD →
+> not_displayed_reason = no_jd 不展示百分比（SC-EC-22）；JD-only（无简历）→
+> 只按面试证明计算、无简历证明（拒绝），且 experience_evidence 权重必须在
+> 计划阶段重新分配为 0（评分侧 fail-closed，SC-EC-21）；匹配度与面试分数
+> 相互独立、不作为单轮解锁隐藏因素。scoring-input schema 增加 job_match_input；
+> openapi ScoreResult 增加 JobMatch/MatchBucket。正常（分列/加权/独立判定）、
+> 异常（非法分列/重复/未注册证明/无简历证明/经历权重非 0）、幂等测试全绿。
+> （TASK-042、SCORING-SPEC 6.8）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。

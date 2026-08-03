@@ -3103,7 +3103,24 @@ components:
         rubric_version: { type: string }
         explanations: { type: ['object', 'null'], additionalProperties: true, description: 可解释评分（对齐 scoring-result.schema.json） }
         input_mode_notes: { type: ['string', 'null'] }
+        job_match: { $ref: '#/components/schemas/JobMatch' }
         data_region: { $ref: '#/components/schemas/Region' }
+    JobMatch:
+      type: object
+      description: 岗位匹配度（SCORING-SPEC 6.8；必备/加分分列，无 JD 不展示百分比）
+      required: [must_have, nice_to_have]
+      properties:
+        must_have: { $ref: '#/components/schemas/MatchBucket' }
+        nice_to_have: { $ref: '#/components/schemas/MatchBucket' }
+        not_displayed_reason: { type: ['string', 'null'], enum: [no_jd, null] }
+    MatchBucket:
+      type: object
+      required: [match_ratio, proven, unproven]
+      properties:
+        match_ratio: { type: number, minimum: 0, maximum: 1 }
+        proven: { type: array, items: { type: string } }
+        unproven: { type: array, items: { type: string } }
+        at_risk: { type: array, items: { type: string } }
     HandoffPackage:
       type: object
       description: 跨轮交接包（结构事实源为 ai/schemas/handoff-package.schema.json；docs/ai/HANDOFF-SPEC.md）
