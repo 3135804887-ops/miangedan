@@ -15,6 +15,13 @@
 
 ### Added
 
+- TASK-054 轮次结果流（`task/TASK-054-result-flow` 分支）：
+  - `services/scoring` 新增 `BuildRoundResultView`（FR-021/FR-022，SCR-10）：
+    通过态固定祝贺文案与下一轮预告；失败态阻断下一轮 + 累计纪要 + 训练入口；
+    评估未完成"这不是失败"文案按原因分型，系统责任展示额度已返还；
+    结果视图不携带后续轮次完整答案/考点（JSON 级断言）。
+  - 测试 4 用例全绿；gofmt/vet 通过。
+    （TASK-054、FR-021、FR-022、SCR-10）
 - TASK-053 正式重试（`task/TASK-053-formal-retry` 分支）：
   - `services/scoring` 正式重试流（FR-024，SCORING-SPEC 6.7）：`BeginRetry`
     （仅 FAIL/EVALUATION_INCOMPLETE；locked=≥60、rescope=失败∪未覆盖；
