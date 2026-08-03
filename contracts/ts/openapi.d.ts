@@ -2330,6 +2330,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/data-rights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 数据权利请求列表（按用户） */
+        get: operations["listDataRightRequests"];
+        put?: never;
+        /** 创建数据权利请求（删除/导出/更正/撤回工单化；级联删除可追踪） */
+        post: operations["createDataRightRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/data-rights/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 数据权利请求真实进度（数据库/缓存/索引/对象存储/备份/第三方逐项） */
+        get: operations["getDataRightRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3661,6 +3696,46 @@ export interface components {
             note?: string | null;
             /** Format: date-time */
             reviewed_at: string;
+        };
+        DataRightProgress: {
+            /** @enum {unknown} */
+            database?: "pending" | "in_progress" | "done" | "failed";
+            /** @enum {unknown} */
+            cache?: "pending" | "in_progress" | "done" | "failed";
+            /** @enum {unknown} */
+            search_index?: "pending" | "in_progress" | "done" | "failed";
+            /** @enum {unknown} */
+            object_storage?: "pending" | "in_progress" | "done" | "failed";
+            /** @enum {unknown} */
+            backups?: "pending" | "in_progress" | "done" | "failed";
+            /** @enum {unknown} */
+            third_party_processors?: "pending" | "in_progress" | "done" | "failed";
+        };
+        DataRightRequest: {
+            /** Format: uuid */
+            request_id: string;
+            /** Format: uuid */
+            user_id: string;
+            /** @enum {unknown} */
+            request_type: "delete" | "export" | "correct" | "withdraw";
+            /** @enum {unknown} */
+            target_type: "project" | "resume" | "job" | "account";
+            /** Format: uuid */
+            target_id: string;
+            /** @enum {unknown} */
+            status: "REQUESTED" | "VERIFYING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+            progress?: components["schemas"]["DataRightProgress"];
+            /** @description 级联删除逐项可追踪 */
+            cascade?: {
+                [key: string]: "pending" | "in_progress" | "done" | "failed";
+            };
+            /** @description 法定财务记录保留但解除内容关联 */
+            legal_retention_note?: string | null;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            completed_at?: string | null;
+            data_region?: components["schemas"]["Region"];
         };
         AuditLog: {
             /** Format: uuid */
@@ -8448,6 +8523,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BreakGlassReview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listDataRightRequests: {
+        parameters: {
+            query?: {
+                user_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 请求列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data_region?: components["schemas"]["Region"];
+                        items?: components["schemas"]["DataRightRequest"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createDataRightRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    user_id: string;
+                    /** @enum {unknown} */
+                    request_type: "delete" | "export" | "correct" | "withdraw";
+                    /** @enum {unknown} */
+                    target_type: "project" | "resume" | "job" | "account";
+                    /** Format: uuid */
+                    target_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRightRequest"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDataRightRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 请求进度 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataRightRequest"];
                 };
             };
             default: components["responses"]["Error"];

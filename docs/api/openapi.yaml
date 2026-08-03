@@ -2805,6 +2805,50 @@ paths:
       responses:
         '201': { description: 已复核, content: { application/json: { schema: { $ref: '#/components/schemas/BreakGlassReview' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/admin/data-rights:
+    post:
+      tags: [admin]
+      operationId: createDataRightRequest
+      summary: 创建数据权利请求（删除/导出/更正/撤回工单化；级联删除可追踪）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, request_type, target_type, target_id]
+              properties:
+                user_id: { type: string, format: uuid }
+                request_type: { enum: [delete, export, correct, withdraw] }
+                target_type: { enum: [project, resume, job, account] }
+                target_id: { type: string, format: uuid }
+      responses:
+        '201': { description: 已创建, content: { application/json: { schema: { $ref: '#/components/schemas/DataRightRequest' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    get:
+      tags: [admin]
+      operationId: listDataRightRequests
+      summary: 数据权利请求列表（按用户）
+      parameters:
+        - { name: user_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: 请求列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/DataRightRequest' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/data-rights/{requestId}:
+    get:
+      tags: [admin]
+      operationId: getDataRightRequest
+      summary: 数据权利请求真实进度（数据库/缓存/索引/对象存储/备份/第三方逐项）
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 请求进度, content: { application/json: { schema: { $ref: '#/components/schemas/DataRightRequest' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
 components:
   securitySchemes:
@@ -4004,6 +4048,31 @@ components:
         decision: { enum: [approved, rejected] }
         note: { type: ['string', 'null'] }
         reviewed_at: { type: string, format: date-time }
+    DataRightProgress:
+      type: object
+      properties:
+        database: { enum: [pending, in_progress, done, failed] }
+        cache: { enum: [pending, in_progress, done, failed] }
+        search_index: { enum: [pending, in_progress, done, failed] }
+        object_storage: { enum: [pending, in_progress, done, failed] }
+        backups: { enum: [pending, in_progress, done, failed] }
+        third_party_processors: { enum: [pending, in_progress, done, failed] }
+    DataRightRequest:
+      type: object
+      required: [request_id, user_id, request_type, target_type, target_id, status]
+      properties:
+        request_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        request_type: { enum: [delete, export, correct, withdraw] }
+        target_type: { enum: [project, resume, job, account] }
+        target_id: { type: string, format: uuid }
+        status: { enum: [REQUESTED, VERIFYING, IN_PROGRESS, COMPLETED, FAILED] }
+        progress: { $ref: '#/components/schemas/DataRightProgress' }
+        cascade: { type: object, additionalProperties: { enum: [pending, in_progress, done, failed] }, description: 级联删除逐项可追踪 }
+        legal_retention_note: { type: ['string', 'null'], description: 法定财务记录保留但解除内容关联 }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: ['string', 'null'], format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
     AuditLog:
       type: object
       required: [audit_id, actor_role, action, occurred_at]

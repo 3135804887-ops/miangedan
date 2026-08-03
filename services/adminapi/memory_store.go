@@ -16,6 +16,8 @@ type MemoryStore struct {
 	activeSess   map[string]bool
 	breakGlass   map[string]BreakGlass
 	glassReviews map[string][]BreakGlassReview
+	dataRights   map[string]DataRightRequest
+	drIDem       map[string]DataRightRequest
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -31,6 +33,8 @@ func NewMemoryStore() *MemoryStore {
 		activeSess:   make(map[string]bool),
 		breakGlass:   make(map[string]BreakGlass),
 		glassReviews: make(map[string][]BreakGlassReview),
+		dataRights:   make(map[string]DataRightRequest),
+		drIDem:       make(map[string]DataRightRequest),
 	}
 }
 
@@ -263,5 +267,59 @@ func (m *MemoryStore) ListBreakGlassReviews(glassID string) ([]BreakGlassReview,
 	items := m.glassReviews[glassID]
 	out := make([]BreakGlassReview, len(items))
 	copy(out, items)
+	return out, nil
+}
+
+// SaveDataRightRequest 保存数据权利请求。
+func (m *MemoryStore) SaveDataRightRequest(req DataRightRequest, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.dataRights[req.DataRegion+"|"+req.RequestID] = req
+	if idemKey != "" {
+		m.drIDem[req.DataRegion+"|"+idemKey] = req
+	}
+	return nil
+}
+
+// GetDataRightByID 按请求 ID 查询。
+func (m *MemoryStore) GetDataRightByID(dataRegion, requestID string) (DataRightRequest, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	req, ok := m.dataRights[dataRegion+"|"+requestID]
+	if !ok {
+		return DataRightRequest{}, ErrNotFound
+	}
+	return req, nil
+}
+
+// GetDataRightByIdempotencyKey 幂等键查询。
+func (m *MemoryStore) GetDataRightByIdempotencyKey(dataRegion, key string) (DataRightRequest, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	req, ok := m.drIDem[dataRegion+"|"+key]
+	if !ok {
+		return DataRightRequest{}, ErrNotFound
+	}
+	return req, nil
+}
+
+// UpdateDataRightRequest 更新请求状态/进度。
+func (m *MemoryStore) UpdateDataRightRequest(req DataRightRequest) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.dataRights[req.DataRegion+"|"+req.RequestID] = req
+	return nil
+}
+
+// ListDataRights 列出用户请求。
+func (m *MemoryStore) ListDataRights(dataRegion, userID string) ([]DataRightRequest, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]DataRightRequest, 0)
+	for _, req := range m.dataRights {
+		if req.DataRegion == dataRegion && req.UserID == userID {
+			out = append(out, req)
+		}
+	}
 	return out, nil
 }

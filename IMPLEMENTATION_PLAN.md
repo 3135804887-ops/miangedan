@@ -755,6 +755,18 @@
 > gofmt/vet 通过。
 > （TASK-082、FR-039、AGENTS.md §2）
 
+> **任务状态（2026-08-03 更新）**：TASK-083 已实现（FR-040，US-05 场景 5）——
+> `services/adminapi` 数据权利请求（复用 services/export 删除编排骨架）：
+> delete/export/correct/withdraw 四类请求工单化（幂等键去重）；删除编排六层
+> 真实进度（database/cache/search_index/object_storage/backups/third_party，
+> 逐项 pending/in_progress/done/failed）；级联删除逐项可追踪（sessions/turns/
+> evidence_items/score_versions/handoff_packages/reports/practices/
+> retry_attempts/media）；法定财务记录保留但解除内容关联；失败如实 FAILED
+> 且可重试。迁移 `0071_data_rights.sql`；openapi 增加 data-rights 端点与
+> DataRightRequest/DataRightProgress schema。
+> 服务正常、异常、幂等、失败重试、进度真实性测试齐备（新增 4 用例），gofmt/vet 通过。
+> （TASK-083、FR-040、RETENTION-MATRIX）
+
 ### EPIC-10 上线验证（Phase 0–4 门槛）
 
 目标：把 PRD 发布阶段退出条件转化为可执行验证任务；P0 风险未关闭禁止发布。

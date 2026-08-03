@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-083 数据权利请求与删除编排（`task/TASK-083-data-rights` 分支）：
+  - `services/adminapi` 请求工单化（FR-040，US-05 场景 5）：delete/export/
+    correct/withdraw 四类；复用 export 删除编排骨架；
+  - 六层真实进度 + 级联删除逐项可追踪；法定财务记录保留但解除内容关联；
+    失败如实 FAILED 且可重试。
+  - 迁移 `0071_data_rights.sql`；openapi 增加 data-rights 端点与
+    DataRightRequest/DataRightProgress schema。
+  - 服务正常、异常、幂等、失败重试、进度真实性测试齐备（新增 4 用例），
+    gofmt/vet 通过。
+    （TASK-083、FR-040、RETENTION-MATRIX）
 - TASK-082 禁止改分系统级约束与破窗访问（`task/TASK-082-score-guard` 分支）：
   - `services/adminapi` 改分红线（FR-039，US-08 场景 3）：编辑分数/解锁/改证据
     一律拒绝并写审计；正式复核唯一入口；无分数修改存储路径；
