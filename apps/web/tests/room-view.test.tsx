@@ -55,8 +55,8 @@ const labels = {
 describe('RoomView（SCR-08/09）', () => {
   it('渲染房间布局与红线文案（修订窗口提示）', () => {
     render(
-      <ToastProvider>
-        <RoomView locale="zh-CN" labels={labels} />
+    <ToastProvider>
+      <RoomView locale="zh-CN" labels={labels} sessionId="s-0001" />
       </ToastProvider>,
     );
     expect(screen.getByText('面试官问题')).toBeDefined();
@@ -68,7 +68,7 @@ describe('RoomView（SCR-08/09）', () => {
     const user = userEvent.setup();
     render(
       <ToastProvider>
-        <RoomView locale="zh-CN" labels={labels} />
+      <RoomView locale="zh-CN" labels={labels} sessionId="s-0001" />
       </ToastProvider>,
     );
     await user.click(screen.getByText('演示：降级询问'));
@@ -81,7 +81,7 @@ describe('RoomView（SCR-08/09）', () => {
     const user = userEvent.setup();
     render(
       <ToastProvider>
-        <RoomView locale="zh-CN" labels={labels} />
+      <RoomView locale="zh-CN" labels={labels} sessionId="s-0001" />
       </ToastProvider>,
     );
     await user.click(screen.getByText('演示：触发系统故障暂停'));

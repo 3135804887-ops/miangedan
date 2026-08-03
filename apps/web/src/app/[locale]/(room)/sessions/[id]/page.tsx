@@ -10,12 +10,13 @@ export default async function SessionPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }): Promise<ReactNode> {
-  const { locale } = await params;
+  const { locale, id } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'common' });
   return (
     <RoomView
       locale={locale as 'zh-CN' | 'en-US'}
+      sessionId={id}
       labels={{
         title: t('room.title'),
         round: t('room.round', { n: '{n}' }),

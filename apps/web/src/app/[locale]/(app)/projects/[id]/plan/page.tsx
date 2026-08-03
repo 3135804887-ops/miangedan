@@ -10,12 +10,13 @@ export default async function PlanPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }): Promise<ReactNode> {
-  const { locale } = await params;
+  const { locale, id } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'common' });
   return (
     <PlanView
       locale={locale as 'zh-CN' | 'en-US'}
+      projectId={id}
       labels={{
         kicker: t('plan.kicker'),
         title: t('plan.title'),

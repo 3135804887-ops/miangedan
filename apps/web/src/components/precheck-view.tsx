@@ -19,6 +19,8 @@ import {
 } from '@mgd/ui';
 import { useEffect, useState } from 'react';
 
+import { apiFetch } from '../lib/api-fetch.ts';
+
 interface Labels {
   readonly kicker: string;
   readonly title: string;
@@ -50,9 +52,11 @@ const CHECKS = ['camera', 'mic', 'network', 'speaker', 'avatar'] as const;
 export function PrecheckView({
   locale,
   labels,
+  projectId,
 }: {
   readonly locale: 'zh-CN' | 'en-US';
   readonly labels: Labels;
+  readonly projectId: string;
 }): React.ReactNode {
   const toast = useToast();
   const [states, setStates] = useState<Readonly<Record<string, CheckState>>>(
@@ -61,6 +65,8 @@ export function PrecheckView({
   const [cameraOff, setCameraOff] = useState(false);
   const [micOff, setMicOff] = useState(false);
   const [accom, setAccom] = useState<ReadonlySet<string>>(new Set(['reduced_motion']));
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
 
   const runChecks = () => {
     setStates(Object.fromEntries(CHECKS.map((c) => [c, 'checking' as CheckState])));
@@ -72,8 +78,54 @@ export function PrecheckView({
   };
 
   useEffect(() => {
-    runChecks();
-  }, []);
+    let alive = true;
+    void (async () => {
+      const created = await apiFetch<{ session_id: string }>(
+        '/v1/projects/{projectId}/rounds/{sequence}/session',
+        {
+          method: 'post',
+          idempotencyKey: `precheck-session-${projectId}-1`,
+          pathParams: { projectId, sequence: 1 },
+        },
+      );
+      if (!alive) return;
+      if (!created.ok) {
+        setApiUnavailable(true);
+        runChecks();
+        return;
+      }
+      const sid = created.data.session_id;
+      setSessionId(sid);
+      const pre = await apiFetch<{
+        precheck: {
+          frozen: boolean;
+          input_modes: readonly string[];
+          accommodations: readonly string[];
+          device_report: { camera_ok: boolean; mic_ok: boolean; network_rated: string };
+        };
+      }>('/v1/sessions/{sessionId}/precheck', { method: 'get', pathParams: { sessionId: sid } });
+      if (!alive) return;
+      if (pre.ok) {
+        const d = pre.data.precheck;
+        setStates({
+          camera: d.device_report.camera_ok ? 'passed' : 'failed',
+          mic: d.device_report.mic_ok ? 'passed' : 'failed',
+          network: d.device_report.network_rated === 'good' ? 'passed' : 'failed',
+          speaker: 'passed',
+          avatar: 'passed',
+        });
+        setAccom(new Set(d.accommodations));
+        setCameraOff(!d.input_modes.includes('camera'));
+        setMicOff(!d.input_modes.includes('mic'));
+      } else {
+        setApiUnavailable(true);
+        runChecks();
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [projectId]);
 
   const toggleAccom = (key: string) => {
     setAccom((prev) => {
@@ -84,7 +136,23 @@ export function PrecheckView({
     });
   };
 
-  const freeze = () => {
+  const freeze = async () => {
+    if (sessionId !== null) {
+      const res = await apiFetch<{ frozen: boolean }>(
+        '/v1/sessions/{sessionId}/precheck/freeze',
+        {
+          method: 'post',
+          idempotencyKey: `precheck-freeze-${sessionId}-${Date.now()}`,
+          pathParams: { sessionId },
+        },
+      );
+      if (!res.ok) {
+        toast.push({ title: locale === 'zh-CN' ? '冻结失败，请重试' : 'Freeze failed, please retry', tone: 'danger' });
+        return;
+      }
+      window.location.href = `/${locale}/sessions/${sessionId}`;
+      return;
+    }
     toast.push({ title: locale === 'zh-CN' ? '会前配置已冻结，正在连接数字人…' : 'Pre-session config frozen. Connecting the avatar…', tone: 'success' });
     window.location.href = `/${locale}/sessions/s-0001`;
   };
@@ -105,6 +173,12 @@ export function PrecheckView({
   return (
     <>
       <PageHeader kicker={labels.kicker} title={labels.title} description={labels.desc} />
+
+      {apiUnavailable ? (
+        <p className="mb-4 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning-text" role="status">
+          {locale === 'zh-CN' ? '会前检查服务暂未接入（占位），当前为合成检测结果。' : 'Pre-session service placeholder — showing synthetic checks.'}
+        </p>
+      ) : null}
 
       <div className="mgd-grid mgd-grid--sidebar">
         <div className="space-y-4">

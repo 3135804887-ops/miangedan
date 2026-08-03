@@ -14,7 +14,9 @@ import {
   Tint,
   useToast,
 } from '@mgd/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { apiFetch } from '../lib/api-fetch.ts';
 
 interface Labels {
   readonly kicker: string;
@@ -59,18 +61,93 @@ const JOB_FIELDS: readonly ProfileField[] = [
 export function ReviewView({
   locale,
   labels,
+  projectId,
 }: {
   readonly locale: 'zh-CN' | 'en-US';
   readonly labels: Labels;
+  readonly projectId: string;
 }): React.ReactNode {
   const toast = useToast();
   const [resume, setResume] = useState<readonly ProfileField[]>(RESUME_FIELDS);
   const [job, setJob] = useState<readonly ProfileField[]>(JOB_FIELDS);
   const [agree, setAgree] = useState(false);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
 
-  const confirm = () => {
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const projectRes = await apiFetch<{
+        project: {
+          resume_id?: string | null;
+          resume_version?: number | null;
+          job_id?: string | null;
+          job_version?: number | null;
+        };
+      }>('/v1/projects/{projectId}', { method: 'get', pathParams: { projectId } });
+      if (!alive || !projectRes.ok) {
+        if (alive && !projectRes.ok) setApiUnavailable(true);
+        return;
+      }
+      const refs = projectRes.data.project;
+      const toFields = (profile: Record<string, unknown>): ProfileField[] =>
+        Object.entries(profile).slice(0, 8).map(([key, value]) => ({
+          key,
+          label: key,
+          value: typeof value === 'string' ? value : JSON.stringify(value),
+          lowConfidence: key === 'low_confidence_paths',
+        }));
+      if (refs.resume_id != null && refs.resume_version != null) {
+        const resumeRes = await apiFetch<{ profile?: Record<string, unknown> }>(
+          '/v1/resumes/{resumeId}/versions/{version}',
+          { method: 'get', pathParams: { resumeId: refs.resume_id, version: refs.resume_version } },
+        );
+        if (alive && resumeRes.ok && resumeRes.data.profile !== undefined) {
+          setResume(toFields(resumeRes.data.profile));
+        }
+      }
+      if (refs.job_id != null && refs.job_version != null) {
+        const jobRes = await apiFetch<{ profile?: Record<string, unknown> }>(
+          '/v1/jobs/{jobId}/versions/{version}',
+          { method: 'get', pathParams: { jobId: refs.job_id, version: refs.job_version } },
+        );
+        if (alive && jobRes.ok && jobRes.data.profile !== undefined) {
+          setJob(toFields(jobRes.data.profile));
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [projectId]);
+
+  const confirm = async () => {
+    const projectRes = await apiFetch<{
+      project: {
+        resume_id?: string | null;
+        resume_version?: number | null;
+        job_id?: string | null;
+        job_version?: number | null;
+      };
+    }>('/v1/projects/{projectId}', { method: 'get', pathParams: { projectId } });
+    if (projectRes.ok) {
+      const refs = projectRes.data.project;
+      if (refs.resume_id != null && refs.resume_version != null) {
+        await apiFetch('/v1/resumes/{resumeId}/versions/{version}/confirm', {
+          method: 'post',
+          idempotencyKey: `confirm-resume-${projectId}-${Date.now()}`,
+          pathParams: { resumeId: refs.resume_id, version: refs.resume_version },
+        });
+      }
+      if (refs.job_id != null && refs.job_version != null) {
+        await apiFetch('/v1/jobs/{jobId}/versions/{version}/confirm', {
+          method: 'post',
+          idempotencyKey: `confirm-job-${projectId}-${Date.now()}`,
+          pathParams: { jobId: refs.job_id, version: refs.job_version },
+        });
+      }
+    }
     toast.push({ title: locale === 'zh-CN' ? '材料已确认，计划生成中' : 'Materials confirmed. Generating plan…', tone: 'success' });
-    window.location.href = `/${locale}/projects/p-0003/plan`;
+    window.location.href = `/${locale}/projects/${projectId}/plan`;
   };
 
   const renderFields = (
@@ -136,6 +213,11 @@ export function ReviewView({
   return (
     <>
       <PageHeader kicker={labels.kicker} title={labels.title} description={labels.desc} />
+      {apiUnavailable ? (
+        <p className="mb-4 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning-text" role="status">
+          {locale === 'zh-CN' ? '材料解析服务暂未接入（占位），当前展示合成校对内容。' : 'Material parsing service placeholder — showing synthetic review content.'}
+        </p>
+      ) : null}
       <Card>
         <CardBody>
           <Tabs

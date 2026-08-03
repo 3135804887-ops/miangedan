@@ -1,143 +1,165 @@
-/** SCR-15 购买与额度：报价、余额、流水、订单与自动续费（独立勾选）。 */
+/** SCR-15 购买与额度：报价、流水、订单、自动续费与退款入口。 */
+
+'use client';
 
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
-  IconBill,
-  IconCheck,
-  IconClock,
-  IconDownload,
   PageHeader,
-  StatCard,
   Tint,
+  useToast,
 } from '@mgd/ui';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-export default async function BillingPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<ReactNode> {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
+import { apiFetch } from '../../../../lib/api-fetch.ts';
+import { useApiGet, useApiWrite } from '../../../../lib/api-hooks.ts';
+
+interface EntitlementPayload {
+  readonly entitlement: { balance_minutes: number; plan: string };
+}
+
+interface LedgerPayload {
+  readonly items: readonly { entry_id: string; entry_type: string; seconds: number; reason: string; created_at: string }[];
+}
+
+interface SubscriptionPayload {
+  readonly subscription: { plan: string; status: string; auto_renew: boolean; balance_minutes?: number };
+}
+
+interface PricingPayload {
+  readonly pricing: { region: string; currency: string; plans: readonly { id: string; name: string; minutes: number; price: number; currency: string; per_minute: boolean }[] };
+}
+
+export default function BillingPage(): ReactNode {
+  const t = useTranslations('common');
+  const toast = useToast();
+  const params = useParams<{ locale: 'zh-CN' | 'en-US' }>();
+  const locale = params.locale;
   const zh = locale === 'zh-CN';
+  const entitlements = useApiGet<EntitlementPayload>('/v1/entitlements', {});
+  const ledger = useApiGet<LedgerPayload>('/v1/usage-ledger', {});
+  const subscription = useApiGet<SubscriptionPayload>('/v1/subscription', {});
+  const pricing = useApiGet<PricingPayload>('/v1/pricing/{region}', { pathParams: { region: 'cn' } });
+  const { run: runOrder } = useApiWrite<{ order: { order_id: string; status: string } }>();
 
-  const plans = [
-    { id: 'free', name: t('billing.freePlan'), desc: t('billing.freePlanDesc'), minutes: 60, price: '¥0', current: true },
-    { id: 'pack', name: t('billing.projectPack'), desc: t('billing.projectPackDesc'), minutes: 180, price: '¥39', current: false },
-    { id: 'pro', name: t('billing.proPlan'), desc: t('billing.proPlanDesc'), minutes: 600, price: '¥99', current: false },
-    { id: 'topup', name: t('billing.topup'), desc: t('billing.perMinute'), minutes: 120, price: '¥29', current: false },
-  ] as const;
+  const planLabel = (id: string) =>
+    ({ free: t('billing.freePlan'), pack: t('billing.projectPack'), pro: t('billing.proPlan'), topup: t('billing.topup') })[id] ?? id;
+  const planDesc = (id: string) =>
+    ({ free: t('billing.freePlanDesc'), pack: t('billing.projectPackDesc'), pro: t('billing.proPlanDesc'), topup: t('billing.perMinute') })[id] ?? '';
 
-  const ledger = [
-    { type: 'reserve', seconds: 1800, reason: zh ? '第 1 轮预留' : 'Round 1 reserve', date: '2026-08-01 09:30' },
-    { type: 'consume', seconds: 482, reason: zh ? '第 1 轮实际使用' : 'Round 1 usage', date: '2026-08-01 09:38' },
-    { type: 'release', seconds: 1318, reason: zh ? '第 1 轮释放' : 'Round 1 release', date: '2026-08-01 09:38' },
-  ] as const;
+  const buy = async (planId: string) => {
+    const res = await runOrder('/v1/orders', {
+      method: 'post',
+      idempotencyKey: `order-${planId}-${Date.now()}`,
+      body: { plan_id: planId, region: 'cn' },
+    });
+    toast.push({
+      title: res.ok ? (zh ? `订单已创建：${planLabel(planId)}` : `Order created: ${planLabel(planId)}`) : (zh ? '下单暂未接入（占位）' : 'Order placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
 
-  const typeTone = (type: string) => (type === 'consume' ? 'danger' : type === 'refund' ? 'success' : 'info') as 'danger' | 'success' | 'info';
+  const setAutoRenew = async (enabled: boolean) => {
+    const res = await apiFetch('/v1/subscription/auto-renew', {
+      method: 'put',
+      idempotencyKey: `auto-renew-${Date.now()}`,
+      body: { enabled },
+    });
+    toast.push({
+      title: res.ok ? (zh ? '自动续费设置已保存' : 'Auto-renewal updated') : (zh ? '设置暂未接入（占位）' : 'Auto-renewal placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
+  const cancelRenew = async () => {
+    const res = await apiFetch('/v1/subscription/cancel', {
+      method: 'post',
+      idempotencyKey: `cancel-renew-${Date.now()}`,
+      body: {},
+    });
+    toast.push({
+      title: res.ok ? (zh ? '已取消自动续费（权益保留至账期结束）' : 'Auto-renewal cancelled (entitlement kept until period end)') : (zh ? '取消暂未接入（占位）' : 'Cancel placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
+  const plans = pricing.data?.pricing.plans ?? [];
+  const sub = subscription.data?.subscription;
+  const items = ledger.data?.items ?? [];
 
   return (
     <>
       <PageHeader kicker={t('billing.kicker')} title={t('billing.title')} description={t('billing.desc')} />
 
       <div className="mgd-grid mgd-grid--3 mb-6">
-        <StatCard label={t('billing.balance')} value={t('billing.balanceMinutes', { minutes: '46' })} tone="brand" hint={zh ? '免费额度方案' : 'Free plan'} />
-        <StatCard label={zh ? '已用额度' : 'Used credits'} value="14 min" tone="warning" />
-        <StatCard label={zh ? '本轮预留' : 'Reserved this round'} value="30 min" tone="info" />
+        <Card className="mgd-card--brand p-5">
+          <div className="text-sm text-neutral-600">{t('billing.balance')}</div>
+          <div className="mgd-stat-value mt-1 text-[var(--mgd-app-brand-ink)]">{entitlements.data?.entitlement.balance_minutes ?? '—'} {t('billing.balanceMinutes')}</div>
+          <div className="mt-2 text-xs text-neutral-500">{t('billing.currentPlan')}: {planLabel(entitlements.data?.entitlement.plan ?? 'free')}</div>
+        </Card>
+        <Card className="p-5">
+          <div className="text-sm text-neutral-600">{t('billing.autoRenew')}</div>
+          <div className="mt-2"><Tint tone={sub?.auto_renew ? 'success' : 'neutral'}>{sub?.auto_renew ? (zh ? '开启' : 'On') : (zh ? '关闭' : 'Off')}</Tint></div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="secondary" targetSize="min" onClick={() => setAutoRenew(true)}>{t('billing.autoRenew')}</Button>
+            {sub?.auto_renew ? <Button variant="secondary" targetSize="min" onClick={cancelRenew}>{t('billing.cancelRenew')}</Button> : null}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <div className="text-sm text-neutral-600">{t('billing.refund')}</div>
+          <p className="mb-0 mt-2 text-xs text-neutral-500">{zh ? '系统责任故障自动全额返还，账本记录原因。' : 'System-caused faults auto-refund in full with ledger reasons.'}</p>
+        </Card>
       </div>
 
-      <div className="mgd-grid mgd-grid--4 mb-6">
-        {plans.map((p) => (
-          <Card key={p.id} className={`relative p-5 ${p.current ? 'mgd-card--brand ring-2 ring-[var(--mgd-app-brand-from)]' : ''}`}>
-            {p.current ? (
-              <span className="absolute -top-2.5 left-4 rounded-full bg-[linear-gradient(135deg,var(--mgd-app-brand-from),var(--mgd-app-brand-to))] px-2.5 py-0.5 text-xs font-semibold text-white shadow-[var(--mgd-app-shadow-sm)]">
-                {t('billing.currentPlan')}
-              </span>
-            ) : null}
-            <div className="mb-1 flex items-center gap-2 text-base font-semibold text-neutral-900">
-              <IconBill size={17} className="text-primary" />
-              {p.name}
-            </div>
-            <p className="mb-3 text-sm text-neutral-600">{p.desc}</p>
-            <div className="mb-3 font-mono text-2xl font-bold text-neutral-900">{p.price}</div>
-            <p className="mb-4 text-xs text-neutral-500">{p.minutes} min</p>
-            <Button variant={p.current ? 'secondary' : 'primary'} className="w-full" disabled={p.current} disabledReason={p.current ? t('billing.currentPlan') : undefined}>
-              {p.current ? t('billing.currentPlan') : t('billing.choose')}
-            </Button>
-          </Card>
-        ))}
-      </div>
-
-      <label className="mb-6 flex cursor-pointer items-center gap-3 rounded-xl border border-neutral-100 bg-surface px-4 py-3.5 shadow-[var(--mgd-app-shadow-sm)]">
-        <input type="checkbox" defaultChecked className="size-4 accent-[var(--mgd-app-brand-from)]" />
-        <span className="text-sm text-neutral-700">{t('billing.autoRenew')}</span>
-        <span className="ml-auto">
-          <Tint tone="neutral">{t('billing.cancelRenew')}</Tint>
-        </span>
-      </label>
+      <Card className="mb-6">
+        <CardHeader title={zh ? '套餐' : 'Plans'} />
+        <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {plans.length === 0 ? (
+            <p className="text-sm text-neutral-500">{zh ? '定价暂未接入（占位）' : 'Pricing placeholder'}</p>
+          ) : (
+            plans.map((p) => (
+              <div key={p.id} className="rounded-xl border border-neutral-100 bg-[var(--mgd-app-surface-muted)] p-5">
+                <p className="mb-1 font-semibold text-neutral-900">{planLabel(p.id)}</p>
+                <p className="mb-3 text-xs text-neutral-500">{planDesc(p.id)}</p>
+                <p className="mb-3 font-mono text-lg font-semibold text-neutral-900">{p.price} {p.currency}</p>
+                <Button variant="primary" className="w-full" onClick={() => buy(p.id)}>{t('billing.choose')}</Button>
+              </div>
+            ))
+          )}
+        </CardBody>
+      </Card>
 
       <div className="mgd-grid mgd-grid--sidebar">
         <Card>
           <CardHeader title={t('billing.usage')} />
-          <CardBody>
-            <div className="space-y-2">
-              {ledger.map((l) => (
-                <div key={`${l.type}-${l.date}`} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 bg-[var(--mgd-app-surface-muted)] px-4 py-3 text-sm">
+          <CardBody className="space-y-3">
+            {items.length === 0 ? (
+              <p className="mb-0 text-sm text-neutral-500">{zh ? '暂无流水' : 'No ledger entries'}</p>
+            ) : (
+              items.map((l) => (
+                <div key={l.entry_id} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 px-4 py-3 text-sm">
                   <div className="min-w-0">
-                    <p className="mb-0.5 font-medium text-neutral-800">{l.reason}</p>
-                    <p className="mb-0 flex items-center gap-1 text-xs text-neutral-500">
-                      <IconClock size={11} /> {l.date}
-                    </p>
+                    <Tint tone="brand">{t(`billing.usageTypes.${l.entry_type}`)}</Tint>
+                    <p className="mb-0 mt-1 truncate text-xs text-neutral-500">{l.reason}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-neutral-700">{l.seconds}s</span>
-                    <Tint tone={typeTone(l.type)}>{t(`billing.usageTypes.${l.type}`)}</Tint>
-                  </div>
+                  <span className="shrink-0 font-mono text-neutral-900">{l.seconds}s</span>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </CardBody>
         </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title={t('billing.orders')} />
-            <CardBody>
-              <div className="space-y-2">
-                {[1].map((i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-neutral-100 px-4 py-3 text-sm">
-                    <div>
-                      <p className="mb-0.5 font-medium text-neutral-800">{zh ? '单项目包' : 'Project pack'}</p>
-                      <p className="mb-0 text-xs text-neutral-500">o-{i} · 2026-07-28</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-semibold">¥39</span>
-                      <Tint tone="success">{t('billing.paid')}</Tint>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button variant="secondary" className="mt-4 w-full">
-                <IconDownload size={15} />
-                {t('billing.invoice')}
-              </Button>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody>
-              <div className="flex items-center gap-2 text-sm font-medium text-neutral-800">
-                <IconCheck size={16} className="text-success" />
-                {t('billing.refund')}
-              </div>
-              <p className="mb-0 mt-1 text-xs text-neutral-500">{zh ? '系统责任故障自动全额返还；大额退款双人审批。' : 'System faults auto-refund fully; large refunds need two-person approval.'}</p>
-            </CardBody>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader title={t('billing.orders')} />
+          <CardBody>
+            <p className="mb-0 text-sm text-neutral-500">
+              {zh ? '订单列表接口尚未提供（占位）；下单、发票与退款经契约端点处理。' : 'Order list endpoint placeholder; create/invoice/refund go through contract endpoints.'}
+            </p>
+          </CardBody>
+        </Card>
       </div>
     </>
   );

@@ -10,12 +10,13 @@ export default async function PrecheckPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }): Promise<ReactNode> {
-  const { locale } = await params;
+  const { locale, id } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'common' });
   return (
     <PrecheckView
       locale={locale as 'zh-CN' | 'en-US'}
+      projectId={id}
       labels={{
         kicker: t('precheck.kicker'),
         title: t('precheck.title'),

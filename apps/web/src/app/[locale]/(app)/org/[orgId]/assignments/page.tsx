@@ -1,42 +1,48 @@
-/** SCR-16 机构任务列表。 */
+/** SCR-16 机构任务列表：创建入口 + 占位（契约无列表 GET，创建走 POST）。 */
 
-import { Button, Card, CardBody, IconArrowRight, IconClock, IconUsers, PageHeader, Tint } from '@mgd/ui';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+'use client';
+
+import { Button, Card, CardBody, CardHeader, PageHeader, useToast } from '@mgd/ui';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-export default async function OrgAssignmentsPage({ params }: { params: Promise<{ locale: string; orgId: string }> }): Promise<ReactNode> {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'common' });
+import { apiFetch } from '../../../../../../lib/api-fetch.ts';
+
+export default function OrgAssignmentsPage(): ReactNode {
+  const t = useTranslations('common');
+  const toast = useToast();
+  const params = useParams<{ locale: 'zh-CN' | 'en-US'; orgId: string }>();
+  const locale = params.locale;
   const zh = locale === 'zh-CN';
-  const tasks = [
-    { id: 'a-1', title: zh ? '后端岗位模拟面试训练' : 'Backend mock interview training', deadline: '2026-09-01', quota: 3000, members: 24, status: zh ? '进行中' : 'In progress', tone: 'info' as const },
-    { id: 'a-2', title: zh ? '产品经理结构化表达训练' : 'PM structured communication training', deadline: '2026-10-01', quota: 1500, members: 12, status: zh ? '已完成未共享' : 'Completed, not shared', tone: 'warning' as const },
-  ];
+  const orgId = params.orgId;
+
+  const create = async () => {
+    const res = await apiFetch('/v1/orgs/{orgId}/assignments', {
+      method: 'post',
+      idempotencyKey: `assignment-create-${orgId}-${Date.now()}`,
+      pathParams: { orgId },
+      body: { title: zh ? '新任务' : 'New assignment', deadline: '2026-09-30', quota_minutes: 3000 },
+    });
+    toast.push({
+      title: res.ok ? (zh ? '任务已创建' : 'Assignment created') : (zh ? '创建暂未接入（占位）' : 'Create placeholder'),
+      tone: res.ok ? 'success' : 'info',
+    });
+  };
+
   return (
     <>
-      <PageHeader kicker={t('org.kicker')} title={t('org.navAssignments')} actions={<Button variant="primary">{zh ? '新建任务' : 'New assignment'}</Button>} />
-      <div className="space-y-4">
-        {tasks.map((task) => (
-          <Card key={task.id} hoverable>
-            <CardBody className="flex flex-wrap items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h2 className="mb-1 text-base font-semibold text-neutral-900">{task.title}</h2>
-                <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-neutral-600">
-                  <span className="flex items-center gap-1.5"><IconClock size={14} />{t('org.deadline')}: {task.deadline}</span>
-                  <span className="flex items-center gap-1.5"><IconUsers size={14} />{task.members} {zh ? '人' : 'members'}</span>
-                  <span>{t('org.quota')}: {task.quota} min</span>
-                </div>
-              </div>
-              <Tint tone={task.tone}>{task.status}</Tint>
-              <a href={`/${locale}/org/demo/assignments/${task.id}`} className="mgd-target-primary inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--mgd-app-brand-from),var(--mgd-app-brand-to))] px-4 text-sm font-semibold text-white shadow-[var(--mgd-app-shadow-brand)]">
-                {zh ? '查看' : 'View'}
-                <IconArrowRight size={14} />
-              </a>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
+      <PageHeader kicker={t('org.kicker')} title={t('org.navAssignments')} actions={<Button variant="primary" onClick={create}>{zh ? '新建任务' : 'New assignment'}</Button>} />
+      <Card>
+        <CardHeader title={t('org.navAssignments')} />
+        <CardBody>
+          <p className="mb-0 text-sm text-neutral-500">
+            {zh
+              ? `任务列表端点尚未提供（占位）；创建/发布/关闭走契约端点。${t('org.deadline')} · ${t('org.quota')}`
+              : 'Assignment list endpoint placeholder; create/publish/close use contract endpoints.'}
+          </p>
+        </CardBody>
+      </Card>
     </>
   );
 }
