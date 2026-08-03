@@ -2849,6 +2849,51 @@ paths:
       responses:
         '200': { description: 请求进度, content: { application/json: { schema: { $ref: '#/components/schemas/DataRightRequest' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/admin/mfa/devices:
+    post:
+      tags: [admin]
+      operationId: registerMFADevice
+      summary: 登记抗钓鱼 MFA 设备（公钥绑定员工；WebAuthn 适配点）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, public_key]
+              properties:
+                name: { type: string }
+                public_key: { type: string, description: WebAuthn 公钥（至少 16 字节） }
+      responses:
+        '201': { description: 已登记, content: { application/json: { schema: { $ref: '#/components/schemas/MFADevice' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/mfa/challenges:
+    post:
+      tags: [admin]
+      operationId: createMFAChallenge
+      summary: 创建抗钓鱼 MFA 挑战（5 分钟有效、一次性）
+      responses:
+        '201': { description: 已创建, content: { application/json: { schema: { $ref: '#/components/schemas/MFAChallenge' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/mfa/verify:
+    post:
+      tags: [admin]
+      operationId: verifyMFA
+      summary: 验证挑战签名（成功后 15 分钟高风险操作窗口）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challenge_id, device_id, signature]
+              properties:
+                challenge_id: { type: string, format: uuid }
+                device_id: { type: string, format: uuid }
+                signature: { type: string, description: HMAC-SHA256(publicKey, nonce) }
+      responses:
+        '200': { description: 已验证, content: { application/json: { schema: { $ref: '#/components/schemas/MFAVerification' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
 components:
   securitySchemes:
@@ -4073,6 +4118,28 @@ components:
         created_at: { type: string, format: date-time }
         completed_at: { type: ['string', 'null'], format: date-time }
         data_region: { $ref: '#/components/schemas/Region' }
+    MFADevice:
+      type: object
+      required: [device_id, name, registered_at]
+      properties:
+        device_id: { type: string, format: uuid }
+        name: { type: string }
+        registered_at: { type: string, format: date-time }
+        revoked_at: { type: ['string', 'null'], format: date-time }
+    MFAChallenge:
+      type: object
+      required: [challenge_id, nonce, expires_at]
+      properties:
+        challenge_id: { type: string, format: uuid }
+        nonce: { type: string, description: 一次性随机挑战（不写日志） }
+        expires_at: { type: string, format: date-time }
+    MFAVerification:
+      type: object
+      required: [verification_id, verified_at, expires_at]
+      properties:
+        verification_id: { type: string, format: uuid }
+        verified_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time, description: 15 分钟高风险操作窗口 }
     AuditLog:
       type: object
       required: [audit_id, actor_role, action, occurred_at]
