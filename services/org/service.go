@@ -87,7 +87,7 @@ func (s *Service) CreateOrg(
 	if err := s.store.SaveOrg(org, idemKey); err != nil {
 		return Org{}, err
 	}
-	member := OrgMember{
+	member := Member{
 		OrgID:        org.OrgID,
 		UserID:       actor.UserID,
 		Role:         RoleOwner,
@@ -166,31 +166,31 @@ func (s *Service) InviteMember(
 // AcceptInvitation 用户以个人账户加入机构（无影子账户；过期/停用拒绝）。
 func (s *Service) AcceptInvitation(
 	_ context.Context, actor Actor, invitationID string,
-) (OrgMember, error) {
+) (Member, error) {
 	if err := validateActor(actor); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	invitation, err := s.store.GetInvitationByID(actor.DataRegion, invitationID)
 	if err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	if invitation.Status != InvitePending {
-		return OrgMember{}, fmt.Errorf("%w: 邀请已使用或撤销", ErrStateConflict)
+		return Member{}, fmt.Errorf("%w: 邀请已使用或撤销", ErrStateConflict)
 	}
 	if s.now().UTC().After(invitation.ExpiresAt) {
-		return OrgMember{}, fmt.Errorf("%w: 邀请已过期", ErrStateConflict)
+		return Member{}, fmt.Errorf("%w: 邀请已过期", ErrStateConflict)
 	}
 	org, err := s.store.GetOrgByID(actor.DataRegion, invitation.OrgID)
 	if err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	if org.Status != OrgActive {
-		return OrgMember{}, fmt.Errorf("%w: 机构未启用", ErrStateConflict)
+		return Member{}, fmt.Errorf("%w: 机构未启用", ErrStateConflict)
 	}
 	if invitation.Email != "" && !strings.EqualFold(invitation.Email, actor.UserID) {
-		return OrgMember{}, fmt.Errorf("%w: 邮箱不匹配", ErrForbidden)
+		return Member{}, fmt.Errorf("%w: 邮箱不匹配", ErrForbidden)
 	}
-	member := OrgMember{
+	member := Member{
 		OrgID:        invitation.OrgID,
 		UserID:       actor.UserID,
 		Role:         invitation.Role,
@@ -198,14 +198,14 @@ func (s *Service) AcceptInvitation(
 		JoinedAt:     s.now().UTC(),
 	}
 	if err := s.store.SaveMember(member); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	invitation.Status = InviteAccepted
 	if err := s.store.UpdateInvitation(invitation); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	if err := s.appendAudit(actor, invitation.OrgID, "org.member.joined", invitation.OrgID); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	return member, nil
 }
@@ -213,7 +213,7 @@ func (s *Service) AcceptInvitation(
 // ListMembers 列出机构成员（owner/admin/instructor）。
 func (s *Service) ListMembers(
 	_ context.Context, actor Actor, orgID string,
-) ([]OrgMember, error) {
+) ([]Member, error) {
 	if err := s.require(actor, orgID, PermManageAssignments); err != nil {
 		return nil, err
 	}
@@ -223,26 +223,26 @@ func (s *Service) ListMembers(
 // SetMemberRole 调整成员角色（owner 仅 owner 本人可变更；默认分离不可越权）。
 func (s *Service) SetMemberRole(
 	_ context.Context, actor Actor, orgID, userID, role string,
-) (OrgMember, error) {
+) (Member, error) {
 	if err := s.require(actor, orgID, PermManageRoles); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	if !validRole(role) {
-		return OrgMember{}, fmt.Errorf("%w: 角色非法", ErrInvalidInput)
+		return Member{}, fmt.Errorf("%w: 角色非法", ErrInvalidInput)
 	}
 	member, err := s.store.GetMember(orgID, userID)
 	if err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	if member.Role == RoleOwner && actor.UserID != userID {
-		return OrgMember{}, fmt.Errorf("%w: 仅所有者本人可变更所有者角色", ErrForbidden)
+		return Member{}, fmt.Errorf("%w: 仅所有者本人可变更所有者角色", ErrForbidden)
 	}
 	member.Role = role
 	if err := s.store.UpdateMember(member); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	if err := s.appendAudit(actor, orgID, "org.member.role_changed", userID); err != nil {
-		return OrgMember{}, err
+		return Member{}, err
 	}
 	return member, nil
 }

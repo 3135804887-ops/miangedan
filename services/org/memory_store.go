@@ -8,8 +8,8 @@ type MemoryStore struct {
 	mu           sync.RWMutex
 	orgs         map[string]Org
 	orgIDem      map[string]Org
-	members      map[string]OrgMember
-	membersByOrg map[string][]OrgMember
+	members      map[string]Member
+	membersByOrg map[string][]Member
 	invitations  map[string]Invitation
 	invIDem      map[string]Invitation
 	audits       map[string][]AuditEntry
@@ -20,8 +20,8 @@ func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
 		orgs:         make(map[string]Org),
 		orgIDem:      make(map[string]Org),
-		members:      make(map[string]OrgMember),
-		membersByOrg: make(map[string][]OrgMember),
+		members:      make(map[string]Member),
+		membersByOrg: make(map[string][]Member),
 		invitations:  make(map[string]Invitation),
 		invIDem:      make(map[string]Invitation),
 		audits:       make(map[string][]AuditEntry),
@@ -70,7 +70,7 @@ func (m *MemoryStore) UpdateOrg(o Org) error {
 }
 
 // SaveMember 保存成员。
-func (m *MemoryStore) SaveMember(member OrgMember) error {
+func (m *MemoryStore) SaveMember(member Member) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.members[member.OrgID+"|"+member.UserID] = member
@@ -79,28 +79,28 @@ func (m *MemoryStore) SaveMember(member OrgMember) error {
 }
 
 // GetMember 查询成员。
-func (m *MemoryStore) GetMember(orgID, userID string) (OrgMember, error) {
+func (m *MemoryStore) GetMember(orgID, userID string) (Member, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	member, ok := m.members[orgID+"|"+userID]
 	if !ok {
-		return OrgMember{}, ErrNotFound
+		return Member{}, ErrNotFound
 	}
 	return member, nil
 }
 
 // ListMembers 列出机构成员。
-func (m *MemoryStore) ListMembers(orgID string) ([]OrgMember, error) {
+func (m *MemoryStore) ListMembers(orgID string) ([]Member, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	items := m.membersByOrg[orgID]
-	out := make([]OrgMember, len(items))
+	out := make([]Member, len(items))
 	copy(out, items)
 	return out, nil
 }
 
 // UpdateMember 更新成员（角色/退出时间）。
-func (m *MemoryStore) UpdateMember(member OrgMember) error {
+func (m *MemoryStore) UpdateMember(member Member) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.members[member.OrgID+"|"+member.UserID] = member

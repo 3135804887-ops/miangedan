@@ -7,10 +7,10 @@ type Store interface {
 	GetOrgByID(dataRegion, orgID string) (Org, error)
 	GetOrgByIdempotencyKey(dataRegion, key string) (Org, error)
 	UpdateOrg(Org) error
-	SaveMember(OrgMember) error
-	GetMember(orgID, userID string) (OrgMember, error)
-	ListMembers(orgID string) ([]OrgMember, error)
-	UpdateMember(OrgMember) error
+	SaveMember(Member) error
+	GetMember(orgID, userID string) (Member, error)
+	ListMembers(orgID string) ([]Member, error)
+	UpdateMember(Member) error
 	SaveInvitation(Invitation, string) error
 	GetInvitationByID(dataRegion, invitationID string) (Invitation, error)
 	GetInvitationByIdempotencyKey(dataRegion, key string) (Invitation, error)

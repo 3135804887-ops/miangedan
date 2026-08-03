@@ -69,8 +69,8 @@ type Org struct {
 	IdempotencyKey string
 }
 
-// OrgMember 为机构成员（六类角色之一；left_at 非空表示已退出/移除）。
-type OrgMember struct {
+// Member 为机构成员（六类角色之一；left_at 非空表示已退出/移除）。
+type Member struct {
 	OrgID        string
 	UserID       string
 	Role         string

@@ -4,8 +4,12 @@ package org
 import "errors"
 
 var (
-	ErrNotFound      = errors.New("org record not found")
-	ErrInvalidInput  = errors.New("invalid org input")
+	// ErrNotFound 记录不存在。
+	ErrNotFound = errors.New("org record not found")
+	// ErrInvalidInput 输入非法。
+	ErrInvalidInput = errors.New("invalid org input")
+	// ErrStateConflict 状态冲突。
 	ErrStateConflict = errors.New("org state conflict")
-	ErrForbidden     = errors.New("org permission denied")
+	// ErrForbidden 权限不足。
+	ErrForbidden = errors.New("org permission denied")
 )
