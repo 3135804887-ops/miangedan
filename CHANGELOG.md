@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-042 岗位匹配度（`task/TASK-042-job-match` 分支）：
+  - `services/scoring` 新增 `ComputeJobMatch`（SCORING-SPEC 6.8）：必备/加分分列
+    独立计算 match = Σ weight(已证明)/Σ weight(全部)；已证明 = 简历证据（仅当
+    存在简历）∪ 面试证据；无 JD → not_displayed_reason = no_jd 不展示百分比
+    （SC-EC-22）；JD-only（无简历）只按面试证明计算且禁止经历一致性评分
+    （SC-EC-21，experience_evidence 权重计划阶段重新分配，评分侧 fail-closed）；
+    匹配度与面试分数相互独立，不作为单轮解锁隐藏因素。
+  - scoring-input schema 增加 job_match_input；openapi ScoreResult 增加
+    JobMatch/MatchBucket；正常/异常/幂等测试全绿，gofmt/vet 通过。
+    （TASK-042、SCORING-SPEC 6.8）
 - TASK-041 输入模式归一化（`task/TASK-041-input-mode-normalization` 分支）：
   - `services/scoring` 实现 SCORING-SPEC 6.4：voice 公式不变；文字模式
     communication = structure_clarity、oral_delivery = `not_evaluated`
