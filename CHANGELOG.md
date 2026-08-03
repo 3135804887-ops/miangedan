@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-071 训练任务与模板（`task/TASK-071-assignments` 分支）：
+  - `services/org` 任务（FR-035，US-07 场景 5）：可配项白名单过滤；禁止项
+    （60 分线/统一算法/保护属性/证据标准/跨轮解锁/正式复核）拒绝并写审计；
+  - 任务状态 draft → published → closed；完成情况默认最小可见（计数与机构额度
+    消耗，不含个人结果）；成员状态变更写审计。
+  - 迁移 `0066_assignments.sql`；openapi 增加 publish/close 端点。
+  - 服务正常、异常、幂等、禁止项审计、最小可见测试齐备（新增 4 用例），
+    gofmt/vet 通过。
+    （TASK-071、FR-035、DOMAIN-MODEL Assignment）
 - TASK-070 机构租户与六类角色（`task/TASK-070-org-tenants` 分支）：
   - `services/org` 首次业务实现（FR-034，US-07）：机构租户、六类角色权限分离
     矩阵、邀请适配点（link/org_email/bulk_list/sso/scim）、个人账户加入
