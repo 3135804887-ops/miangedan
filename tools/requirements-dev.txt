@@ -5,3 +5,7 @@ openapi-spec-validator>=0.7,<1
 pytest>=8,<10
 ruff>=0.6,<1
 mypy>=1.10,<3
+# AI 服务 HTTP 层（mgd-selfhost 等；阶段2 mypy / 阶段3 pytest 需要）
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+httpx>=0.27,<1

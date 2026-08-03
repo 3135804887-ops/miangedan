@@ -41,5 +41,9 @@ python_version = "3.11"
 strict = true
 mypy_path = ["src"]
 
+[[tool.mypy.overrides]]
+module = ["fastapi.*", "uvicorn.*", "httpx.*", "numpy.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
