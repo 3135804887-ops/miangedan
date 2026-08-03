@@ -2,18 +2,18 @@
   "report_kind": "eval",
   "dataset": "en-core",
   "evaluator": "auto_evaluator",
-  "generated_at": "2026-08-03T02:58:47.081029+00:00",
+  "generated_at": "2026-08-03T03:25:06.856753+00:00",
   "totals": {
-    "total": 6,
-    "executed": 2,
-    "passed": 2,
+    "total": 7,
+    "executed": 3,
+    "passed": 3,
     "failed": 0,
     "skipped": 4,
     "pass_rate": 1.0
   },
   "metrics": {
     "pass_rate": 1.0,
-    "executed": 2
+    "executed": 3
   },
   "thresholds": {
     "pass_rate_min": 1.0
@@ -54,6 +54,12 @@
       "status": "passed",
       "failures": [],
       "evaluator": "handoff"
+    },
+    {
+      "case_id": "en-report-01",
+      "status": "passed",
+      "failures": [],
+      "evaluator": "report"
     }
   ]
 }

@@ -20,7 +20,8 @@ PYTHONPATH=src python -m mgd_evals.run --datasets zh-core,en-core --out ../../ev
 框架（`mgd_evals`）能力：
 
 - 数据集与预期结果对齐校验（缺预期条目即失败）；
-- 内置评测器：交接包（handoff）、内容安全（safety）、通用契约（generic）；
+- 内置评测器：交接包（handoff）、内容安全（safety）、报告生成（report）、
+  通用契约（generic）；
   未支持场景记为 `skipped`（如实报告，不伪装通过）；
 - 报告 JSON：`report_kind=eval`，含 totals/metrics/thresholds/cases；
   同输入同结论（确定性）；

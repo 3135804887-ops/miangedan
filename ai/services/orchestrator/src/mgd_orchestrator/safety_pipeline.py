@@ -353,7 +353,10 @@ class ContentSafetyPipeline:
         """评分证据保护属性扫描（目标比例 0；命中类别需在上游摘除）。"""
         if not text:
             return ()
-        return tuple(term for term in self._protected_keywords() if term and term in text)
+        hits = [term for term in self._protected_keywords() if term and term in text]
+        if re.search(r"\d{1,3}\s*岁", text) is not None:
+            hits.append("年龄")
+        return tuple(dict.fromkeys(hits))
 
     # ---- 重新生成 ----
     def regenerate(

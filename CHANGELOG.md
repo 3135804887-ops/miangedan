@@ -15,6 +15,18 @@
 
 ### Added
 
+- TASK-050 报告生成器（`task/TASK-050-report-generator` 分支）：
+  - 新增 `docs/ai/REPORT-SPEC.md`（报告契约）；`mgd_orchestrator.report_generator`
+    确定性合成实现（FR-023/FR-026）：七类报告模块、分数只读引用、雷达图文字等价、
+    逐题证据回溯、多轮轨迹、沟通/工具分析与训练计划；最终结果按 SCORING-SPEC 6.9
+    （FAIL → 整体未通过；无有效分 → EVALUATION_INCOMPLETE + partial）；
+  - 模块级失败重试（失败模块 status=failed、只重试失败模块 ≤2 次）；
+    输出过 `report.schema.json` 校验（fail-closed）；训练用途声明与
+    deletion_entry 强制；保护属性零携带（safety evidence_scan 脱敏）。
+  - zh-core/en-core 新增 report_generation 评测用例；mgd_evals 增加
+    report_evaluator，评测报告重新生成（zh 5/5、en 3/3 全过）；
+    pytest 68 用例全绿，ruff、mypy(strict) 通过。
+    （TASK-050、FR-023、FR-026、REPORT-SPEC）
 - TASK-045 评分稳定性回归（`task/TASK-045-stability-regression` 分支）：
   - `services/scoring` 新增 `RunStabilityRegression`（硬门槛）：冻结输入基线 +
     200 次受控微扰重复评分（锚点带内插值 ±1、4% 扰动率、固定种子可复现），

@@ -2,18 +2,18 @@
   "report_kind": "eval",
   "dataset": "zh-core",
   "evaluator": "auto_evaluator",
-  "generated_at": "2026-08-03T02:58:47.063516+00:00",
+  "generated_at": "2026-08-03T03:25:06.818243+00:00",
   "totals": {
-    "total": 10,
-    "executed": 4,
-    "passed": 4,
+    "total": 11,
+    "executed": 5,
+    "passed": 5,
     "failed": 0,
     "skipped": 6,
     "pass_rate": 1.0
   },
   "metrics": {
     "pass_rate": 1.0,
-    "executed": 4
+    "executed": 5
   },
   "thresholds": {
     "pass_rate_min": 1.0
@@ -78,6 +78,12 @@
       "status": "passed",
       "failures": [],
       "evaluator": "handoff"
+    },
+    {
+      "case_id": "zh-report-01",
+      "status": "passed",
+      "failures": [],
+      "evaluator": "report"
     }
   ]
 }

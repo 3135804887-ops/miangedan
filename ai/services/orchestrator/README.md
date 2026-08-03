@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 |---|---|
 | 技术基线 | Python ≥3.11，src 布局，ruff + mypy(strict) + pytest |
-| 拥有任务 | TASK-031、TASK-032、TASK-033、TASK-034、TASK-035 |
+| 拥有任务 | TASK-031、TASK-032、TASK-033、TASK-034、TASK-035、TASK-050 |
 | 追踪 | IMPLEMENTATION_PLAN.md；docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.1 节 |
 
 ## 已实现
@@ -36,10 +36,17 @@
   - 禁止内容分类（歧视/侮辱/无关隐私/危险/骚扰/作弊协助/录用预测/PII 复述）与
     动作一一对应 policy.yaml；阻断-重生成 ≤3 次、危险/骚扰直接升级人工；
   - 评分证据保护属性零携带扫描（evidence_scan）与最小化审计记录。
+- **报告生成器**（TASK-050）：`mgd_orchestrator.report_generator`
+  - 由冻结 ScoreVersion/证据摘要/交接包/输入模式标记生成报告模块
+    （overview/radar/job_match/rounds/communication_analysis/tool_performance/
+    training_plan），分数只读、证据可回溯、雷达图文字等价；
+  - 模块级失败重试（FR-026：失败模块 status=failed 可单独重试 ≤2 次）；
+  - 输出过 `report.schema.json` 校验（fail-closed）；训练用途声明与
+    deletion_entry 强制；保护属性零携带（evidence_scan 脱敏）。
 
 ## 规划（后续任务）
 
-- TASK-036 AI 评测框架。
+- TASK-051 报告文字等价/导出标记；TASK-052 AI 教练练习。
 
 AI 行为实现必须遵循 `docs/ai/` 契约（编排、评分、交接、提示词政策、供应商适配层），
 禁止业务代码直连供应商 SDK。

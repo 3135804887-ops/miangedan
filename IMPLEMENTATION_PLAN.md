@@ -488,6 +488,20 @@
 > 报告提交入库；Go 测试 4 用例（门槛/确定性/异常/报告形状）+ evals 握手 2 用例
 > 全绿，gofmt/vet 通过。（TASK-045、SCORING-SPEC 10、TASK-036）
 
+> **任务状态（2026-08-03 更新）**：TASK-050 已实现（FR-023/FR-026，US-04 规则 3）——
+> 新增 `docs/ai/REPORT-SPEC.md`（报告契约）；`mgd_orchestrator.report_generator`
+> 确定性合成实现：由冻结 ScoreVersion/证据摘要/HandoffPackage/输入模式标记生成
+> 七类报告模块（必备 overview/radar/rounds/training_plan），分数只读引用、
+> 雷达图文字等价、逐题证据回溯、多轮轨迹、沟通/工具分析与训练计划；最终结果按
+> SCORING-SPEC 6.9（任一 FAIL → 整体未通过；任一必需轮无有效分 →
+> EVALUATION_INCOMPLETE + partial）；模块级失败重试（FR-026：失败模块
+> status=failed、只重试失败模块 ≤2 次）；输出过 report.schema.json 校验
+> （fail-closed）；训练用途声明与 deletion_entry 强制；保护属性零携带
+> （safety evidence_scan 脱敏）。zh-core/en-core 新增 report_generation 评测用例，
+> mgd_evals 增加 report_evaluator 并重新生成评测报告（zh 5/5、en 3/3 全过）。
+> pytest 68 用例全绿（含报告 10 新用例），ruff/mypy(strict) 通过。
+> （TASK-050、FR-023、FR-026、REPORT-SPEC）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。
