@@ -88,16 +88,40 @@ class EdgeTtsBackend(TtsBackend):
 
 
 def _mp3_to_wav(mp3_bytes: bytes, output_path: Path, av: Any) -> None:
-    """用 PyAV 将 edge-tts 输出的 MP3 转成 WAV（PCM16，保证 ASR/播放兼容）。"""
+    """用 PyAV + numpy 将 edge-tts 输出的 MP3 转成标准 WAV（单声道 PCM16）。"""
+    import numpy as np
+
     with av.open(io.BytesIO(mp3_bytes)) as container:
         stream = container.streams.audio[0]
-        with av.open(str(output_path), "w", format="wav") as out:
-            out_stream = out.add_stream("pcm_s16le", rate=stream.rate)
-            for frame in container.decode(stream):
-                for packet in out_stream.encode(frame):
-                    out.mux(packet)
-            for packet in out_stream.encode(None):
-                out.mux(packet)
+        chunks: list[np.ndarray] = []
+        for frame in container.decode(stream):
+            arr = frame.to_ndarray()
+            if arr.ndim == 2:
+                if arr.shape[0] == 1:
+                    # 单声道（planar/packed 单通道）：直接展平
+                    mono = arr.reshape(-1)
+                elif len(frame.planes) > 1:
+                    # planar: (channels, samples)
+                    mono = arr.mean(axis=0)
+                else:
+                    # packed: (samples, channels)
+                    mono = arr.mean(axis=1)
+            else:
+                mono = arr
+            if mono.dtype.kind == "f":
+                mono = (np.clip(mono, -1.0, 1.0) * 32767).astype(np.int16)
+            else:
+                mono = mono.astype(np.int16)
+            chunks.append(mono)
+        if not chunks:
+            raise RuntimeError("mp3 解码无音频帧")
+        pcm = np.concatenate(chunks)
+        rate = stream.rate or 24000
+        with wave.open(str(output_path), "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(rate)
+            wav_file.writeframes(pcm.tobytes())
 
 
 class CosyVoiceBackend(TtsBackend):
