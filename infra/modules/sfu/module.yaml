@@ -1,0 +1,31 @@
+# SFU 模块契约（LiveKit 技术基线，自托管）
+# 追踪：docs/architecture/EPIC-01-INFRA-DESIGN.md 第 4.3 节；ADR-0003；PRD Realtime media；
+#       IMPLEMENTATION_PLAN.md TASK-002/TASK-020/TASK-091
+kind: sfu
+baseline: livekit
+deployment:
+  mode: self_hosted
+  local_dev: true
+  per_region: true
+  cross_az: true
+  min_az: 3
+  node_group_pattern: mgd-{region}-{env}-sfu
+ports:
+  rtc: 7880
+  tcp_fallback: 7881
+  udp_range: [50000, 60000]
+  turn_tls: 5349
+  turn_udp: 3478
+tls:
+  local_dev: none
+  production: lets_encrypt_or_managed
+auth:
+  env_refs: [WEBRTC_SFU_URL, WEBRTC_API_KEY, WEBRTC_API_SECRET, WEBRTC_TURN_URL, WEBRTC_TURN_USERNAME, WEBRTC_TURN_CREDENTIAL]
+media:
+  default_video: [720p, 24fps]
+  weak_network: audio_priority
+  interruption: supported
+verification:
+  health_endpoint: "http://localhost:7880/"
+  connect_slo_ms: { p95: 8000, p99: 15000 }
+  fault_drill: [disconnect, jitter, provider_failover, reconnect, degrade]
