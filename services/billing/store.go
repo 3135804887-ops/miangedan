@@ -17,6 +17,15 @@ type Store interface {
 	GetFreeze(dataRegion, projectID string) (Freeze, error)
 	SaveSubscription(ProSubscription, string) error
 	GetSubscription(dataRegion, userID string) (ProSubscription, error)
+	// TASK-064 订阅生命周期：同意条款、幂等、到期扫描、续费事件。
+	UpdateSubscription(ProSubscription) error
+	GetSubscriptionByIdempotencyKey(dataRegion, key string) (ProSubscription, error)
+	ListSubscriptions(dataRegion string) ([]ProSubscription, error)
+	SaveRenewalRecord(RenewalRecord, string) error
+	GetRenewalByIdempotencyKey(dataRegion, key string) (RenewalRecord, error)
+	GetRenewalByID(dataRegion, renewalID string) (RenewalRecord, error)
+	UpdateRenewalRecord(RenewalRecord) error
+	ListRenewalsBySubscription(dataRegion, subscriptionID string) ([]RenewalRecord, error)
 	// TASK-061 秒级账本（追加式；幂等键唯一）。
 	AppendLedger(LedgerEntry) error
 	GetLedgerByIdempotencyKey(dataRegion, key string) (LedgerEntry, error)

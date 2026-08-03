@@ -1648,6 +1648,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subscription/auto-renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 自动续费单独勾选（必须明确同意；记录同意时的月额度与价格条款；条款变化须重新同意） */
+        put: operations["setAutoRenew"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subscription/renewals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 续费扣款前提醒（自动续费已勾选且条款未变化；同一账期只生成一条提醒） */
+        post: operations["prepareRenewal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subscription/renewals/{renewalId}/charge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 执行续费扣款（提醒后 7 天窗口内；结转 ≤1 账期；总余额 ≤2×月额度） */
+        post: operations["chargeRenewal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/payments/callback/{provider}": {
         parameters: {
             query?: never;
@@ -2904,6 +2955,32 @@ export interface components {
             /** Format: date-time */
             current_period_end: string;
             auto_renew?: boolean;
+            /** @description 同意时月额度（条款变化须重新同意） */
+            consent_monthly_seconds?: number | null;
+            /** @description 同意时月度价格（分） */
+            consent_price_cents?: number | null;
+            data_region?: components["schemas"]["Region"];
+        };
+        RenewalRecord: {
+            /** Format: uuid */
+            renewal_id: string;
+            /** Format: uuid */
+            subscription_id: string;
+            /** @enum {unknown} */
+            status: "reminded" | "charged" | "failed";
+            /** Format: date-time */
+            period_start: string;
+            /** Format: date-time */
+            period_end: string;
+            monthly_seconds: number;
+            price_cents: number;
+            /**
+             * Format: date-time
+             * @description 扣款前提醒时间
+             */
+            reminded_at?: string | null;
+            /** Format: date-time */
+            charged_at?: string | null;
             data_region?: components["schemas"]["Region"];
         };
         Organization: {
@@ -6620,6 +6697,90 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 已取消续费 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setAutoRenew: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                    /** @description 开启时必须为 true */
+                    consent_granted?: boolean;
+                    consent_monthly_seconds?: number | null;
+                    consent_price_cents?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    prepareRenewal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 提醒已生成 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenewalRecord"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    chargeRenewal: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                renewalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 续费成功 */
             200: {
                 headers: {
                     [name: string]: unknown;

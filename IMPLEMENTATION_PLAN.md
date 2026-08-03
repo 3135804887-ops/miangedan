@@ -622,6 +622,18 @@
 > 服务正常、异常、幂等、并发双人审批、拒绝申诉测试齐备（新增 6 用例），gofmt/vet 通过。
 > （TASK-063、FR-033、BILLING-STATE-MACHINE §5.4/§8）
 
+> **任务状态（2026-08-03 更新）**：TASK-064 已实现（FR-033，US-06 场景 5）——
+> `services/billing` Pro 订阅生命周期：自动续费单独勾选且必须明确同意（记录同意时
+> 月额度与价格条款，条款变化须重新同意）；扣款前提醒（PrepareRenewal → reminded，
+> 7 天窗口内 ChargeRenewal，超窗拒绝）；续费经 ActivatePro 保证结转 ≤1 账期、
+> 总余额 ≤2×月额度；取消续费权益保留至账期结束；到期任务 ExpireDueSubscriptions
+> → SUB_EXPIRED（历史保留、不影响导出/删除）；进行中的正式轮次到期仍可正常结束
+> （余额校验只在轮次开始前）。迁移 `0063_pro_renewals.sql`（renewal_events +
+> 订阅同意条款列）；openapi 增加 auto-renew/renewals/charge 端点与 RenewalRecord。
+> 服务正常、异常、幂等、条款变化、提醒窗口、到期轮次完成测试齐备（新增 6 用例），
+> gofmt/vet 通过。
+> （TASK-064、FR-033、BILLING-STATE-MACHINE §5.5）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。
