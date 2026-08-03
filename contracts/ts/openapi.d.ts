@@ -2177,6 +2177,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 注册模型/提示词/量表/工作流版本（初始 offline；兼容与安全测试标记） */
+        post: operations["registerArtifactVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/versions/{versionId}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 版本推进（offline→shadow→canary→full；灰度需兼容+安全测试，放量需指标通过） */
+        post: operations["promoteArtifactVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/projects/{projectId}/version-pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 固定项目开始版本（活跃正式面试固定开始版本；不可中途改变） */
+        put: operations["freezeProjectVersion"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/projects/{projectId}/version-pin/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 回滚到稳定版本（新会话生效；进行中的正式会话不被中途改变） */
+        post: operations["rollbackProjectVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/rubrics/{rubricId}/deprecate": {
         parameters: {
             query?: never;
@@ -3488,6 +3556,32 @@ export interface components {
             error_budget_burn?: number;
             /** Format: date-time */
             updated_at?: string;
+        };
+        ArtifactVersion: {
+            /** Format: uuid */
+            version_id: string;
+            /** @enum {unknown} */
+            asset_type: "model" | "prompt" | "rubric" | "workflow";
+            asset_key: string;
+            version: string;
+            /** @enum {unknown} */
+            stage: "offline" | "shadow" | "canary" | "full";
+            compatible?: boolean;
+            safety_tested?: boolean;
+            metrics_ok?: boolean;
+            deprecated?: boolean;
+            data_region?: components["schemas"]["Region"];
+        };
+        VersionPin: {
+            /** Format: uuid */
+            project_id: string;
+            /** @enum {unknown} */
+            asset_type?: "model" | "prompt" | "rubric" | "workflow";
+            asset_key?: string;
+            /** Format: uuid */
+            version_id: string;
+            /** Format: date-time */
+            pinned_at: string;
         };
         AuditLog: {
             /** Format: uuid */
@@ -7995,6 +8089,132 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    registerArtifactVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {unknown} */
+                    asset_type: "model" | "prompt" | "rubric" | "workflow";
+                    asset_key: string;
+                    version: string;
+                    /** @default false */
+                    compatible?: boolean;
+                    /** @default false */
+                    safety_tested?: boolean;
+                    /** @default false */
+                    metrics_ok?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description 已注册 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactVersion"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    promoteArtifactVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {unknown} */
+                    target_stage: "shadow" | "canary" | "full";
+                };
+            };
+        };
+        responses: {
+            /** @description 已推进 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactVersion"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    freezeProjectVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    version_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已固定 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionPin"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    rollbackProjectVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    stable_version_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已回滚 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionPin"];
+                };
             };
             default: components["responses"]["Error"];
         };

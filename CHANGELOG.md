@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-081 版本治理（`task/TASK-081-version-governance` 分支）：
+  - `services/adminapi` 版本注册与推进（FR-038，US-08 场景 2/6）：模型/提示词/
+    量表/工作流 offline→shadow→canary→full；灰度需兼容+安全测试、放量需指标通过；
+  - 项目版本固定（活跃正式面试固定开始版本）；回滚仅限无进行中会话；
+    量表停用需三方审批且不批量改写历史分数。
+  - 迁移 `0069_version_registry.sql`；openapi 增加 versions/promote/version-pin/
+    rollback 端点与 ArtifactVersion/VersionPin schema。
+  - 服务正常、异常、门槛阻止、冻结、回滚门禁、三方审批测试齐备（新增 4 用例），
+    gofmt/vet 通过。
+    （TASK-081、FR-038、PROVIDER-ADAPTERS、TASK-031 pinned）
 - TASK-080 运营后台（`task/TASK-080-admin-ops` 分支）：
   - `services/adminapi` 首次业务实现（FR-037，US-08 场景 1）：区域/房间/
     供应商/SLO 监控（默认匿名技术指标，无姓名/简历/回答/媒体）；
