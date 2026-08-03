@@ -588,6 +588,18 @@
 > 服务正常、异常、幂等、冻结、结转上限测试齐备（新增 7 用例），gofmt/vet 通过。
 > （TASK-060、FR-031、BILLING-STATE-MACHINE）
 
+> **任务状态（2026-08-03 更新）**：TASK-061 已实现（FR-032）——`services/billing`
+> 秒级 UsageLedger：`Reserve`（每轮开始前预留，不足阻止开始，402；消费顺序
+> 免费→项目包（限本项目）→Pro→加油包）、`StartMetering`/`StopMetering`（只计
+> LIVE 秒；故障/等待/重连/认证暂停与降级后文字面试不计）、`Settle`（按实际扣减 +
+> 冲正释放未使用预留；用户主动退出同规则）、`RefundFull`（系统责任自动全额返还
+> 本轮预留）；账本追加式（reserve/consume/reversal），幂等键去重、逐笔可查。
+> **room 挂接点闭环**：创建会话 → 预留+开始计量；EndSession → 按实际结算；
+> 降级接受 → 故障点起停止计量；**降级拒绝 → 全额返还本轮预留**；暂停/恢复 →
+> 停止/开始计量；余额不足 → ErrEntitlementMissing（HTTP 402 insufficient_
+> entitlement）。服务（billing 6 用例 + room 5 用例）全绿，gofmt/vet 通过。
+> （TASK-061、FR-032、BILLING-STATE-MACHINE §5.3/§6）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。

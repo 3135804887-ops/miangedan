@@ -29,6 +29,7 @@ type Service struct {
 	tokens   *MediaTokenManager
 	provider Provider
 	projects ProjectAPI
+	billing  BillingAPI
 	now      func() time.Time
 }
 
@@ -37,7 +38,17 @@ func NewService(store Store, idem IdempotencyStore, tokens *MediaTokenManager, p
 	if store == nil || idem == nil || tokens == nil || provider == nil || projects == nil {
 		return nil, fmt.Errorf("%w: 缺少存储/令牌/房间提供方/项目服务", ErrInvalidInput)
 	}
-	return &Service{store: store, idem: idem, tokens: tokens, provider: provider, projects: projects, now: time.Now}, nil
+	return &Service{
+		store: store, idem: idem, tokens: tokens, provider: provider,
+		projects: projects, billing: billingNoop{}, now: time.Now,
+	}, nil
+}
+
+// SetBilling 注入秒级账本能力（TASK-061；生产由 services/billing 实现）。
+func (s *Service) SetBilling(b BillingAPI) {
+	if b != nil {
+		s.billing = b
+	}
 }
 
 func idempotent[T any](s *Service, prefix, idemKey string, run func() (T, error)) (T, error) {
@@ -141,6 +152,34 @@ func (s *Service) CreateSession(ctx context.Context, actor project.Actor, in Cre
 		if err := s.store.SaveSession(sess); err != nil {
 			return SessionCreated{}, err
 		}
+		// TASK-061 挂接点：每轮开始前预留（不足阻止开始），会话 LIVE 起计量。
+		plan, err := s.projects.GetPlan(ctx, actor, in.ProjectID)
+		if err != nil {
+			return SessionCreated{}, mapProjectErr(err)
+		}
+		durationMinutes := 30
+		for _, round := range plan.Rounds {
+			if round.Sequence == in.RoundSequence {
+				durationMinutes = round.DurationMinutes
+				break
+			}
+		}
+		reserveErr := s.billing.Reserve(ctx, actor, BillingReserveInput{
+			ProjectID:        in.ProjectID,
+			RoundSequence:    in.RoundSequence,
+			AttemptID:        sess.AttemptID,
+			SessionID:        sessionID,
+			EstimatedSeconds: durationMinutes * 60,
+		})
+		if reserveErr != nil {
+			if errors.Is(reserveErr, ErrInsufficientEntitlement) {
+				return SessionCreated{}, ErrEntitlementMissing
+			}
+			return SessionCreated{}, reserveErr
+		}
+		if err := s.billing.StartMetering(ctx, actor, sessionID); err != nil {
+			return SessionCreated{}, err
+		}
 		return SessionCreated{
 			SessionID:          sessionID,
 			RoomURL:            ref.URL,
@@ -202,6 +241,10 @@ func (s *Service) EndSession(ctx context.Context, actor project.Actor, sessionID
 		sess.RoomStatus = StatusEnded
 		sess.LastActivityAt = s.now()
 		if err := s.store.UpdateSession(sess); err != nil {
+			return Session{}, err
+		}
+		// TASK-061 挂接点：轮次结束按实际秒数结算（用户主动退出按实际扣减）。
+		if err := s.billing.Settle(ctx, actor, sessionID, "round_ended"); err != nil {
 			return Session{}, err
 		}
 		return sess, nil

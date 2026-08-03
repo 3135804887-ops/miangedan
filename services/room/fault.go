@@ -99,6 +99,10 @@ func (s *Service) PauseTimer(_ context.Context, actor project.Actor, sessionID s
 				sess.PausedAt = &now
 			}
 		}
+		// TASK-061 挂接点：暂停段不计费（停止计量）。
+		if err := s.billing.StopMetering(context.Background(), actor, sessionID); err != nil {
+			return Session{}, err
+		}
 		if err := s.store.UpdateSession(sess); err != nil {
 			return Session{}, err
 		}
@@ -126,6 +130,10 @@ func (s *Service) ResumeTimer(_ context.Context, actor project.Actor, sessionID 
 		}
 		sess.PausedAt = nil
 		sess.RoomStatus = StatusLive
+		// TASK-061 挂接点：恢复 LIVE 继续计量。
+		if err := s.billing.StartMetering(context.Background(), actor, sessionID); err != nil {
+			return Session{}, err
+		}
 		if err := s.store.UpdateSession(sess); err != nil {
 			return Session{}, err
 		}
@@ -168,7 +176,7 @@ func (s *Service) OfferDowngrade(_ context.Context, actor project.Actor, session
 
 // AcceptDowngrade 同意文字降级（avatar.downgrade_accepted）：DOWNGRADE_PROMPTED → TEXT_DEGRADED。
 // 故障点起不再消耗数字人额度（TASK-061 额度联动挂接点）；口语项按文字模式规则处理。
-func (s *Service) AcceptDowngrade(_ context.Context, actor project.Actor, sessionID, promptID string, idemKey string) (Session, error) {
+func (s *Service) AcceptDowngrade(ctx context.Context, actor project.Actor, sessionID, promptID string, idemKey string) (Session, error) {
 	if err := s.validateActor(actor); err != nil {
 		return Session{}, err
 	}
@@ -194,7 +202,10 @@ func (s *Service) AcceptDowngrade(_ context.Context, actor project.Actor, sessio
 		sess.RoomStatus = StatusTextDegraded
 		sess.DowngradeStatus = DowngradeAccepted
 		sess.TextDegradedAt = &now
-		// 挂接点：TASK-061 在此确认故障点起不计数字人额度。
+		// TASK-061 挂接点：故障点起不计数字人额度（停止计量，文字面试继续）。
+		if err := s.billing.StopMetering(ctx, actor, sessionID); err != nil {
+			return Session{}, err
+		}
 		if err := s.store.UpdateSession(sess); err != nil {
 			return Session{}, err
 		}
@@ -239,7 +250,11 @@ func (s *Service) DeclineDowngrade(ctx context.Context, actor project.Actor, ses
 				return Session{}, mapProjectErr(err)
 			}
 		}
-		// 挂接点：TASK-061 在此确认系统责任全额返还本轮预留额度。
+		// TASK-061 挂接点：拒绝降级 = 系统责任，全额返还本轮预留额度。
+		if err := s.billing.RefundFull(ctx, actor, sessionID,
+			"downgrade_rejected_full_refund"); err != nil {
+			return Session{}, err
+		}
 		if err := s.store.UpdateSession(sess); err != nil {
 			return Session{}, err
 		}
