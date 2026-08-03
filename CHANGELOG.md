@@ -15,6 +15,13 @@
 
 ### Added
 
+- TASK-073 聚合分析（`task/TASK-073-aggregates` 分支）：
+  - `services/org` 聚合（FR-036，US-07 场景 3）：岗位类别/能力维度分组、
+    完成率、维度均值、提升趋势；细分群体 <10 人隐藏且不返回指标；
+  - 无个人排行榜/排名/候选人搜索（PersonalRankingAvailable 恒 false）；
+    个人分数样本由评分服务注入，机构侧不持久化。
+  - 服务正常、异常、小样本隐藏、类别过滤测试齐备（新增 4 用例），gofmt/vet 通过。
+    （TASK-073、FR-036）
 - TASK-072 按任务细粒度结果授权（`task/TASK-072-assignment-shares` 分支）：
   - `services/org` 分享授权（FR-035，US-07 场景 1/2）：六类封闭枚举范围 +
     有效期 + 可撤回（幂等）；机构侧访问校验写 AccessAudit；撤回/到期立即失效，
