@@ -1,0 +1,25 @@
+{
+  "report_kind": "hardgates_095",
+  "dataset": "scoring-stability+zh-core/en-core-protected",
+  "generated_at": "2026-08-03T09:10:10.580881+00:00",
+  "gates": {
+    "stability_dimension_diff_le3_ratio_min": 0.95,
+    "stability_pass_agreement_min": 0.98,
+    "forbidden_attribute_into_evidence": 0
+  },
+  "metrics": {
+    "stability_dimension_diff_le3_ratio": 1,
+    "stability_pass_agreement_rate": 1,
+    "forbidden_attribute_hits_in_evidence_eval": 0,
+    "protected_eval_cases_passed": [
+      "zh-protected-01"
+    ]
+  },
+  "expert_blind_review": {
+    "status": "pending",
+    "owner": "项目负责人/AI 负责人（线下签字）",
+    "note": "专家盲评一致率 ≥85% 与维度 MAE ≤10 在本窗口外由项目负责人执行并签字。"
+  },
+  "passed": true,
+  "failures": []
+}

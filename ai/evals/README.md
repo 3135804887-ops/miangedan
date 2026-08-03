@@ -8,7 +8,8 @@ SCORING-SPEC 第 10 节。
 - `datasets/`：黄金集（JSONL，`synthetic: true`，每行一个用例）；
 - `expected-results/`：与数据集同名的预期结果（`<stem>.expected.json`）；
 - `reports/`：可重复运行的评测报告（`<stem>.eval.json`）与稳定性回归报告
-  （`stability.json`，TASK-045 产物）。
+  （`stability.json`，TASK-045 产物）；`task095-hardgates.json` 为 TASK-095
+  评分硬门槛汇总（稳定性 95%/98% + 禁止属性零携带；专家盲评由项目负责人签字）。
 
 ## 运行
 

@@ -24,6 +24,10 @@
   必填 + 生成器实现 + 测试断言）与导出训练用途标记（报告 `training_use_disclaimer`
   + export `TrainingUseDisclaimer`/`TrainingMarker`）均已由 TASK-050/055 覆盖，
   无残留缺口，仅同步实施计划状态与依据。
+- TASK-095 评分硬门槛验证：重跑稳定性回归（维度差≤3 占比 1.0、及格一致率 1.0），
+  新增 `tools/ci/verify_task095_gates.py` 与 `ai/evals/reports/task095-hardgates.json`
+  （禁止属性进入证据为 0、专家盲评标记 pending 待项目负责人签字），CI 阶段3 挂接
+  0 失败门禁。
 
 ### Added
 

@@ -829,6 +829,16 @@
 > ruff/mypy/pytest（orchestrator/parsing）全绿。
 > （TASK-090、ACCEPTANCE-MATRIX、TEST-STRATEGY）
 
+> **任务状态（2026-08-03 更新）**：TASK-095 已执行（专家盲评签字留给项目负责人）——
+> 用合成黄金集重跑评分稳定性回归（`services/scoring/cmd/stability`，200 次受控微扰、
+> 固定种子）：维度差 ≤3 占比 1.0000（≥95%）、及格结论一致率 1.0000（≥98%），
+> `ai/evals/reports/stability.json` 重新入库；禁止属性进入证据为 0（zh-protected-01
+> 评测通过 + safety evidence_scan 零携带 + parsing/report 零泄露用例）。新增
+> `tools/ci/verify_task095_gates.py`（--write 生成 / --check 校验
+> `ai/evals/reports/task095-hardgates.json`），CI 阶段3 挂接 0 失败门禁；
+> 专家盲评一致率 ≥85% 与维度 MAE ≤10 在报告内标记 pending，由项目负责人线下签字。
+> （TASK-095、SCORING-SPEC 10、ai/evals README）
+
 ## 6. 全局完成定义（Definition of Done）
 
 任何任务标记完成前必须同时满足：
