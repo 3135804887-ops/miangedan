@@ -62,7 +62,7 @@ export default async function SettingsPage({
                         <Tint tone="success">{zh ? '已验证' : 'Verified'}</Tint>
                       </div>
                       <div>
-                        <h3 className="mb-2 text-sm font-semibold text-neutral-900">{t('settings.providers')}</h3>
+                        <h2 className="mb-2 text-sm font-semibold text-neutral-900">{t('settings.providers')}</h2>
                         <div className="flex flex-wrap gap-2">
                           <Tint tone="brand">email</Tint>
                           <Button variant="secondary" targetSize="min">{t('settings.bindProvider')}</Button>

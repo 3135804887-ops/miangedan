@@ -31,6 +31,9 @@
 - TASK-093 安全红队套件：`tools/security-redteam/` 六类攻击（注入/越权/跨租户/恶意文件/
   重放/重复扣费）29 个选择器全部自动化，攻击断言命中即阻断，报告
   `ai/evals/reports/redteam.json` 入库，CI 阶段5 挂接 0 失败门禁。
+- TASK-094 WCAG 2.2 AA：新增 17 页 × 双语 axe-core 页面级扫描（48 用例，0 违规）；
+  修复 heading-order（CardHeader/EmptyState/工作台/设置 h3→h2）与房间页
+  aria-live/role=status/role=img 语义；对比度由 tokens:check-contrast 门禁覆盖。
 
 ### Added
 

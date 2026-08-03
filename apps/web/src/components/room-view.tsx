@@ -162,9 +162,11 @@ export function RoomView({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Tint tone={status === 'live' ? 'success' : status === 'text' ? 'info' : 'warning'}>
-              {status === 'live' ? labels.live : status === 'text' ? labels.reconnecting : labels.paused}
-            </Tint>
+            <span role="status" aria-live="polite">
+              <Tint tone={status === 'live' ? 'success' : status === 'text' ? 'info' : 'warning'}>
+                {status === 'live' ? labels.live : status === 'text' ? labels.reconnecting : labels.paused}
+              </Tint>
+            </span>
             <span className="inline-flex items-center gap-1.5 font-mono text-sm text-neutral-700">
               <IconClock size={14} />
               {mm}:{ss}
@@ -203,7 +205,7 @@ export function RoomView({
                 {subtitles ? (
                   <div className="mb-4">
                     <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">Avatar</div>
-                    <p className="mb-0 text-sm leading-6 text-neutral-700">这个项目的峰值 QPS 预估是多少？你当时做了哪些压测验证？</p>
+                    <p aria-live="polite" className="mb-0 text-sm leading-6 text-neutral-700">这个项目的峰值 QPS 预估是多少？你当时做了哪些压测验证？</p>
                   </div>
                 ) : null}
                 <div>
@@ -211,7 +213,7 @@ export function RoomView({
                     {labels.candidateTranscript}
                     {frozen ? <Tint tone="info">{labels.frozen}</Tint> : <Tint tone="warning">{labels.revise}</Tint>}
                   </div>
-                  <p className="mb-0 rounded-xl border border-neutral-100 bg-surface-muted/60 p-4 text-sm leading-6 text-neutral-800">
+                  <p aria-live="polite" className="mb-0 rounded-xl border border-neutral-100 bg-surface-muted/60 p-4 text-sm leading-6 text-neutral-800">
                     峰值 QPS 我们预估约 8k，通过全链路压测发现数据库连接池是瓶颈，随后引入了读写分离与本地缓存……
                   </p>
                   <p className="mt-2 mb-0 text-xs text-neutral-500">{labels.revisionHint}</p>
@@ -280,7 +282,11 @@ export function RoomView({
 
       {/* 右列：数字人 + 候选人 + 进度 */}
       <aside className="flex min-h-0 flex-col gap-4">
-        <div className="relative min-h-56 flex-1 overflow-hidden rounded-2xl bg-[linear-gradient(160deg,var(--mgd-app-brand-ink),var(--mgd-app-brand-from)_55%,var(--mgd-app-brand-to))] shadow-[var(--mgd-app-shadow-lg)]">
+        <div
+          role="img"
+          aria-label={locale === 'zh-CN' ? '数字面试官视频（始终开启）' : 'Avatar video (always on)'}
+          className="relative min-h-56 flex-1 overflow-hidden rounded-2xl bg-[linear-gradient(160deg,var(--mgd-app-brand-ink),var(--mgd-app-brand-from)_55%,var(--mgd-app-brand-to))] shadow-[var(--mgd-app-shadow-lg)]"
+        >
           <div className="absolute inset-0 grid place-items-center">
             <div className="text-center text-white/90">
               <div className="mx-auto mb-3 grid size-20 place-items-center rounded-full bg-white/10 text-3xl font-bold backdrop-blur">
@@ -295,7 +301,11 @@ export function RoomView({
             REC
           </span>
         </div>
-        <div className="relative min-h-32 overflow-hidden rounded-2xl border border-neutral-100 bg-neutral-900 shadow-[var(--mgd-app-shadow-md)]">
+        <div
+          role="img"
+          aria-label={`${labels.cameraLabel}: ${cameraOn ? labels.on : labels.off}`}
+          className="relative min-h-32 overflow-hidden rounded-2xl border border-neutral-100 bg-neutral-900 shadow-[var(--mgd-app-shadow-md)]"
+        >
           {cameraOn ? (
             <div className="absolute inset-0 grid place-items-center text-white/60">
               <p className="mb-0 text-sm">候选人摄像头 · 合成画面</p>
