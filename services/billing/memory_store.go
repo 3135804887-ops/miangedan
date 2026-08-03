@@ -32,6 +32,10 @@ type MemoryStore struct {
 	renewals         map[string]RenewalRecord
 	renewalIDem      map[string]RenewalRecord
 	renewalsBySub    map[string][]RenewalRecord
+	invoices         map[string]Invoice
+	invoiceIDem      map[string]Invoice
+	invoicesByOrd    map[string]Invoice
+	invoicesByUser   map[string][]Invoice
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -60,6 +64,10 @@ func NewMemoryStore() *MemoryStore {
 		renewals:         make(map[string]RenewalRecord),
 		renewalIDem:      make(map[string]RenewalRecord),
 		renewalsBySub:    make(map[string][]RenewalRecord),
+		invoices:         make(map[string]Invoice),
+		invoiceIDem:      make(map[string]Invoice),
+		invoicesByOrd:    make(map[string]Invoice),
+		invoicesByUser:   make(map[string][]Invoice),
 	}
 }
 
@@ -290,6 +298,61 @@ func (m *MemoryStore) ListRenewalsBySubscription(dataRegion, subscriptionID stri
 	out := make([]RenewalRecord, len(items))
 	copy(out, items)
 	return out, nil
+}
+
+// SaveInvoice 保存发票/收据。
+func (m *MemoryStore) SaveInvoice(inv Invoice, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.invoices[inv.DataRegion+"|"+inv.InvoiceID] = inv
+	if idemKey != "" {
+		m.invoiceIDem[inv.DataRegion+"|"+idemKey] = inv
+	}
+	m.invoicesByOrd[inv.DataRegion+"|"+inv.OrderID] = inv
+	m.invoicesByUser[inv.DataRegion+"|"+inv.UserID] =
+		append(m.invoicesByUser[inv.DataRegion+"|"+inv.UserID], inv)
+	return nil
+}
+
+// GetInvoiceByIdempotencyKey 幂等键查询票据。
+func (m *MemoryStore) GetInvoiceByIdempotencyKey(dataRegion, key string) (Invoice, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	inv, ok := m.invoiceIDem[dataRegion+"|"+key]
+	if !ok {
+		return Invoice{}, ErrNotFound
+	}
+	return inv, nil
+}
+
+// GetInvoiceByOrder 按订单查询票据。
+func (m *MemoryStore) GetInvoiceByOrder(dataRegion, orderID string) (Invoice, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	inv, ok := m.invoicesByOrd[dataRegion+"|"+orderID]
+	if !ok {
+		return Invoice{}, ErrNotFound
+	}
+	return inv, nil
+}
+
+// ListInvoicesByUser 列出用户票据。
+func (m *MemoryStore) ListInvoicesByUser(dataRegion, userID string) ([]Invoice, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.invoicesByUser[dataRegion+"|"+userID]
+	out := make([]Invoice, len(items))
+	copy(out, items)
+	return out, nil
+}
+
+// UpdateInvoice 更新票据状态（作废）。
+func (m *MemoryStore) UpdateInvoice(inv Invoice) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.invoices[inv.DataRegion+"|"+inv.InvoiceID] = inv
+	m.invoicesByOrd[inv.DataRegion+"|"+inv.OrderID] = inv
+	return nil
 }
 
 // AppendLedger 追加账本条目（幂等键唯一由服务层保证）。

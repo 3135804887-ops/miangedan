@@ -71,17 +71,28 @@ type PriceConfig struct {
 	Currency       string
 	PerMinuteCents int
 	TaxRate        float64
+	TaxLabel       string
+	InvoiceKind    string
 }
 
 // PriceConfigFor 返回区域合成定价。
 func PriceConfigFor(region string) PriceConfig {
 	switch region {
 	case "cn":
-		return PriceConfig{Currency: "CNY", PerMinuteCents: 50, TaxRate: 0.06}
+		return PriceConfig{
+			Currency: "CNY", PerMinuteCents: 50, TaxRate: 0.06,
+			TaxLabel: "增值税（6%）", InvoiceKind: InvoiceKindInvoice,
+		}
 	case "eu":
-		return PriceConfig{Currency: "EUR", PerMinuteCents: 12, TaxRate: 0.19}
+		return PriceConfig{
+			Currency: "EUR", PerMinuteCents: 12, TaxRate: 0.19,
+			TaxLabel: "VAT（19%）", InvoiceKind: InvoiceKindReceipt,
+		}
 	default:
-		return PriceConfig{Currency: "USD", PerMinuteCents: 12, TaxRate: 0.0}
+		return PriceConfig{
+			Currency: "USD", PerMinuteCents: 12, TaxRate: 0.0,
+			TaxLabel: "税费（按地区配置）", InvoiceKind: InvoiceKindReceipt,
+		}
 	}
 }
 

@@ -634,6 +634,15 @@
 > gofmt/vet 通过。
 > （TASK-064、FR-033、BILLING-STATE-MACHINE §5.5）
 
+> **任务状态（2026-08-03 更新）**：TASK-065 已实现（FR-033，US-06 场景 11）——
+> `services/billing` 发票与税费：区域定价配置（cn CNY/6% 增值税/合规发票；
+> eu EUR/19% VAT/收据；intl USD/0% 明示税费/收据）；IssueInvoice 幂等开票
+> （同一订单一份，价税合计与订单一致）；中国区发票含发票号码与增值税行、可作废
+> （收据不可作废）；国际区税费明示收据。迁移 `0064_invoices.sql`；openapi 增加
+> invoice/cancel/pricing 端点与 Invoice/TaxLine/RegionalPricing schema。
+> 服务正常、异常、幂等、区域合规测试齐备（新增 5 用例），gofmt/vet 通过。
+> （TASK-065、FR-033、BILLING-STATE-MACHINE §7）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。
