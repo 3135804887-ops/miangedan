@@ -88,8 +88,8 @@ python ai/evals/providers/scripts/runner.py scorecard --capability asr --region 
 
 ### ASR
 
-- 自研自建（主）：FunASR/Paraformer 或 Whisper 自托管服务；开发期用 faster-whisper 等轻量模型冒烟。
-  - 提供：无需外部账号；需要本机或服务器运行 ASR 服务。
+- 自研自建（主）：FunASR/SenseVoiceSmall 自托管（mgd-selfhost CPU 后端，回合级转写，2026-08-03 已接入）。
+  - 提供：无需外部账号；需要本机或服务器运行 ASR 服务（`SELFHOST_ASR_BACKEND=funasr`）。
   - 注入：`ASR_PRIMARY_BASE_URL`（自建服务地址）、`ASR_PRIMARY_API_KEY`（可选，自建鉴权）。
 - 讯飞实时语音转写（对照备选）：开放平台 [https://www.xfyun.cn/](https://www.xfyun.cn/) ，控制台 [https://console.xfyun.cn/](https://console.xfyun.cn/) 创建应用并开通实时语音转写。
   - 提供：AppID、APIKey、APISecret。

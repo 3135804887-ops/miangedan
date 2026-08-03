@@ -54,6 +54,13 @@ def test_unknown_tts_backend() -> None:
         create_tts_backend(Settings(tts_backend="unknown"))
 
 
+def test_funasr_default_model() -> None:
+    from mgd_selfhost.asr import FunasrBackend
+
+    backend = FunasrBackend()
+    assert backend._model_name == FunasrBackend.DEFAULT_MODEL
+
+
 @pytest.mark.skipif(
     not (HAS_WHISPER and HAS_PIPER and HAS_VOICE),
     reason="需要 asr-whisper/tts-piper 扩展与 piper 音色文件",
