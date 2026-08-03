@@ -720,6 +720,16 @@
 | TASK-084 | 追加式审计日志（管理员不可删除）、抗钓鱼 MFA、高风险再验证 | FR-037、FR-040 | TASK-080 | 审计写入无更新/删除路径 |
 | TASK-085 | 客服工单：默认最小可见、用户授权逐字稿、双人审批媒体访问 | FR-039 | TASK-080 | US-08 场景 4 通过 |
 
+> **任务状态（2026-08-03 更新）**：TASK-080 已实现（FR-037，US-08 场景 1）——
+> `services/adminapi` 首次业务实现：运营后台区域/房间/供应商/SLO 监控
+> （匿名会话编号 + 技术指标，无姓名/简历/回答/媒体）；供应商状态变更
+> （active/ramping/disabled，停用必须记录原因并写审计）；运营不可加入/
+> 旁听/代答（OperatorSessionGuard 一律拒绝并写审计）；后台角色/跨区访问
+> 校验。迁移 `0068_admin_ops.sql`（ops_providers/ops_room_snapshots/
+> ops_region_status）；openapi 增加 regions/rooms 端点与匿名 schema。
+> 服务正常、异常、匿名、红线、角色跨区测试齐备（新增 4 用例），gofmt/vet 通过。
+> （TASK-080、FR-037、SCREEN-SPEC SCR-17）
+
 ### EPIC-10 上线验证（Phase 0–4 门槛）
 
 目标：把 PRD 发布阶段退出条件转化为可执行验证任务；P0 风险未关闭禁止发布。

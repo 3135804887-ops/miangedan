@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-080 运营后台（`task/TASK-080-admin-ops` 分支）：
+  - `services/adminapi` 首次业务实现（FR-037，US-08 场景 1）：区域/房间/
+    供应商/SLO 监控（默认匿名技术指标，无姓名/简历/回答/媒体）；
+  - 供应商状态变更（停用必须记录原因并写审计）；运营不可加入/旁听/代答
+    （OperatorSessionGuard 拒绝并写审计）；后台角色与跨区校验。
+  - 迁移 `0068_admin_ops.sql`；openapi 增加 regions/rooms 端点与
+    RegionOpsStatus/ProviderHealth/AnonymousRoom schema。
+  - 服务正常、异常、匿名、红线、角色跨区测试齐备（新增 4 用例），gofmt/vet 通过。
+    （TASK-080、FR-037、SCREEN-SPEC SCR-17）
 - TASK-074 机构访问审计与退出即时失效（`task/TASK-074-org-access-audit` 分支）：
   - `services/org` 审计与失效（FR-034/035，US-07 场景 4）：访问审计列表
     （privacy_auditor/owner 可见）；退出/被移除 → 分享授权立即撤回、

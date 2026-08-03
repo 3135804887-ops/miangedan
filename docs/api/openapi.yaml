@@ -2559,6 +2559,27 @@ paths:
       responses:
         '200': { description: 供应商列表（不展示完整密钥）, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/ProviderInfo' } } } } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/admin/regions:
+    get:
+      tags: [admin]
+      operationId: listRegionOpsStatus
+      summary: 区域监控（在线房间/排队/容量/供应商健康/SLO/错误预算；默认匿名技术指标）
+      responses:
+        '200': { description: 区域状态列表, content: { application/json: { schema: { type: object, properties: { items: { type: array, items: { $ref: '#/components/schemas/RegionOpsStatus' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/regions/{region}/rooms:
+    get:
+      tags: [admin]
+      operationId: listAnonymousRooms
+      summary: 区域房间列表（仅匿名会话编号与技术状态；无姓名/简历/回答/媒体）
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Region' }
+      responses:
+        '200': { description: 匿名房间列表, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/AnonymousRoom' } } } } } } }
+        default: { $ref: '#/components/responses/Error' }
   /v1/admin/providers/{providerId}/status:
     put:
       tags: [admin]
@@ -3763,6 +3784,36 @@ components:
         pinned_model_version: { type: ['string', 'null'], description: 活跃正式面试固定开始时版本 }
         health: { type: ['object', 'null'], description: 匿名技术指标（延迟/错误率/熔断状态）, additionalProperties: true }
         note: { type: string, const: 密钥由独立密钥系统管理，本接口永不返回完整值 }
+    ProviderHealth:
+      type: object
+      required: [provider_id, capability, status, latency_p95_ms, error_rate, circuit_breaker]
+      properties:
+        provider_id: { type: string }
+        capability: { enum: [llm, asr, tts, avatar, search] }
+        status: { enum: [active, ramping, disabled] }
+        latency_p95_ms: { type: integer, minimum: 0 }
+        error_rate: { type: number, minimum: 0, maximum: 1 }
+        circuit_breaker: { enum: [closed, open, half_open] }
+    AnonymousRoom:
+      type: object
+      required: [anonymous_session_id, state]
+      properties:
+        anonymous_session_id: { type: string, description: 匿名会话编号（不含身份） }
+        state: { type: string }
+        duration_seconds: { type: integer, minimum: 0 }
+        fault_code: { type: ['string', 'null'] }
+    RegionOpsStatus:
+      type: object
+      required: [data_region, online_rooms, queued_sessions, capacity]
+      properties:
+        data_region: { $ref: '#/components/schemas/Region' }
+        online_rooms: { type: integer, minimum: 0 }
+        queued_sessions: { type: integer, minimum: 0 }
+        capacity: { type: integer, minimum: 0 }
+        provider_health: { type: array, items: { $ref: '#/components/schemas/ProviderHealth' } }
+        slo: { type: object, additionalProperties: { type: number } }
+        error_budget_burn: { type: number }
+        updated_at: { type: string, format: date-time }
     AuditLog:
       type: object
       required: [audit_id, actor_role, action, occurred_at]

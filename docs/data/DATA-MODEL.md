@@ -123,6 +123,9 @@
 | `incidents` | 事故与破窗 | incident_id PK、kind（duplicate_charge/payment_fault/fault/break_glass/release/rollback/compensation）、severity、region、summary、timeline_json、postmortem_ref NULL、created_at | incidents(kind, severity, created_at) |
 | `deletion_tasks` | 删除编排 | task_id PK、user_id FK、scope（account/project/resume/job）、status、progress_json（每存储层状态：database/cache/index/object_storage/backup/third_party）、created_at、completed_at | deletion_tasks(user_id, status)；deletion_tasks(status, created_at)（重试队列） |
 | `export_tasks` | 导出编排（TASK-055） | task_id PK、user_id FK、scope（account/project）、project_id、status、progress_note、export_content_ref、training_marker（恒 true）、created_at | export_tasks(user_id, created_at)；export_tasks(idempotency_key) UNIQUE |
+| `ops_providers` | 供应商注册表（TASK-080） | provider_id PK、capability、region、status、ramp_percent、latency_p95_ms、error_rate、circuit_breaker、note（停用原因） | ops_providers(region, status) |
+| `ops_room_snapshots` | 匿名房间技术快照（TASK-080） | snapshot_id PK、region、anonymous_session_id、state、duration_seconds、fault_code、created_at | ops_room_snapshots(region, created_at) |
+| `ops_region_status` | 区域监控快照（TASK-080） | region PK、online_rooms、queued_sessions、capacity、provider_health_json、slo_json、error_budget_burn、updated_at | — |
 
 ## 6. 对象存储桶划分（每区独立）
 
