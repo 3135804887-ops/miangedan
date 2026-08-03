@@ -113,7 +113,7 @@ func buildWAV16kMono(pcm []byte) ([]byte, error) {
 	if uint64(len(pcm)) > maxWavData {
 		return nil, errors.New("pcm 超过 WAV 尺寸上限")
 	}
-	dataLen := uint32(len(pcm))
+	dataLen := uint32(len(pcm)) // #nosec G115 -- len(pcm) 已在上一行校验 ≤ MaxUint32
 	var buf bytes.Buffer
 	buf.WriteString("RIFF")
 	if err := binary.Write(&buf, binary.LittleEndian, uint32(36)+dataLen); err != nil {
