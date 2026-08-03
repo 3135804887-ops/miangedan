@@ -665,6 +665,17 @@
 > 服务正常、异常、幂等、禁止项审计、最小可见测试齐备（新增 4 用例），gofmt/vet 通过。
 > （TASK-071、FR-035、DOMAIN-MODEL Assignment）
 
+> **任务状态（2026-08-03 更新）**：TASK-072 已实现（FR-035，US-07 场景 1/2）——
+> `services/org` 按任务细粒度结果授权：范围（total_score/radar/round_results/
+> full_report/transcript/media 六类封闭枚举）+ 有效期 + 可撤回（幂等）；
+> 机构侧 CheckShareEffective 校验（有效期内返回可见类别并写 AccessAudit，
+> 撤回/到期立即失效）；ExpireShares 到期扫描；任务摘要"已完成未共享"仅计数
+> （ResultShared/ResultNotShared，不显示失败）。迁移 `0067_assignment_shares.sql`；
+> openapi 增加 shares 列表端点与 AssignmentShare schema。
+> 服务正常、异常、幂等、撤回即时、到期失效、未共享计数测试齐备（新增 4 用例），
+> gofmt/vet 通过。
+> （TASK-072、FR-035、SCREEN-SPEC SCR-16）
+
 ### EPIC-08 机构（租户、任务、授权、聚合）
 
 目标：机构可组织训练，默认不可见个人内容，永不演变为排名或筛选。

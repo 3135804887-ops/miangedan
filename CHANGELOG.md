@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-072 按任务细粒度结果授权（`task/TASK-072-assignment-shares` 分支）：
+  - `services/org` 分享授权（FR-035，US-07 场景 1/2）：六类封闭枚举范围 +
+    有效期 + 可撤回（幂等）；机构侧访问校验写 AccessAudit；撤回/到期立即失效，
+    到期扫描 ExpireShares；
+  - 任务摘要"已完成未共享"仅计数（不显示失败）；迁移 `0067_assignment_shares.sql`；
+    openapi 增加 shares 列表端点与 AssignmentShare schema。
+  - 服务正常、异常、幂等、撤回即时、到期失效、未共享计数测试齐备（新增 4 用例），
+    gofmt/vet 通过。
+    （TASK-072、FR-035、SCREEN-SPEC SCR-16）
 - TASK-071 训练任务与模板（`task/TASK-071-assignments` 分支）：
   - `services/org` 任务（FR-035，US-07 场景 5）：可配项白名单过滤；禁止项
     （60 分线/统一算法/保护属性/证据标准/跨轮解锁/正式复核）拒绝并写审计；

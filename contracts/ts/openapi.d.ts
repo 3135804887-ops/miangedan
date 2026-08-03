@@ -1979,7 +1979,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** 用户在具体任务上的授权列表（范围+有效期；撤回/到期可见） */
+        get: operations["listAssignmentShares"];
         put?: never;
         /** 用户针对具体任务授权分享结果（范围、有效期、可撤回；写入 ConsentGrant） */
         post: operations["grantAssignmentShare"];
@@ -3233,6 +3234,22 @@ export interface components {
             status: "pending" | "accepted" | "revoked";
             /** Format: date-time */
             expires_at: string;
+        };
+        AssignmentShare: {
+            /** Format: uuid */
+            share_id: string;
+            /** Format: uuid */
+            assignment_id: string;
+            data_categories: ("total_score" | "radar" | "round_results" | "full_report" | "transcript" | "media")[];
+            /**
+             * Format: date-time
+             * @description 到期自动失效
+             */
+            expires_at: string;
+            /** @enum {unknown} */
+            status: "active" | "withdrawn";
+            /** Format: date-time */
+            withdrawn_at?: string | null;
         };
         Assignment: {
             /** Format: uuid */
@@ -7524,6 +7541,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Assignment"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAssignmentShares: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: components["parameters"]["AssignmentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 授权列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data_region?: components["schemas"]["Region"];
+                        items?: components["schemas"]["AssignmentShare"][];
+                    };
                 };
             };
             default: components["responses"]["Error"];

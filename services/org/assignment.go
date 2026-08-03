@@ -213,6 +213,26 @@ func (s *Service) GetAssignment(
 		}
 		summary.OrgCreditUsedSeconds += m.OrgCreditUsedSeconds
 	}
+	// "已完成未共享"展示（TASK-072）：仅显示计数，不显示失败。
+	shares, err := s.store.ListSharesByAssignment(actor.DataRegion, assignmentID)
+	if err != nil {
+		return Assignment{}, CompletionSummary{}, err
+	}
+	sharedUsers := make(map[string]bool)
+	for _, sh := range shares {
+		if sh.Status == ShareActive && !s.now().UTC().After(sh.ExpiresAt) {
+			sharedUsers[sh.UserID] = true
+		}
+	}
+	for _, m := range members {
+		if m.Status == MemberCompleted {
+			if sharedUsers[m.UserID] {
+				summary.ResultShared++
+			} else {
+				summary.ResultNotShared++
+			}
+		}
+	}
 	return assignment, summary, nil
 }
 
