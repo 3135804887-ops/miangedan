@@ -1,7 +1,6 @@
 /** SCR-10 轮次结果：通过/未通过/评估未完成三态（红线文案快照）。 */
 
 import {
-  Button,
   Card,
   CardBody,
   IconChart,
@@ -108,18 +107,18 @@ export default async function RoundResultPage({
           </Card>
           <Card>
             <CardBody className="space-y-3">
-              <Button variant="primary" className="w-full" onClick={() => { window.location.href = `/${locale}/sessions/s-0001`; }}>
+              <a href={`/${locale}/sessions/s-0001`} className="mgd-target-primary inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--mgd-app-brand-from),var(--mgd-app-brand-to))] px-5 font-semibold text-white shadow-[var(--mgd-app-shadow-brand)]">
                 <IconPlay size={16} />
                 {t('result.enterNext')}
-              </Button>
-              <Button variant="secondary" className="w-full" onClick={() => { window.location.href = `${base}/report`; }}>
+              </a>
+              <a href={`${base}/report`} className="mgd-target-primary inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--mgd-app-border-default)] bg-surface px-5 font-semibold text-neutral-800 shadow-[var(--mgd-app-shadow-sm)] hover:border-[var(--mgd-app-border-strong)]">
                 <IconChart size={16} />
                 {t('result.report')}
-              </Button>
-              <Button variant="secondary" className="w-full" onClick={() => { window.location.href = `${base}/practice/pr-0001`; }}>
+              </a>
+              <a href={`${base}/practice/pr-0001`} className="mgd-target-primary inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--mgd-app-border-default)] bg-surface px-5 font-semibold text-neutral-800 shadow-[var(--mgd-app-shadow-sm)] hover:border-[var(--mgd-app-border-strong)]">
                 <IconRefresh size={16} />
                 {t('result.practice')}
-              </Button>
+              </a>
             </CardBody>
           </Card>
         </div>

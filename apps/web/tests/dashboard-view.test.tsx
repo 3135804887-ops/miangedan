@@ -39,6 +39,8 @@ const labels = {
   statsInProgress: '进行中',
   statsPassed: '已通过轮次',
   statsStreak: '连续训练天数',
+  loadFailedTitle: '项目列表加载失败',
+  loadFailedDesc: '请重试。',
 } as const;
 
 function renderDashboard() {

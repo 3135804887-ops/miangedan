@@ -164,9 +164,9 @@ export default async function ReportPage({
                 </li>
               ))}
             </ol>
-            <Button variant="secondary" className="mt-4 w-full" onClick={() => { window.location.href = `/${locale}/projects/p-0006/practice/pr-0001`; }}>
+            <a href={`/${locale}/projects/p-0006/practice/pr-0001`} className="mgd-target-primary mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--mgd-app-border-default)] bg-surface px-5 font-semibold text-neutral-800 shadow-[var(--mgd-app-shadow-sm)] hover:border-[var(--mgd-app-border-strong)]">
               {zh ? '开始练习' : 'Start practice'}
-            </Button>
+            </a>
             <Button variant="primary" className="mt-2 w-full">
               <IconRefresh size={15} />
               {t('report.reviewRequest')}

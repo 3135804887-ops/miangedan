@@ -181,7 +181,9 @@
     "statsProjects": "项目总数",
     "statsInProgress": "进行中",
     "statsPassed": "已通过轮次",
-    "statsStreak": "连续训练天数"
+    "statsStreak": "连续训练天数",
+    "loadFailedTitle": "项目列表加载失败",
+    "loadFailedDesc": "你的项目数据保留在账户中；这不影响评分与额度。请重试。"
   },
   "projectNew": {
     "kicker": "创建项目",

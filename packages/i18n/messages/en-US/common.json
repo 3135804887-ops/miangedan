@@ -181,7 +181,9 @@
     "statsProjects": "Projects",
     "statsInProgress": "In progress",
     "statsPassed": "Rounds passed",
-    "statsStreak": "Training streak (days)"
+    "statsStreak": "Training streak (days)",
+    "loadFailedTitle": "Could not load your projects",
+    "loadFailedDesc": "Your projects stay safe in your account. This does not affect scoring or credits. Please try again."
   },
   "projectNew": {
     "kicker": "New project",

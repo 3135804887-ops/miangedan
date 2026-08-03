@@ -48,6 +48,8 @@ export default async function DashboardPage({
         statsInProgress: t('dashboard.statsInProgress'),
         statsPassed: t('dashboard.statsPassed'),
         statsStreak: t('dashboard.statsStreak'),
+        loadFailedTitle: t('dashboard.loadFailedTitle'),
+        loadFailedDesc: t('dashboard.loadFailedDesc'),
       }}
     />
   );

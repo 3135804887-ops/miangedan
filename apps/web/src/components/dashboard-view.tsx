@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { PROJECT_STATUSES } from '@mgd/domain-states';
 
 import { apiFetch } from '../lib/api-fetch.ts';
+import { useMockReady } from '../lib/use-mock-ready.ts';
 import type { MockProject } from '../mocks/data.ts';
 import { StatusTint } from './status-tint.tsx';
 
@@ -54,6 +55,8 @@ interface Labels {
   readonly statsInProgress: string;
   readonly statsPassed: string;
   readonly statsStreak: string;
+  readonly loadFailedTitle: string;
+  readonly loadFailedDesc: string;
 }
 
 const STATUS_OPTIONS = [...PROJECT_STATUSES];
@@ -86,6 +89,7 @@ export function DashboardView({
   readonly labels: Labels;
 }): React.ReactNode {
   const toast = useToast();
+  const mocksReady = useMockReady();
   const [projects, setProjects] = useState<readonly MockProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -109,8 +113,9 @@ export function DashboardView({
   };
 
   useEffect(() => {
+    if (!mocksReady) return;
     void load();
-  }, []);
+  }, [mocksReady]);
 
   const companies = useMemo(
     () => [...new Set(projects.map((p) => p.company).filter(Boolean))].sort(),
@@ -252,8 +257,8 @@ export function DashboardView({
         <Card>
           <EmptyState
             icon={<IconDashboard size={26} />}
-            title={labels.noResultsTitle}
-            description={labels.noResultsDesc}
+            title={labels.loadFailedTitle}
+            description={labels.loadFailedDesc}
             action={<Button variant="primary" onClick={() => void load()}>{labels.actions}</Button>}
           />
         </Card>
