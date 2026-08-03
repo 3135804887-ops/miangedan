@@ -1,3 +1,4 @@
+// Package room 提供实时会话房间、字幕、岗位工具与故障控制能力。
 // TASK-025 故障暂停计时、文字降级询问与额度联动挂接（FR-020）。
 // 追踪：INTERVIEW-STATE-MACHINE.md 5.2（PAUSED_SYSTEM → DOWNGRADE_PROMPTED → TEXT_DEGRADED/ENDED）；
 // realtime-events 7.2/7.7（timer.paused/resumed、avatar.downgrade_*）；TASK-061 额度预留为挂接点。
