@@ -131,6 +131,9 @@
 | `break_glass` | 破窗访问（TASK-082） | glass_id PK、target_user_id、reason、duration_minutes（1-480）、target_ref、opened_by、opened_at、expires_at | break_glass(target_user_id, opened_at) |
 | `break_glass_reviews` | 破窗事后复核（TASK-082） | review_id PK、glass_id FK UNIQUE、reviewer_id、decision（approved/rejected）、note、reviewed_at | — |
 | `data_right_requests` | 数据权利请求（TASK-083） | request_id PK、user_id、request_type（delete/export/correct/withdraw）、target_type、target_id、status、progress_json（六层）、cascade_json（级联逐项）、legal_retention_note、idempotency_key UNIQUE | data_right_requests(user_id, status)；data_right_requests(status, created_at) |
+| `mfa_devices` | 抗钓鱼 MFA 设备（TASK-084） | device_id PK、staff_id、name、public_key、revoked_at | mfa_devices(staff_id) |
+| `mfa_challenges` | MFA 挑战（TASK-084） | challenge_id PK、staff_id、nonce、expires_at、used_at（一次性） | — |
+| `mfa_verifications` | MFA 验证（TASK-084） | verification_id PK、staff_id、challenge_id FK、device_id FK、verified_at、expires_at（15 分钟窗口） | mfa_verifications(staff_id, verified_at) |
 
 ## 6. 对象存储桶划分（每区独立）
 

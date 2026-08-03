@@ -767,6 +767,17 @@
 > 服务正常、异常、幂等、失败重试、进度真实性测试齐备（新增 4 用例），gofmt/vet 通过。
 > （TASK-083、FR-040、RETENTION-MATRIX）
 
+> **任务状态（2026-08-03 更新）**：TASK-084 已实现（FR-037/FR-040）——
+> `services/adminapi` 追加式审计与抗钓鱼 MFA：审计分页查询（ListAuditLogs，
+> 管理员不可删除，存储仅 SELECT/INSERT，反射断言无更新/删除路径）；
+> 抗钓鱼 MFA（WebAuthn 适配点：设备公钥绑定员工、随机 nonce 挑战 5 分钟
+> 一次性、HMAC 签名验证、错误签名写审计、挑战不可重放）；高风险操作
+> 重新验证（15 分钟窗口，超窗拒绝并写审计）。迁移 `0072_admin_mfa.sql`；
+> openapi 增加 mfa devices/challenges/verify 端点与 schema。
+> 服务正常、异常、重放拒绝、过期拒绝、超窗拒绝、追加式审计测试齐备
+> （新增 3 用例），gofmt/vet 通过。
+> （TASK-084、FR-037/FR-040）
+
 ### EPIC-10 上线验证（Phase 0–4 门槛）
 
 目标：把 PRD 发布阶段退出条件转化为可执行验证任务；P0 风险未关闭禁止发布。

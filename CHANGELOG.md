@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-084 追加式审计日志与抗钓鱼 MFA（`task/TASK-084-audit-mfa` 分支）：
+  - `services/adminapi` 审计分页（FR-037/040）：管理员不可删除，存储仅
+    SELECT/INSERT（反射断言无更新/删除路径）；
+  - 抗钓鱼 MFA：设备公钥绑定、随机 nonce 挑战（5 分钟一次性）、HMAC 签名
+    验证、挑战不可重放；高风险操作 15 分钟窗口重新验证。
+  - 迁移 `0072_admin_mfa.sql`；openapi 增加 mfa devices/challenges/verify
+    端点与 schema；contracts 已重新生成。
+  - 服务正常、异常、重放拒绝、过期拒绝、超窗拒绝、追加式审计测试齐备
+    （新增 3 用例），gofmt/vet 通过。
+    （TASK-084、FR-037/FR-040）
 - TASK-083 数据权利请求与删除编排（`task/TASK-083-data-rights` 分支）：
   - `services/adminapi` 请求工单化（FR-040，US-05 场景 5）：delete/export/
     correct/withdraw 四类；复用 export 删除编排骨架；

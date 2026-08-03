@@ -35,4 +35,14 @@ type Store interface {
 	GetDataRightByIdempotencyKey(dataRegion, key string) (DataRightRequest, error)
 	UpdateDataRightRequest(DataRightRequest) error
 	ListDataRights(dataRegion, userID string) ([]DataRightRequest, error)
+	// TASK-084 抗钓鱼 MFA（设备/挑战/验证）与审计分页。
+	SaveMFADevice(MFADevice) error
+	GetMFADevice(dataRegion, deviceID string) (MFADevice, error)
+	ListMFADevices(dataRegion, staffID string) ([]MFADevice, error)
+	SaveMFAChallenge(MFAChallenge) error
+	GetMFAChallenge(dataRegion, challengeID string) (MFAChallenge, error)
+	UpdateMFAChallenge(MFAChallenge) error
+	SaveMFAVerification(MFAVerification) error
+	GetLatestMFAVerification(dataRegion, staffID string) (MFAVerification, error)
+	ListAuditsPaged(dataRegion string, limit, offset int) ([]AuditEntry, error)
 }

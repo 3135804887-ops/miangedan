@@ -5,36 +5,42 @@ import "sync"
 
 // MemoryStore 为内存版后台存储。
 type MemoryStore struct {
-	mu           sync.RWMutex
-	providers    map[string]ProviderInfo
-	rooms        map[string][]RoomSnapshot
-	regionStatus map[string]RegionOpsStatus
-	audits       map[string][]AuditEntry
-	versions     map[string]ArtifactVersion
-	versionByKey map[string]ArtifactVersion
-	pins         map[string]VersionPin
-	activeSess   map[string]bool
-	breakGlass   map[string]BreakGlass
-	glassReviews map[string][]BreakGlassReview
-	dataRights   map[string]DataRightRequest
-	drIDem       map[string]DataRightRequest
+	mu            sync.RWMutex
+	providers     map[string]ProviderInfo
+	rooms         map[string][]RoomSnapshot
+	regionStatus  map[string]RegionOpsStatus
+	audits        map[string][]AuditEntry
+	versions      map[string]ArtifactVersion
+	versionByKey  map[string]ArtifactVersion
+	pins          map[string]VersionPin
+	activeSess    map[string]bool
+	breakGlass    map[string]BreakGlass
+	glassReviews  map[string][]BreakGlassReview
+	dataRights    map[string]DataRightRequest
+	drIDem        map[string]DataRightRequest
+	mfaDevices    map[string]MFADevice
+	mfaChallenges map[string]MFAChallenge
+	mfaVerifs     map[string][]MFAVerification
 }
 
 // NewMemoryStore 创建空内存存储。
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		providers:    make(map[string]ProviderInfo),
-		rooms:        make(map[string][]RoomSnapshot),
-		regionStatus: make(map[string]RegionOpsStatus),
-		audits:       make(map[string][]AuditEntry),
-		versions:     make(map[string]ArtifactVersion),
-		versionByKey: make(map[string]ArtifactVersion),
-		pins:         make(map[string]VersionPin),
-		activeSess:   make(map[string]bool),
-		breakGlass:   make(map[string]BreakGlass),
-		glassReviews: make(map[string][]BreakGlassReview),
-		dataRights:   make(map[string]DataRightRequest),
-		drIDem:       make(map[string]DataRightRequest),
+		providers:     make(map[string]ProviderInfo),
+		rooms:         make(map[string][]RoomSnapshot),
+		regionStatus:  make(map[string]RegionOpsStatus),
+		audits:        make(map[string][]AuditEntry),
+		versions:      make(map[string]ArtifactVersion),
+		versionByKey:  make(map[string]ArtifactVersion),
+		pins:          make(map[string]VersionPin),
+		activeSess:    make(map[string]bool),
+		breakGlass:    make(map[string]BreakGlass),
+		glassReviews:  make(map[string][]BreakGlassReview),
+		dataRights:    make(map[string]DataRightRequest),
+		drIDem:        make(map[string]DataRightRequest),
+		mfaDevices:    make(map[string]MFADevice),
+		mfaChallenges: make(map[string]MFAChallenge),
+		mfaVerifs:     make(map[string][]MFAVerification),
 	}
 }
 
@@ -321,5 +327,102 @@ func (m *MemoryStore) ListDataRights(dataRegion, userID string) ([]DataRightRequ
 			out = append(out, req)
 		}
 	}
+	return out, nil
+}
+
+// SaveMFADevice 登记 MFA 设备。
+func (m *MemoryStore) SaveMFADevice(d MFADevice) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mfaDevices[d.DataRegion+"|"+d.DeviceID] = d
+	return nil
+}
+
+// GetMFADevice 查询 MFA 设备。
+func (m *MemoryStore) GetMFADevice(dataRegion, deviceID string) (MFADevice, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	d, ok := m.mfaDevices[dataRegion+"|"+deviceID]
+	if !ok {
+		return MFADevice{}, ErrNotFound
+	}
+	return d, nil
+}
+
+// ListMFADevices 列出员工设备。
+func (m *MemoryStore) ListMFADevices(dataRegion, staffID string) ([]MFADevice, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]MFADevice, 0)
+	for _, d := range m.mfaDevices {
+		if d.DataRegion == dataRegion && d.StaffID == staffID {
+			out = append(out, d)
+		}
+	}
+	return out, nil
+}
+
+// SaveMFAChallenge 保存挑战。
+func (m *MemoryStore) SaveMFAChallenge(c MFAChallenge) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mfaChallenges[c.DataRegion+"|"+c.ChallengeID] = c
+	return nil
+}
+
+// GetMFAChallenge 查询挑战。
+func (m *MemoryStore) GetMFAChallenge(dataRegion, challengeID string) (MFAChallenge, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	c, ok := m.mfaChallenges[dataRegion+"|"+challengeID]
+	if !ok {
+		return MFAChallenge{}, ErrNotFound
+	}
+	return c, nil
+}
+
+// UpdateMFAChallenge 标记挑战已使用。
+func (m *MemoryStore) UpdateMFAChallenge(c MFAChallenge) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mfaChallenges[c.DataRegion+"|"+c.ChallengeID] = c
+	return nil
+}
+
+// SaveMFAVerification 追加验证记录。
+func (m *MemoryStore) SaveMFAVerification(v MFAVerification) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mfaVerifs[v.DataRegion+"|"+v.StaffID] =
+		append(m.mfaVerifs[v.DataRegion+"|"+v.StaffID], v)
+	return nil
+}
+
+// GetLatestMFAVerification 查询员工最近验证。
+func (m *MemoryStore) GetLatestMFAVerification(dataRegion, staffID string) (MFAVerification, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.mfaVerifs[dataRegion+"|"+staffID]
+	if len(items) == 0 {
+		return MFAVerification{}, ErrNotFound
+	}
+	return items[len(items)-1], nil
+}
+
+// ListAuditsPaged 分页查询审计。
+func (m *MemoryStore) ListAuditsPaged(dataRegion string, limit, offset int) ([]AuditEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.audits[dataRegion]
+	start := offset
+	if start > len(items) {
+		start = len(items)
+	}
+	end := start + limit
+	if end > len(items) {
+		end = len(items)
+	}
+	out := make([]AuditEntry, end-start)
+	copy(out, items[start:end])
 	return out, nil
 }

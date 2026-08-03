@@ -2365,6 +2365,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/mfa/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 登记抗钓鱼 MFA 设备（公钥绑定员工；WebAuthn 适配点） */
+        post: operations["registerMFADevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/mfa/challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建抗钓鱼 MFA 挑战（5 分钟有效、一次性） */
+        post: operations["createMFAChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 验证挑战签名（成功后 15 分钟高风险操作窗口） */
+        post: operations["verifyMFA"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3736,6 +3787,34 @@ export interface components {
             /** Format: date-time */
             completed_at?: string | null;
             data_region?: components["schemas"]["Region"];
+        };
+        MFADevice: {
+            /** Format: uuid */
+            device_id: string;
+            name: string;
+            /** Format: date-time */
+            registered_at: string;
+            /** Format: date-time */
+            revoked_at?: string | null;
+        };
+        MFAChallenge: {
+            /** Format: uuid */
+            challenge_id: string;
+            /** @description 一次性随机挑战（不写日志） */
+            nonce: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        MFAVerification: {
+            /** Format: uuid */
+            verification_id: string;
+            /** Format: date-time */
+            verified_at: string;
+            /**
+             * Format: date-time
+             * @description 15 分钟高风险操作窗口
+             */
+            expires_at: string;
         };
         AuditLog: {
             /** Format: uuid */
@@ -8609,6 +8688,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataRightRequest"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    registerMFADevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @description WebAuthn 公钥（至少 16 字节） */
+                    public_key: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已登记 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFADevice"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createMFAChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAChallenge"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    verifyMFA: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    challenge_id: string;
+                    /** Format: uuid */
+                    device_id: string;
+                    /** @description HMAC-SHA256(publicKey */
+                    signature: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已验证 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAVerification"];
                 };
             };
             default: components["responses"]["Error"];
