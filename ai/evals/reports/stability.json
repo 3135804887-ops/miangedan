@@ -1,7 +1,7 @@
 {
   "report_kind": "stability",
   "dataset": "scoring-stability",
-  "generated_at": "2026-08-03T03:08:30.1304167Z",
+  "generated_at": "2026-08-03T09:09:50.5358837Z",
   "config": {
     "runs": 200,
     "perturbation_rate": 0.04,

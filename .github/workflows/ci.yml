@@ -124,6 +124,8 @@ jobs:
           for d in ai/services/*/; do
             (cd "$d" && pytest) || exit 1
           done
+      - name: TASK-095 评分硬门槛校验（0 失败门禁）
+        run: python tools/ci/verify_task095_gates.py --check
       - uses: ./.github/actions/setup-frontend
       - name: 前端单元、组件、axe 与幂等测试
         run: pnpm test
