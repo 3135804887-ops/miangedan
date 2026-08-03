@@ -477,6 +477,17 @@
 > 用例全过，报告已提交；pytest 7 用例全绿，ruff/mypy(strict) 通过。
 > （TASK-036、PROMPT-POLICY 13、SCORING-SPEC 10）
 
+> **任务状态（2026-08-03 更新）**：TASK-045 已实现（评分硬门槛）——
+> `services/scoring` 新增 `RunStabilityRegression`：冻结输入基线 + 默认 200 次
+> 受控微扰重复评分（锚点带内插值 ±1、4% 扰动率、固定种子可复现），输出六维
+> 逐维维度差 ≤3 占比（取最差维度）与及格结论一致率；门槛
+> 维度差 ≤3 比例 ≥95%、及格一致率 ≥98%；`cmd/stability` 生成
+> `ai/evals/reports/stability.json`（report_kind=stability，含 config/metrics/
+> thresholds/passed），由 TASK-036 `mgd_evals.validate_stability_report` 校验
+> （Python 侧握手测试）。实测 200 次回归维度差 ≤3 比例 1.0、及格一致率 1.0，
+> 报告提交入库；Go 测试 4 用例（门槛/确定性/异常/报告形状）+ evals 握手 2 用例
+> 全绿，gofmt/vet 通过。（TASK-045、SCORING-SPEC 10、TASK-036）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。

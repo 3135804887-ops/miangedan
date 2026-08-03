@@ -1,0 +1,33 @@
+{
+  "report_kind": "stability",
+  "dataset": "scoring-stability",
+  "generated_at": "2026-08-03T03:08:30.1304167Z",
+  "config": {
+    "runs": 200,
+    "perturbation_rate": 0.04,
+    "score_jitter": 1,
+    "seed": 20260803
+  },
+  "metrics": {
+    "runs": 200,
+    "dimension_diff_le3_ratio": 1,
+    "pass_agreement_rate": 1,
+    "per_dimension_diff_le3_ratio": {
+      "behavioral_collaboration": 1,
+      "communication": 1,
+      "experience_evidence": 1,
+      "learning_adaptability": 1,
+      "problem_solving": 1,
+      "professional_competence": 1
+    },
+    "pass_status_counts": {
+      "PASS": 201
+    }
+  },
+  "thresholds": {
+    "dimension_diff_max": 3,
+    "dimension_diff_ratio_min": 0.95,
+    "pass_agreement_min": 0.98
+  },
+  "passed": true
+}
