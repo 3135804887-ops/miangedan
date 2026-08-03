@@ -15,6 +15,15 @@
 
 ### Added
 
+- TASK-085 客服工单（`task/TASK-085-support-tickets` 分支）：
+  - `services/adminapi` 工单（FR-039，US-08 场景 4）：默认最小可见（不含
+    逐字稿/媒体正文）；逐字稿需用户针对会话授权（范围+有效期，到期失效）；
+    媒体访问需用户申请+双人审批（去重、不可自批、可拒绝）；访问/阻断写审计。
+  - 迁移 `0073_support_tickets.sql`；openapi 增加 tickets/transcript-auth/
+    media-requests/approve/reject 端点与 schema；contracts 已重新生成。
+  - 服务正常、异常、最小可见、授权到期、双人审批、角色门禁测试齐备
+    （新增 4 用例），gofmt/vet 通过。
+    （TASK-085、FR-039、SCREEN-SPEC SCR-17）
 - TASK-084 追加式审计日志与抗钓鱼 MFA（`task/TASK-084-audit-mfa` 分支）：
   - `services/adminapi` 审计分页（FR-037/040）：管理员不可删除，存储仅
     SELECT/INSERT（反射断言无更新/删除路径）；

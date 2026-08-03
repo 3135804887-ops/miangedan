@@ -5,42 +5,54 @@ import "sync"
 
 // MemoryStore 为内存版后台存储。
 type MemoryStore struct {
-	mu            sync.RWMutex
-	providers     map[string]ProviderInfo
-	rooms         map[string][]RoomSnapshot
-	regionStatus  map[string]RegionOpsStatus
-	audits        map[string][]AuditEntry
-	versions      map[string]ArtifactVersion
-	versionByKey  map[string]ArtifactVersion
-	pins          map[string]VersionPin
-	activeSess    map[string]bool
-	breakGlass    map[string]BreakGlass
-	glassReviews  map[string][]BreakGlassReview
-	dataRights    map[string]DataRightRequest
-	drIDem        map[string]DataRightRequest
-	mfaDevices    map[string]MFADevice
-	mfaChallenges map[string]MFAChallenge
-	mfaVerifs     map[string][]MFAVerification
+	mu              sync.RWMutex
+	providers       map[string]ProviderInfo
+	rooms           map[string][]RoomSnapshot
+	regionStatus    map[string]RegionOpsStatus
+	audits          map[string][]AuditEntry
+	versions        map[string]ArtifactVersion
+	versionByKey    map[string]ArtifactVersion
+	pins            map[string]VersionPin
+	activeSess      map[string]bool
+	breakGlass      map[string]BreakGlass
+	glassReviews    map[string][]BreakGlassReview
+	dataRights      map[string]DataRightRequest
+	drIDem          map[string]DataRightRequest
+	mfaDevices      map[string]MFADevice
+	mfaChallenges   map[string]MFAChallenge
+	mfaVerifs       map[string][]MFAVerification
+	tickets         map[string]Ticket
+	ticketIDem      map[string]Ticket
+	transcriptAuths map[string]TranscriptAuthorization
+	trIDem          map[string]TranscriptAuthorization
+	mediaRequests   map[string]MediaAccessRequest
+	mediaIDem       map[string]MediaAccessRequest
 }
 
 // NewMemoryStore 创建空内存存储。
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		providers:     make(map[string]ProviderInfo),
-		rooms:         make(map[string][]RoomSnapshot),
-		regionStatus:  make(map[string]RegionOpsStatus),
-		audits:        make(map[string][]AuditEntry),
-		versions:      make(map[string]ArtifactVersion),
-		versionByKey:  make(map[string]ArtifactVersion),
-		pins:          make(map[string]VersionPin),
-		activeSess:    make(map[string]bool),
-		breakGlass:    make(map[string]BreakGlass),
-		glassReviews:  make(map[string][]BreakGlassReview),
-		dataRights:    make(map[string]DataRightRequest),
-		drIDem:        make(map[string]DataRightRequest),
-		mfaDevices:    make(map[string]MFADevice),
-		mfaChallenges: make(map[string]MFAChallenge),
-		mfaVerifs:     make(map[string][]MFAVerification),
+		providers:       make(map[string]ProviderInfo),
+		rooms:           make(map[string][]RoomSnapshot),
+		regionStatus:    make(map[string]RegionOpsStatus),
+		audits:          make(map[string][]AuditEntry),
+		versions:        make(map[string]ArtifactVersion),
+		versionByKey:    make(map[string]ArtifactVersion),
+		pins:            make(map[string]VersionPin),
+		activeSess:      make(map[string]bool),
+		breakGlass:      make(map[string]BreakGlass),
+		glassReviews:    make(map[string][]BreakGlassReview),
+		dataRights:      make(map[string]DataRightRequest),
+		drIDem:          make(map[string]DataRightRequest),
+		mfaDevices:      make(map[string]MFADevice),
+		mfaChallenges:   make(map[string]MFAChallenge),
+		mfaVerifs:       make(map[string][]MFAVerification),
+		tickets:         make(map[string]Ticket),
+		ticketIDem:      make(map[string]Ticket),
+		transcriptAuths: make(map[string]TranscriptAuthorization),
+		trIDem:          make(map[string]TranscriptAuthorization),
+		mediaRequests:   make(map[string]MediaAccessRequest),
+		mediaIDem:       make(map[string]MediaAccessRequest),
 	}
 }
 
@@ -425,4 +437,152 @@ func (m *MemoryStore) ListAuditsPaged(dataRegion string, limit, offset int) ([]A
 	out := make([]AuditEntry, end-start)
 	copy(out, items[start:end])
 	return out, nil
+}
+
+// SaveTicket 保存工单。
+func (m *MemoryStore) SaveTicket(t Ticket, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tickets[t.DataRegion+"|"+t.TicketID] = t
+	if idemKey != "" {
+		m.ticketIDem[t.DataRegion+"|"+idemKey] = t
+	}
+	return nil
+}
+
+// GetTicketByID 查询工单。
+func (m *MemoryStore) GetTicketByID(dataRegion, ticketID string) (Ticket, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	t, ok := m.tickets[dataRegion+"|"+ticketID]
+	if !ok {
+		return Ticket{}, ErrNotFound
+	}
+	return t, nil
+}
+
+// GetTicketByIdempotencyKey 幂等键查询工单。
+func (m *MemoryStore) GetTicketByIdempotencyKey(dataRegion, key string) (Ticket, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	t, ok := m.ticketIDem[dataRegion+"|"+key]
+	if !ok {
+		return Ticket{}, ErrNotFound
+	}
+	return t, nil
+}
+
+// UpdateTicket 更新工单状态。
+func (m *MemoryStore) UpdateTicket(t Ticket) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tickets[t.DataRegion+"|"+t.TicketID] = t
+	return nil
+}
+
+// ListTickets 列出区域工单。
+func (m *MemoryStore) ListTickets(dataRegion string) ([]Ticket, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]Ticket, 0)
+	for _, t := range m.tickets {
+		if t.DataRegion == dataRegion {
+			out = append(out, t)
+		}
+	}
+	return out, nil
+}
+
+// SaveTranscriptAuthorization 保存逐字稿授权。
+func (m *MemoryStore) SaveTranscriptAuthorization(a TranscriptAuthorization, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.transcriptAuths[a.DataRegion+"|"+a.AuthID] = a
+	if idemKey != "" {
+		m.trIDem[a.DataRegion+"|"+idemKey] = a
+	}
+	return nil
+}
+
+// GetTranscriptAuthByIdempotencyKey 幂等键查询逐字稿授权。
+func (m *MemoryStore) GetTranscriptAuthByIdempotencyKey(dataRegion, key string) (TranscriptAuthorization, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	a, ok := m.trIDem[dataRegion+"|"+key]
+	if !ok {
+		return TranscriptAuthorization{}, ErrNotFound
+	}
+	return a, nil
+}
+
+// ListTranscriptAuths 列出会话逐字稿授权。
+func (m *MemoryStore) ListTranscriptAuths(dataRegion, ticketID, sessionID string) ([]TranscriptAuthorization, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]TranscriptAuthorization, 0)
+	for _, a := range m.transcriptAuths {
+		if a.DataRegion == dataRegion && a.TicketID == ticketID && a.SessionID == sessionID {
+			out = append(out, a)
+		}
+	}
+	return out, nil
+}
+
+// SaveMediaRequest 保存媒体访问申请。
+func (m *MemoryStore) SaveMediaRequest(req MediaAccessRequest, idemKey string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mediaRequests[req.DataRegion+"|"+req.AccessRequestID] = req
+	if idemKey != "" {
+		m.mediaIDem[req.DataRegion+"|"+idemKey] = req
+	}
+	return nil
+}
+
+// GetMediaRequestByID 查询媒体申请。
+func (m *MemoryStore) GetMediaRequestByID(dataRegion, requestID string) (MediaAccessRequest, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	req, ok := m.mediaRequests[dataRegion+"|"+requestID]
+	if !ok {
+		return MediaAccessRequest{}, ErrNotFound
+	}
+	return req, nil
+}
+
+// GetMediaRequestByIdempotencyKey 幂等键查询媒体申请。
+func (m *MemoryStore) GetMediaRequestByIdempotencyKey(dataRegion, key string) (MediaAccessRequest, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	req, ok := m.mediaIDem[dataRegion+"|"+key]
+	if !ok {
+		return MediaAccessRequest{}, ErrNotFound
+	}
+	return req, nil
+}
+
+// UpdateMediaRequest 更新媒体申请状态。
+func (m *MemoryStore) UpdateMediaRequest(req MediaAccessRequest) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mediaRequests[req.DataRegion+"|"+req.AccessRequestID] = req
+	return nil
+}
+
+// AppendMediaApproval 原子追加媒体审批人（同一审批人去重）。
+func (m *MemoryStore) AppendMediaApproval(dataRegion, requestID, approverID string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	req, ok := m.mediaRequests[dataRegion+"|"+requestID]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	for _, existing := range req.ApproverPair {
+		if existing == approverID {
+			return append([]string(nil), req.ApproverPair...), nil
+		}
+	}
+	req.ApproverPair = append(req.ApproverPair, approverID)
+	m.mediaRequests[dataRegion+"|"+requestID] = req
+	return append([]string(nil), req.ApproverPair...), nil
 }

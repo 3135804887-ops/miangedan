@@ -2416,6 +2416,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建客服工单（默认最小可见：账户状态/订单/额度/故障代码/用户提交材料） */
+        post: operations["createSupportTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/tickets/{ticketId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 工单详情（默认最小可见；逐字稿与媒体需授权/审批后另行访问） */
+        get: operations["getSupportTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/tickets/{ticketId}/transcript-auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 记录用户针对会话的逐字稿授权（范围+有效期；幂等） */
+        post: operations["grantTranscriptAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/tickets/{ticketId}/media-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 媒体访问申请（用户申请；双人审批） */
+        post: operations["requestMediaAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/media-requests/{requestId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 媒体访问双人审批（两人不同审批人后放行；用户本人不可自批） */
+        post: operations["approveMediaAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/media-requests/{requestId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝媒体访问申请 */
+        post: operations["rejectMediaAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3815,6 +3917,54 @@ export interface components {
              * @description 15 分钟高风险操作窗口
              */
             expires_at: string;
+        };
+        SupportTicket: {
+            /** Format: uuid */
+            ticket_id: string;
+            /** Format: uuid */
+            user_id: string;
+            subject: string;
+            /** @enum {unknown} */
+            category: "account" | "order" | "entitlement" | "fault" | "transcript" | "media" | "other";
+            /** @enum {unknown} */
+            status: "open" | "in_progress" | "resolved" | "closed";
+            /**
+             * @description 默认最小可见（不含逐字稿/媒体正文）
+             * @enum {unknown}
+             */
+            visibility: "minimal" | "authorized";
+            /** Format: date-time */
+            created_at?: string;
+            data_region?: components["schemas"]["Region"];
+        };
+        TranscriptAuthorization: {
+            /** Format: uuid */
+            auth_id: string;
+            /** Format: uuid */
+            ticket_id: string;
+            /** Format: uuid */
+            session_id: string;
+            /** @enum {unknown} */
+            status: "active" | "expired" | "revoked";
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            granted_at?: string;
+        };
+        MediaAccessRequest: {
+            /** Format: uuid */
+            access_request_id: string;
+            /** Format: uuid */
+            ticket_id: string;
+            /** Format: uuid */
+            session_id: string;
+            /** @enum {unknown} */
+            status: "requested" | "approved" | "rejected";
+            approver_pair?: string[] | null;
+            /** Format: date-time */
+            requested_at?: string;
+            /** Format: date-time */
+            decided_at?: string | null;
         };
         AuditLog: {
             /** Format: uuid */
@@ -8770,6 +8920,187 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MFAVerification"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createSupportTicket: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    user_id: string;
+                    subject: string;
+                    /** @enum {unknown} */
+                    category: "account" | "order" | "entitlement" | "fault" | "transcript" | "media" | "other";
+                };
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicket"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSupportTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticketId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 工单 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportTicket"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    grantTranscriptAuthorization: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                ticketId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    user_id: string;
+                    /** Format: uuid */
+                    session_id: string;
+                    /** Format: date-time */
+                    expires_at: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已授权 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptAuthorization"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    requestMediaAccess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 幂等键（UUID 推荐）；相同键重复提交返回首个结果 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                ticketId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    user_id: string;
+                    /** Format: uuid */
+                    session_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已申请 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAccessRequest"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    approveMediaAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    approver_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 审批结果 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAccessRequest"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    rejectMediaAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已拒绝 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAccessRequest"];
                 };
             };
             default: components["responses"]["Error"];

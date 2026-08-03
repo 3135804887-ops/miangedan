@@ -2894,6 +2894,124 @@ paths:
       responses:
         '200': { description: 已验证, content: { application/json: { schema: { $ref: '#/components/schemas/MFAVerification' } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/admin/tickets:
+    post:
+      tags: [admin]
+      operationId: createSupportTicket
+      summary: 创建客服工单（默认最小可见：账户状态/订单/额度/故障代码/用户提交材料）
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, subject, category]
+              properties:
+                user_id: { type: string, format: uuid }
+                subject: { type: string }
+                category: { enum: [account, order, entitlement, fault, transcript, media, other] }
+      responses:
+        '201': { description: 已创建, content: { application/json: { schema: { $ref: '#/components/schemas/SupportTicket' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/tickets/{ticketId}:
+    get:
+      tags: [admin]
+      operationId: getSupportTicket
+      summary: 工单详情（默认最小可见；逐字稿与媒体需授权/审批后另行访问）
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 工单, content: { application/json: { schema: { $ref: '#/components/schemas/SupportTicket' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/tickets/{ticketId}/transcript-auth:
+    post:
+      tags: [admin]
+      operationId: grantTranscriptAuthorization
+      summary: 记录用户针对会话的逐字稿授权（范围+有效期；幂等）
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, session_id, expires_at]
+              properties:
+                user_id: { type: string, format: uuid }
+                session_id: { type: string, format: uuid }
+                expires_at: { type: string, format: date-time }
+      responses:
+        '201': { description: 已授权, content: { application/json: { schema: { $ref: '#/components/schemas/TranscriptAuthorization' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/tickets/{ticketId}/media-requests:
+    post:
+      tags: [admin]
+      operationId: requestMediaAccess
+      summary: 媒体访问申请（用户申请；双人审批）
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, session_id]
+              properties:
+                user_id: { type: string, format: uuid }
+                session_id: { type: string, format: uuid }
+      responses:
+        '201': { description: 已申请, content: { application/json: { schema: { $ref: '#/components/schemas/MediaAccessRequest' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/media-requests/{requestId}/approve:
+    post:
+      tags: [admin]
+      operationId: approveMediaAccess
+      summary: 媒体访问双人审批（两人不同审批人后放行；用户本人不可自批）
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approver_id]
+              properties:
+                approver_id: { type: string }
+      responses:
+        '200': { description: 审批结果, content: { application/json: { schema: { $ref: '#/components/schemas/MediaAccessRequest' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/media-requests/{requestId}/reject:
+    post:
+      tags: [admin]
+      operationId: rejectMediaAccess
+      summary: 拒绝媒体访问申请
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 已拒绝, content: { application/json: { schema: { $ref: '#/components/schemas/MediaAccessRequest' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
 components:
   securitySchemes:
@@ -4140,6 +4258,39 @@ components:
         verification_id: { type: string, format: uuid }
         verified_at: { type: string, format: date-time }
         expires_at: { type: string, format: date-time, description: 15 分钟高风险操作窗口 }
+    SupportTicket:
+      type: object
+      required: [ticket_id, user_id, subject, category, status, visibility]
+      properties:
+        ticket_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        subject: { type: string }
+        category: { enum: [account, order, entitlement, fault, transcript, media, other] }
+        status: { enum: [open, in_progress, resolved, closed] }
+        visibility: { enum: [minimal, authorized], description: 默认最小可见（不含逐字稿/媒体正文） }
+        created_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    TranscriptAuthorization:
+      type: object
+      required: [auth_id, ticket_id, session_id, status, expires_at]
+      properties:
+        auth_id: { type: string, format: uuid }
+        ticket_id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        status: { enum: [active, expired, revoked] }
+        expires_at: { type: string, format: date-time }
+        granted_at: { type: string, format: date-time }
+    MediaAccessRequest:
+      type: object
+      required: [access_request_id, ticket_id, session_id, status]
+      properties:
+        access_request_id: { type: string, format: uuid }
+        ticket_id: { type: string, format: uuid }
+        session_id: { type: string, format: uuid }
+        status: { enum: [requested, approved, rejected] }
+        approver_pair: { type: ['array', 'null'], items: { type: string } }
+        requested_at: { type: string, format: date-time }
+        decided_at: { type: ['string', 'null'], format: date-time }
     AuditLog:
       type: object
       required: [audit_id, actor_role, action, occurred_at]

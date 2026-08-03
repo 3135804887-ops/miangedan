@@ -134,6 +134,9 @@
 | `mfa_devices` | 抗钓鱼 MFA 设备（TASK-084） | device_id PK、staff_id、name、public_key、revoked_at | mfa_devices(staff_id) |
 | `mfa_challenges` | MFA 挑战（TASK-084） | challenge_id PK、staff_id、nonce、expires_at、used_at（一次性） | — |
 | `mfa_verifications` | MFA 验证（TASK-084） | verification_id PK、staff_id、challenge_id FK、device_id FK、verified_at、expires_at（15 分钟窗口） | mfa_verifications(staff_id, verified_at) |
+| `tickets` | 客服工单（TASK-085） | ticket_id PK、user_id、subject、category、status、visibility（minimal/authorized）、created_by、idempotency_key UNIQUE | tickets(user_id, status) |
+| `ticket_transcript_auths` | 逐字稿会话授权（TASK-085） | auth_id PK、ticket_id FK、session_id、status（active/expired/revoked）、expires_at、idempotency_key UNIQUE | ticket_transcript_auths(ticket_id, session_id) |
+| `ticket_media_requests` | 媒体访问申请（TASK-085） | access_request_id PK、ticket_id FK、session_id、status（requested/approved/rejected）、approver_pair_json、idempotency_key UNIQUE | — |
 
 ## 6. 对象存储桶划分（每区独立）
 
