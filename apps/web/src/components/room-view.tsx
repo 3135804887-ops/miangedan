@@ -373,13 +373,14 @@ export function RoomView({
           className="relative min-h-56 flex-1 overflow-hidden rounded-2xl bg-[linear-gradient(160deg,var(--mgd-app-brand-ink),var(--mgd-app-brand-from)_55%,var(--mgd-app-brand-to))] shadow-[var(--mgd-app-shadow-lg)]"
         >
           <div className="absolute inset-0 grid place-items-center">
-            <div className="text-center text-white/90">
-              <div className="mx-auto mb-3 grid size-20 place-items-center rounded-full bg-white/10 text-3xl font-bold backdrop-blur">
-                {locale === 'zh-CN' ? 'AI' : 'AI'}
-              </div>
-              <p className="mb-0 text-sm font-medium">MianGeDan Avatar · 合成演示</p>
-              <p className="mb-0 mt-1 text-xs text-white/60">实时数字人音视频（始终开启）</p>
-            </div>
+            <img
+              src="/avatars/interviewer-cn.png"
+              alt={locale === 'zh-CN' ? '数字面试官形象' : 'Digital interviewer avatar'}
+              className="size-full object-cover"
+            />
+          </div>
+          <div className="absolute bottom-3 left-3 rounded-lg bg-black/30 px-2.5 py-1 text-xs text-white backdrop-blur">
+            {locale === 'zh-CN' ? 'MianGeDan Avatar · 静态形象演示（音视频接入中）' : 'MianGeDan Avatar · static avatar preview'}
           </div>
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 text-xs text-white backdrop-blur">
             <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-400" />
