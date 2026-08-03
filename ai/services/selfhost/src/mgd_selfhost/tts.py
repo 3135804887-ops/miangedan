@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
+import io
 import wave
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -22,9 +24,9 @@ class TtsBackend(ABC):
 class PiperBackend(TtsBackend):
     """piper-tts backend (本地开发默认，CPU 即时合成)."""
 
-    def __init__(self, voice_dir: str, voice_name: str = "zh_CN-huayan-medium") -> None:
+    def __init__(self, voice_dir: str, voice_name: str = "") -> None:
         self._voice_dir = voice_dir
-        self._voice_name = voice_name
+        self._voice_name = voice_name or "zh_CN-huayan-medium"
         self._voice: Any = None
 
     def _ensure_voice(self) -> Any:
@@ -57,6 +59,47 @@ class PiperBackend(TtsBackend):
         return output_path
 
 
+class EdgeTtsBackend(TtsBackend):
+    """edge-tts 后端（本地开发/演示用；非官方接口 + 境外数据，禁止 cn 区生产使用）。"""
+
+    DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
+
+    def __init__(self, voice_name: str = "") -> None:
+        self._voice_name = voice_name or self.DEFAULT_VOICE
+
+    def synthesize(self, text: str, output_path: Path) -> Path:
+        try:
+            import av
+            import edge_tts
+        except ModuleNotFoundError as exc:
+            raise RuntimeError("edge-tts 未安装：pip install 'mgd-selfhost[tts-edge]'") from exc
+
+        async def _stream() -> bytes:
+            communicate = edge_tts.Communicate(text, self._voice_name)
+            buffer = io.BytesIO()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    buffer.write(chunk["data"])
+            return buffer.getvalue()
+
+        mp3_bytes = asyncio.run(_stream())
+        _mp3_to_wav(mp3_bytes, output_path, av)
+        return output_path
+
+
+def _mp3_to_wav(mp3_bytes: bytes, output_path: Path, av: Any) -> None:
+    """用 PyAV 将 edge-tts 输出的 MP3 转成 WAV（PCM16，保证 ASR/播放兼容）。"""
+    with av.open(io.BytesIO(mp3_bytes)) as container:
+        stream = container.streams.audio[0]
+        with av.open(str(output_path), "w", format="wav") as out:
+            out_stream = out.add_stream("pcm_s16le", rate=stream.rate)
+            for frame in container.decode(stream):
+                for packet in out_stream.encode(frame):
+                    out.mux(packet)
+            for packet in out_stream.encode(None):
+                out.mux(packet)
+
+
 class CosyVoiceBackend(TtsBackend):
     """CosyVoice 2 backend（GPU 部署预留，需安装 cosyvoice 与 torch）。"""
 
@@ -87,6 +130,8 @@ class CosyVoiceBackend(TtsBackend):
 def create_tts_backend(settings: Settings) -> TtsBackend:
     if settings.tts_backend == "piper":
         return PiperBackend(voice_dir=settings.tts_voice_dir, voice_name=settings.tts_voice_name)
+    if settings.tts_backend == "edge":
+        return EdgeTtsBackend(voice_name=settings.tts_voice_name)
     if settings.tts_backend == "cosyvoice":
         return CosyVoiceBackend(model_dir=settings.tts_voice_dir)
     raise ValueError(f"未知 TTS 后端：{settings.tts_backend}")

@@ -13,10 +13,10 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 8000
     asr_backend: str = "whisper"  # whisper | funasr（GPU 部署预留）
-    tts_backend: str = "piper"  # piper | cosyvoice（GPU 部署预留）
+    tts_backend: str = "piper"  # piper | edge（本地开发）| cosyvoice（GPU 部署预留）
     asr_model: str = ""  # whisper: faster-whisper 模型名；funasr: ModelScope 模型 id
     tts_voice_dir: str = ""  # piper 音色目录（含 .onnx/.onnx.json）
-    tts_voice_name: str = "zh_CN-huayan-medium"
+    tts_voice_name: str = ""  # piper: 音色名；edge: 微软神经音色名
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -27,5 +27,5 @@ class Settings:
             tts_backend=os.getenv("SELFHOST_TTS_BACKEND", "piper"),
             asr_model=os.getenv("SELFHOST_ASR_MODEL", ""),
             tts_voice_dir=os.getenv("SELFHOST_TTS_VOICE_DIR", ""),
-            tts_voice_name=os.getenv("SELFHOST_TTS_VOICE_NAME", "zh_CN-huayan-medium"),
+            tts_voice_name=os.getenv("SELFHOST_TTS_VOICE_NAME", ""),
         )
