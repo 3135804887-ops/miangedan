@@ -6,7 +6,7 @@
 
 > **2026-08-03 自建矩阵定稿（项目负责人确认，待实测验收）**：
 > - WebRTC/SFU：自建 LiveKit（本地开发先行，云上统一部署后续）；STUN/TURN：自建 coturn；录制/转推：自建 LiveKit Egress + FFmpeg；媒体存储：自建 MinIO（S3 兼容）。
-> - ASR：自研自建（FunASR/Paraformer 或 Whisper 自托管；开发期用轻量模型冒烟）。
+> - ASR：自研自建 FunASR/SenseVoiceSmall（CPU 回合级转写，2026-08-03 确认；实时 API 留作后续升级）。
 > - TTS：自研自建（CosyVoice 2 或 F5-TTS 自托管；开发期用轻量模型冒烟）。
 > - LLM：接 API（DeepSeek）。
 > - 数字人：自建（静态形象 + 音频播放 MVP，不追求实时口型；口型驱动列为后续升级项）。
@@ -60,7 +60,7 @@
 
 - 候选：阿里云实时语音识别、讯飞、Deepgram（EU endpoint 已 GA、可自托管）、Azure Speech、OpenAI Realtime/Whisper。
 - cn 区主/备建议：自研自建 ASR 服务（主）/ 讯飞（备，对照）。
-  - 自建：FunASR/Paraformer 或 Whisper 自托管；中文与方言按实测校准，数据自持。
+  - 自建：FunASR/SenseVoiceSmall 自托管（CPU 回合级）；本机实测 12 秒音频转写约 0.6 秒，中文质量以实测为准；NFR-010 实时 1s 门槛作为后续实时 API 升级项。
   - 讯飞：作为对照备选，仅实测对比时启用。
 - eu/intl 区主/备建议：Deepgram（主）/ Azure Speech（备）。（待开发，本轮不实测）
   - Deepgram：EU 端点 GA、支持自托管、零保留配置；英文质量与延迟指标优秀。
@@ -161,7 +161,7 @@
 ### M1 本地自建骨架（当前阶段）
 
 - SFU：LiveKit 本地运行（已跑通，ws://localhost:7880）。
-- ASR/TTS：本机部署自建服务并跑通「合成 → 转写」闭环冒烟（开发期轻量模型）。
+- ASR/TTS：mgd-selfhost 已接入 FunASR/SenseVoiceSmall（CPU 后端）并跑通「合成 → 转写」闭环；TTS 开发期用 piper，生产候选 CosyVoice 2 / 火山 API。
 - 媒体存储：MinIO 本地实例（S3 兼容，媒体桶）。
 - Avatar：静态形象 + 音频播放 MVP（授权形象图 + avatar driver 静态实现）。
 - 集成：services/room 接入 LiveKit Provider；services/asr/avatar 接入自建端点；前端接 WEBRTC_* 环境变量。

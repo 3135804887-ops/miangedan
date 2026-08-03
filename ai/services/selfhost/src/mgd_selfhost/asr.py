@@ -21,10 +21,8 @@ class AsrBackend(ABC):
 class WhisperBackend(AsrBackend):
     """faster-whisper backend (CPU 友好，本地开发默认)."""
 
-    def __init__(
-        self, model: str = "small", device: str = "cpu", compute_type: str = "int8"
-    ) -> None:
-        self._model_name = model
+    def __init__(self, model: str = "", device: str = "cpu", compute_type: str = "int8") -> None:
+        self._model_name = model or "small"
         self._device = device
         self._compute_type = compute_type
         self._model: Any = None
@@ -49,10 +47,12 @@ class WhisperBackend(AsrBackend):
 
 
 class FunasrBackend(AsrBackend):
-    """FunASR/Paraformer backend（GPU 部署预留，需安装 funasr 与 torch）。"""
+    """FunASR 后端（默认 SenseVoiceSmall，CPU 回合级转写；需安装 funasr 与 torch）。"""
 
-    def __init__(self, model: str = "paraformer-zh") -> None:
-        self._model_name = model
+    DEFAULT_MODEL = "iic/SenseVoiceSmall"
+
+    def __init__(self, model: str = "") -> None:
+        self._model_name = model or self.DEFAULT_MODEL
         self._model: Any = None
 
     def _ensure_model(self) -> Any:
@@ -60,22 +60,54 @@ class FunasrBackend(AsrBackend):
             try:
                 module: Any = importlib.import_module("funasr")
             except ModuleNotFoundError as exc:
-                raise RuntimeError("funasr 未安装：GPU 部署时 pip install funasr") from exc
-            self._model = module.AutoModel(model=self._model_name)
+                raise RuntimeError(
+                    "funasr 未安装：pip install funasr；torch 用 CPU 版："
+                    "pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu"
+                ) from exc
+            self._model = module.AutoModel(model=self._model_name, disable_update=True)
         return self._model
 
     def transcribe(self, audio_path: Path, language: str | None = None) -> str:
         model = self._ensure_model()
-        result = model.generate(input=str(audio_path), language=language or "zh")
+        wav_16k = _resample_16k_mono(audio_path)
+        try:
+            result = model.generate(
+                input=str(wav_16k),
+                language=language or "zh",
+                use_itn=True,
+                batch_size_s=300,
+            )
+        finally:
+            wav_16k.unlink(missing_ok=True)
         if not result:
             return ""
         text = result[0].get("text", "")
-        return str(text).strip()
+        return _strip_sensevoice_tags(str(text)).strip()
+
+
+def _strip_sensevoice_tags(text: str) -> str:
+    """移除 SenseVoice 输出的事件/语言标签（如 <|zh|>）。"""
+    import re
+
+    return re.sub(r"<\|[^|]+\|>", "", text)
+
+
+def _resample_16k_mono(audio_path: Path) -> Path:
+    """将任意采样率音频重采样为 16k 单声道 WAV（FunASR 输入要求）。"""
+    try:
+        import librosa
+        import soundfile as sf
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("funasr 依赖缺失：pip install funasr（含 librosa/soundfile）") from exc
+    y, _sr = librosa.load(str(audio_path), sr=16000, mono=True)
+    out = audio_path.with_suffix(".funasr-16k.wav")
+    sf.write(str(out), y, 16000)
+    return out
 
 
 def create_asr_backend(settings: Settings) -> AsrBackend:
     if settings.asr_backend == "whisper":
         return WhisperBackend(model=settings.asr_model)
     if settings.asr_backend == "funasr":
-        return FunasrBackend()
+        return FunasrBackend(model=settings.asr_model)
     raise ValueError(f"未知 ASR 后端：{settings.asr_backend}")
