@@ -74,7 +74,7 @@ func (c *SelfHostClient) TranscribeWAV(ctx context.Context, wav []byte, language
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		data, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
 		return "", fmt.Errorf(
