@@ -24,9 +24,10 @@ if ($running) {
 }
 
 if (-not (Test-Path $exe)) {
-    $version = $Version.TrimStart('v')
-    $zip = Join-Path $workDir "livekit_${version}_windows_amd64.zip"
-    $url = "https://github.com/livekit/livekit/releases/download/$Version/livekit_${version}_windows_amd64.zip"
+    $releaseTag = $Version
+    $versionSuffix = $Version.TrimStart('v')
+    $zip = Join-Path $workDir "livekit_${versionSuffix}_windows_amd64.zip"
+    $url = "https://github.com/livekit/livekit/releases/download/$releaseTag/livekit_${versionSuffix}_windows_amd64.zip"
     Write-Output "downloading $url"
     Invoke-WebRequest -Uri $url -OutFile $zip
     Expand-Archive -Path $zip -DestinationPath $workDir -Force
@@ -60,7 +61,7 @@ rtc:
   use_external_ip: false
   enable_loopback_candidate: true
 keys:
-  $apiKey: $apiSecret
+  ${apiKey}: ${apiSecret}
 logging:
   level: info
 "@
