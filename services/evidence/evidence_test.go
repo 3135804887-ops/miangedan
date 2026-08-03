@@ -118,3 +118,34 @@ func TestAppendOnlyNoMutationPath(t *testing.T) {
 		t.Fatalf("列表应返回副本，篡改不落库: %s", items2[0].PayloadJSON)
 	}
 }
+
+// failingStore 模拟持久化存储故障（TC-NFR-005-A01）。
+type failingStore struct {
+	*MemoryStore
+}
+
+func (f *failingStore) SaveEntry(Entry) error {
+	return errors.New("storage unavailable")
+}
+
+// TASK-090 补测（TC-NFR-005-A01）：持久化失败时 Append 报错，不产生部分写入，调用方必须阻塞推进。
+func TestAppendStoreFailureBlocksAdvance(t *testing.T) {
+	store := &failingStore{MemoryStore: NewMemoryStore()}
+	svc, err := NewService(store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := AppendInput{SessionID: "s1", TurnIndex: 1, ProjectID: "p1", RoundSeq: 1,
+		Kind: KindAnswer, EventID: "ev-answer-1",
+		PayloadJSON: payload(t, map[string]any{"answer_id": "a1"})}
+	if _, err := svc.Append(context.Background(), "cn", in); err == nil {
+		t.Fatal("存储故障时 Append 必须报错（阻塞推进）")
+	}
+	items, err := svc.ListBySession(context.Background(), "cn", "s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("失败写入不得产生部分证据，实际 %d 条", len(items))
+	}
+}

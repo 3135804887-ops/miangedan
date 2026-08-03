@@ -803,6 +803,20 @@
 | TASK-095 | 评分硬门槛验证：稳定性、专家盲评一致率 ≥85%、维度 MAE ≤10、禁止属性进入证据为 0 | 硬门槛 | TASK-045 | 报告经 AI/评分负责人签字 |
 | TASK-096 | 三数据区生产验证与 GA 放量守门（1%→5%→20%→50%→100%） | Phase 3/4 | TASK-090~095 | 单区故障不扩散；不违法跨境；放量可暂停回滚 |
 
+> **任务状态（2026-08-03 更新）**：TASK-090 已实现——新增
+> `docs/testing/TRACEABILITY-MATRIX.md`（TEST-TRACE-001）：ACCEPTANCE-MATRIX 全部 154 个
+> US/FR/NFR TC 与 24 个 SC-EC 逐项映射到仓库真实测试文件/用例符号（Go `*_test.go`、
+> Python `ai/services/*/tests/`、前端 `apps/web/tests/`、`tools/validate_docs.py` 套件）；
+> 映射缺口 15 个 TC（NFR-001~003/005/007~009/012~016 的 SLO、持久化阻塞、建连、回应、
+> 连续打断、720p、评分/报告/解析/计划预算）标记为 TASK-090 补测并补齐最小用例：
+> 新增 `services/slo` 模块（NFR-001~003 门槛校验，登记 go.work 与 CI golangci 矩阵）、
+> evidence 存储失败阻塞、avatar 建连预算与默认档位、asr 连续打断、scoring/report/
+> parsing/plan 生成预算冒烟；`tools/validate_docs.py` 新增 `traceability` 套件
+> （TC 一一对应、落点文件/符号存在性校验，0 失败门禁）并挂接 CI 阶段1；
+> ACCEPTANCE-MATRIX 第 12 节同步引用。gofmt/vet/go test（含 slo 新模块）与
+> ruff/mypy/pytest（orchestrator/parsing）全绿。
+> （TASK-090、ACCEPTANCE-MATRIX、TEST-STRATEGY）
+
 ## 6. 全局完成定义（Definition of Done）
 
 任何任务标记完成前必须同时满足：

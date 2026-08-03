@@ -158,3 +158,6 @@
 1. CI 脚本：解析本表 → 校验 64 项需求 ID 全覆盖、N/A 用例齐全、统计数字一致。
 2. 每次发布候选：本表全量用例状态快照作为 RELEASE-CHECKLIST 输入。
 3. 与 `IMPLEMENTATION_PLAN.md` 的 Epic/TASK 映射每季度复核一次。
+4. TASK-090 起：每项 TC 到仓库测试文件/用例的落点映射见
+   `docs/testing/TRACEABILITY-MATRIX.md`，由 `python tools/validate_docs.py --suites traceability`
+   机器校验（TC 一一对应、落点文件/符号真实存在），与本节规则同为 0 失败门禁。

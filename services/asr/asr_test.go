@@ -63,6 +63,29 @@ func TestTurnGate(t *testing.T) {
 	}
 }
 
+// TASK-090 补测（TC-NFR-009-A01）：连续打断 20 次，状态一致且重叠保护始终生效。
+func TestTurnGateContinuousInterrupts(t *testing.T) {
+	now := time.Now()
+	clock := func() time.Time { return now }
+	g := NewTurnGate(StopLatencyBudget, clock)
+	if err := g.Start(SpeakerAvatar); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 20; i++ {
+		g.Interrupt()
+		if g.Speaking() != SpeakerUser {
+			t.Fatalf("第 %d 次打断后应切到用户说话，实际 %s", i+1, g.Speaking())
+		}
+		now = now.Add(100 * time.Millisecond)
+		if err := g.StopConfirmed(); err != nil {
+			t.Fatalf("第 %d 次停止确认应在预算内: %v", i+1, err)
+		}
+		if err := g.Start(SpeakerAvatar); !errors.Is(err, ErrOverlap) {
+			t.Fatalf("第 %d 次打断后数字人不得重叠发声，实际 %v", i+1, err)
+		}
+	}
+}
+
 // 正常/异常路径：流式识别配置校验与合成流。
 func TestStreamConfig(t *testing.T) {
 	if err := ValidateConfig(StreamConfig{Language: "zh-CN", SilenceEndpointMs: 700}); err != nil {

@@ -21,6 +21,7 @@ use (
 	./services/room
 	./services/scoring
 	./services/secretref
+	./services/slo
 	./services/source
 	./services/temporal
 	./workflows

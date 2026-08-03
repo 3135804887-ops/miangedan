@@ -154,3 +154,22 @@ def test_invalid_inputs_rejected() -> None:
         gen.generate(interview_language="fr-FR")
     with pytest.raises(ValueError):
         gen.generate(degraded_mode="bogus")
+
+
+def test_plan_generation_within_budget() -> None:
+    """TASK-090 补测（TC-NFR-016-N01）：计划生成 ≤120s 预算冒烟。"""
+    import time
+
+    gen = PlanGenerator()
+    start = time.monotonic()
+    result = gen.generate(
+        resume_profile={"name": "候选人"},
+        job_profile={"title": "后端工程师"},
+        degraded_mode="full",
+        process_sources=(
+            ProcessSource(source_id="s1", source_type="official_careers_page", credibility="high"),
+        ),
+    )
+    elapsed = time.monotonic() - start
+    assert result.draft.rounds
+    assert elapsed <= 120.0

@@ -675,6 +675,24 @@ func TestScoringFaultRecoveryRecalculates(t *testing.T) {
 	}
 }
 
+// TASK-090 补测（TC-NFR-013-N01）：单轮评分 P95 ≤60s 预算冒烟（合成黄金输入）。
+func TestScoreWithinP95Budget(t *testing.T) {
+	svc, _ := newTestService(t)
+	in := baseInput()
+	in.CoverageAssessments = voiceAssessments(3)
+	start := time.Now()
+	result, err := svc.Score(context.Background(), testActor, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.RoundTotal == nil {
+		t.Fatal("合成黄金输入应产出总分")
+	}
+	if elapsed := time.Since(start); elapsed > 60*time.Second {
+		t.Fatalf("单轮评分超过 60s 预算（NFR-013 P95）: %v", elapsed)
+	}
+}
+
 // 摄像头/便利设置不影响计算（TASK-040 基线；SC-EC-11/12 详细用例见 TASK-041）。
 func TestCameraAndAccommodationsNoEffect(t *testing.T) {
 	svc, _ := newTestService(t)

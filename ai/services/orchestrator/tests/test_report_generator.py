@@ -294,3 +294,14 @@ def test_eval_report_cases(case_id: str, row: dict[str, Any]) -> None:
         assert phrase in text, f"{case_id} 缺少 {phrase}"
     for phrase in expected.get("must_not_include", []):
         assert phrase not in text, f"{case_id} 出现 {phrase}"
+
+
+def test_full_report_generation_within_budget() -> None:
+    """TASK-090 补测（TC-NFR-014-N01）：完整报告 ≤120s 预算冒烟。"""
+    import time
+
+    start = time.monotonic()
+    report = generate(make_input())
+    elapsed = time.monotonic() - start
+    assert report["report_kind"] == "full"
+    assert elapsed <= 120.0

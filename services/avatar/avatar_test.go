@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"miangedan/services/provider"
 )
@@ -25,6 +26,29 @@ func TestCharacterLibrary(t *testing.T) {
 	}
 	if err := lib.Validate("avatar-unknown"); !errors.Is(err, ErrCharacterNotFound) {
 		t.Fatalf("未知角色必须拒绝，实际 %v", err)
+	}
+}
+
+// TASK-090 补测（TC-NFR-007-N01/TC-NFR-012-N01）：建连 ≤8s 预算冒烟；默认档位 ≥720p/24fps。
+func TestDriverStartWithinConnectBudget(t *testing.T) {
+	if DefaultVideoProfile.Width < 1280 || DefaultVideoProfile.Height < 720 || DefaultVideoProfile.FPS < 24 {
+		t.Fatalf("默认档位必须 ≥720p/24fps，实际 %+v", DefaultVideoProfile)
+	}
+	driver, _ := testDriver(t)
+	start := time.Now()
+	sess, err := driver.Start(context.Background(), StartInput{
+		CharacterID:  "avatar-zh-01",
+		Persona:      DefaultPersona(),
+		VideoProfile: DefaultVideoProfile,
+	})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	if elapsed := time.Since(start); elapsed > 8*time.Second {
+		t.Fatalf("建连超过 8s 预算（NFR-007 P95）: %v", elapsed)
+	}
+	if err := sess.Stop(context.Background()); err != nil {
+		t.Fatalf("停止失败: %v", err)
 	}
 }
 
