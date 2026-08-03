@@ -1,5 +1,7 @@
 package billing
 
+import "time"
+
 // Store 为权益/报价/冻结存储（生产 PostgreSQL；余额扣减由 TASK-061 账本驱动）。
 type Store interface {
 	SaveEntitlement(Entitlement, string) error
@@ -37,4 +39,7 @@ type Store interface {
 	ListRefundsByOrder(dataRegion, orderID string) ([]Refund, error)
 	ListRefundsByUser(dataRegion, userID string) ([]Refund, error)
 	UpdateRefund(Refund) error
+	// TASK-063 退款审批与执行的原子操作（双人审批去重；执行幂等）。
+	AppendRefundApproval(dataRegion, refundID, approverID string) ([]string, error)
+	MarkRefundExecuted(dataRegion, refundID string, at time.Time) (Refund, bool, error)
 }

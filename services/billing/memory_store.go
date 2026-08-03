@@ -3,6 +3,7 @@ package billing
 import (
 	"sort"
 	"sync"
+	"time"
 )
 
 // MemoryStore 为内存版存储（开发/测试；生产 PostgreSQL）。
@@ -395,4 +396,41 @@ func (m *MemoryStore) UpdateRefund(r Refund) error {
 	defer m.mu.Unlock()
 	m.refunds[r.DataRegion+"|"+r.RefundID] = r
 	return nil
+}
+
+// AppendRefundApproval 原子追加审批人（同一审批人去重；返回当前审批对）。
+func (m *MemoryStore) AppendRefundApproval(dataRegion, refundID, approverID string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.refunds[dataRegion+"|"+refundID]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	for _, existing := range r.ApproverPair {
+		if existing == approverID {
+			return append([]string(nil), r.ApproverPair...), nil
+		}
+	}
+	r.ApproverPair = append(r.ApproverPair, approverID)
+	m.refunds[dataRegion+"|"+refundID] = r
+	return append([]string(nil), r.ApproverPair...), nil
+}
+
+// MarkRefundExecuted 原子标记退款已执行（幂等：已执行返回 fresh=false）。
+func (m *MemoryStore) MarkRefundExecuted(
+	dataRegion, refundID string, at time.Time,
+) (Refund, bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.refunds[dataRegion+"|"+refundID]
+	if !ok {
+		return Refund{}, false, ErrNotFound
+	}
+	if r.Status == Refunded {
+		return r, false, nil
+	}
+	r.Status = Refunded
+	r.RefundedAt = &at
+	m.refunds[dataRegion+"|"+refundID] = r
+	return r, true, nil
 }
