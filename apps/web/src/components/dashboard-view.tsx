@@ -283,7 +283,7 @@ export function DashboardView({
             <Card key={p.project_id} hoverable className="flex flex-col p-5">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="mb-1 truncate text-base font-semibold text-neutral-900">{p.name}</h3>
+                  <h2 className="mb-1 truncate text-base font-semibold text-neutral-900">{p.name}</h2>
                   <p className="mb-0 text-sm text-neutral-600">
                     {p.company !== '' ? `${p.company} · ` : ''}{p.job_title}
                   </p>

@@ -849,6 +849,16 @@
 > 入库）；README 提供运行说明。专家盲评签字不在本窗口。
 > （TASK-093、THREAT-MODEL、SECURITY-REQUIREMENTS）
 
+> **任务状态（2026-08-03 更新）**：TASK-094 已实现——`apps/web/tests/axe-pages.test.tsx`
+> 对 SCR-01~SCR-17 全部 17 个页面路由（含机构端 7 页与运营后台）中英双语各执行
+> axe-core 扫描（48 个用例），断言 0 违规；修复发现的问题：CardHeader/EmptyState/
+> 工作台项目卡/设置页标题层级 h3→h2（heading-order）、房间页补齐字幕与转写
+> `aria-live="polite"`、状态 `role="status"`、数字人/摄像头画面 `role="img"`
+> 标签（ACCESSIBILITY 4.4）；对比度由 `tokens:check-contrast` 门禁覆盖（jsdom
+> 无法真实渲染颜色）。前端门禁全绿：eslint/typecheck/vitest 148 用例/build/
+> i18n/令牌。人工与残障用户测试由项目负责人在发布窗口执行。
+> （TASK-094、ACCESSIBILITY、SCREEN-SPEC 状态矩阵）
+
 ## 6. 全局完成定义（Definition of Done）
 
 任何任务标记完成前必须同时满足：

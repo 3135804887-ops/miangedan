@@ -23,7 +23,7 @@ export function EmptyState({
         </div>
       ) : null}
       <div>
-        <h3 className="m-0 text-lg font-semibold text-neutral-900">{title}</h3>
+        <h2 className="m-0 text-lg font-semibold text-neutral-900">{title}</h2>
         {description !== undefined ? (
           <p className="mx-auto mt-1 max-w-md text-sm text-neutral-600">{description}</p>
         ) : null}

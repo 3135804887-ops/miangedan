@@ -46,7 +46,7 @@ export function CardHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 px-5 py-4">
       <div>
-        <h3 className="m-0 font-semibold text-neutral-900">{title}</h3>
+        <h2 className="m-0 font-semibold text-neutral-900">{title}</h2>
         {description !== undefined ? (
           <p className="mt-1 text-sm text-neutral-600">{description}</p>
         ) : null}

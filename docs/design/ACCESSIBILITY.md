@@ -111,3 +111,15 @@
 3. **屏幕阅读器**：中英文分别走查（NVDA/VoiceOver 各至少一种），覆盖房间 aria-live 行为。
 4. **残障用户可用性测试**：发布前完成（PRD 硬性要求），样本覆盖视觉、听觉、肢体、神经多样性用户。
 5. **评分隔离回归**：便利设置开启/关闭的同内容作答评分一致（差异在评分稳定性容差内）；文字模式 oral_delivery 输出为 not_evaluated 的契约测试。
+
+### 9.1 TASK-094 axe 自动化落地
+
+- `apps/web/tests/axe-pages.test.tsx`：SCR-01 ~ SCR-17 全部 17 个页面路由（含机构端
+  7 页、运营后台、SCR-09 房间覆盖层）以中英双语各渲染一次并执行 axe-core 扫描，
+  断言 0 违规（aria/标签/landmark/键盘可达/heading 顺序等规则），共 48 个用例；
+- 颜色对比度由 jsdom 无法真实渲染，axe 中关闭 `color-contrast` 规则，改由
+  `pnpm tokens:check-contrast`（design-tokens 语义色板 CI 门禁）覆盖；
+- 房间页专项断言：字幕与转写 `aria-live="polite"`、状态 `role="status"`、
+  数字人/摄像头画面 `role="img"` 带标签、故障覆盖层 `role="alertdialog"` +
+  `role="alert"` 描述；报告页专项断言雷达图 `svg[role="img"]` 带 `aria-label`
+  且存在文字/表格等价。
