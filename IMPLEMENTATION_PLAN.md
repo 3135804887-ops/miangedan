@@ -551,6 +551,18 @@
 > 正常、异常、幂等、失败重试、进度真实性测试齐备（新增 10 用例），gofmt/vet 通过。
 > （TASK-055、FR-040、RETENTION-MATRIX）
 
+> **任务状态（2026-08-03 更新）**：TASK-051 核对完成、无残留缺口（TASK-050/055 已覆盖）——
+> ① 雷达图文字/表格等价：`ai/services/orchestrator` 报告生成器 `_build_radar` 输出
+> `text_equivalent`（逐维得分与等级的文字/表格化表述），`ai/schemas/report.schema.json`
+> 将 `text_equivalent` 设为 radar 必填且注明"无障碍强制"；`test_full_report_schema_valid`
+> 断言文字等价存在；前端 SCR-11 报告页同时渲染 SVG 雷达图与表格等价（双语文案）。
+> ② 导出带训练用途标记：报告对象恒含 `training_use_disclaimer="模拟训练结果，不代表
+> 真实企业录用结论"` 且 `raw_record_refs.deletion_entry=true`（REPORT-SPEC 规则 5，
+> `mgd_evals.evaluators` 校验）；`services/export` 导出任务 `TrainingMarker` 与
+> `TrainingUseDisclaimer` 强制（`TestTaskLifecycle` 断言），SCR-11 下载入口展示同一标记。
+> 结论：TASK-051 完成，无需新增代码；前端数据接线由后续真实 API 任务统一处理。
+> （TASK-051、REPORT-SPEC、SCREEN-SPEC SCR-11、ACCESSIBILITY 4.1）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。
