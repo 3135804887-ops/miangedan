@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mgd-evals"
+version = "0.1.0"
+description = "面个蛋 AI 评测框架（TASK-036）：黄金集可重复运行并产出报告"
+requires-python = ">=3.11"
+
+[project.scripts]
+mgd-evals = "mgd_evals.run:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "S", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+# orchestrator 源码路径引导后再导入（单仓布局），E402 属预期。
+"src/mgd_evals/evaluators.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = ["src", "../../orchestrator/src"]
+
+[[tool.mypy.overrides]]
+module = ["mgd_orchestrator.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

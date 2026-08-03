@@ -465,6 +465,18 @@
 > 服务/注册表/监控测试齐备（新增 11 用例），gofmt/vet 通过。
 > （TASK-044、FR-038、SCORING-SPEC 10.4）
 
+> **任务状态（2026-08-03 更新）**：TASK-036 已实现——新 Python 包
+> `ai/services/evals`（`mgd_evals`，ruff/mypy(strict)/pytest）：黄金集
+> （ai/evals/datasets/*.jsonl）可重复运行并产出 JSON 报告
+> （ai/evals/reports/*.eval.json）；数据集与预期结果对齐校验（缺条目即失败）；
+> 内置评测器按场景自动分发（handoff：八类内容/压缩预算/事实完整性；
+> safety：注入/保护属性对抗；generic：must_include/must_not_include/
+> expected_flag），未支持场景如实标记 skipped；报告含 totals/metrics/
+> thresholds/cases，确定性可复现；`validate_stability_report()` 提供
+> TASK-045 稳定性门槛校验（95%/98%）握手。zh-core/en-core 实测 6/6 已支持
+> 用例全过，报告已提交；pytest 7 用例全绿，ruff/mypy(strict) 通过。
+> （TASK-036、PROMPT-POLICY 13、SCORING-SPEC 10）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。
