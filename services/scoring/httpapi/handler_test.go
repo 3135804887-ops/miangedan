@@ -17,6 +17,7 @@ type stubApp struct {
 	items   []scoring.Result
 	next    string
 	err     error
+	review  scoring.ReviewResult
 	queried []string
 }
 
@@ -38,6 +39,15 @@ func (s *stubApp) ListVersions(
 		return nil, "", s.err
 	}
 	return s.items, s.next, nil
+}
+
+func (s *stubApp) Review(
+	_ context.Context, _ scoring.Actor, _ scoring.ReviewRequest,
+) (scoring.ReviewResult, error) {
+	if s.err != nil {
+		return scoring.ReviewResult{}, s.err
+	}
+	return s.review, nil
 }
 
 type stubAuth struct{}
@@ -125,15 +135,61 @@ func TestListScoreVersionsInvalidLimit(t *testing.T) {
 	}
 }
 
-func TestReviewNotImplemented(t *testing.T) {
-	handler := newTestHandler(&stubApp{})
+func TestReviewAccepted(t *testing.T) {
+	app := &stubApp{review: scoring.ReviewResult{
+		Reason: "正式复核：重算结果与原始一致；历史版本保留",
+		Review: scoring.Result{
+			ScoreID: "review-1", ScoreVersion: 2,
+			ProjectID: "p1", RoundSequence: 1, DataRegion: "cn",
+			ResultStatus: scoring.ResultPass,
+		},
+	}}
+	handler := newTestHandler(app)
 	req := httptest.NewRequest(http.MethodPost,
-		"/v1/projects/p1/rounds/1/review", strings.NewReader(`{}`))
+		"/v1/projects/p1/rounds/1/review",
+		strings.NewReader(`{"attempt_id":"00000000-0000-4000-8000-00000000a001","scope":"round"}`))
 	req.Header.Set("Authorization", "Bearer test-token")
+	req.Header.Set("Idempotency-Key", "review-idem-001")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotImplemented {
-		t.Fatalf("正式复核未实现应 501，实际 %d", rec.Code)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("复核应 202，实际 %d：%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("响应不是 JSON: %v", err)
+	}
+	if body["task_type"] != "review" || body["status"] != "succeeded" {
+		t.Fatalf("异步任务字段异常：%v", body)
+	}
+	if body["review_result"] == nil {
+		t.Fatal("202 响应必须包含 review_result（前后对比）")
+	}
+}
+
+func TestReviewConflictAlreadyReviewed(t *testing.T) {
+	handler := newTestHandler(&stubApp{err: scoring.ErrReviewLimit})
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/projects/p1/rounds/1/review",
+		strings.NewReader(`{"attempt_id":"00000000-0000-4000-8000-00000000a001","scope":"round"}`))
+	req.Header.Set("Authorization", "Bearer test-token")
+	req.Header.Set("Idempotency-Key", "review-idem-002")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("二次复核应 409，实际 %d", rec.Code)
+	}
+}
+
+func TestReviewRequiresIdempotencyKey(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost,
+		"/v1/projects/p1/rounds/1/review",
+		strings.NewReader(`{"attempt_id":"00000000-0000-4000-8000-00000000a001","scope":"round"}`))
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	newTestHandler(&stubApp{}).ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("缺幂等键应 400，实际 %d", rec.Code)
 	}
 }
 

@@ -12,6 +12,9 @@ type MemoryStore struct {
 	byIDem    map[string]Result
 	byKey     map[string][]Result
 	byAttempt map[string][]Result
+	inputs    map[string]Input
+	reviews   map[string]int
+	byReview  map[string]ReviewResult
 }
 
 // NewMemoryStore 创建空内存评分存储。
@@ -20,6 +23,9 @@ func NewMemoryStore() *MemoryStore {
 		byIDem:    make(map[string]Result),
 		byKey:     make(map[string][]Result),
 		byAttempt: make(map[string][]Result),
+		inputs:    make(map[string]Input),
+		reviews:   make(map[string]int),
+		byReview:  make(map[string]ReviewResult),
 	}
 }
 
@@ -112,4 +118,70 @@ func (m *MemoryStore) ListVersions(
 		next = strconv.Itoa(end)
 	}
 	return out, next, nil
+}
+
+// SaveInput 保存冻结输入（复核必须使用完全相同的输入）。
+func (m *MemoryStore) SaveInput(dataRegion, scoreID string, in Input) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.inputs[dataRegion+"|"+scoreID] = in
+	return nil
+}
+
+// GetInput 读取冻结输入。
+func (m *MemoryStore) GetInput(dataRegion, scoreID string) (Input, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	in, ok := m.inputs[dataRegion+"|"+scoreID]
+	if !ok {
+		return Input{}, ErrNotFound
+	}
+	return in, nil
+}
+
+// GetFirstByAttempt 查询该次正式尝试的首个 ScoreVersion（复核基准）。
+func (m *MemoryStore) GetFirstByAttempt(dataRegion, attemptID string) (Result, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.byAttempt[dataRegion+"|"+attemptID]
+	if len(items) == 0 {
+		return Result{}, ErrNotFound
+	}
+	return items[0], nil
+}
+
+// CountReviews 统计某次正式尝试的复核次数（每次正式尝试仅一次）。
+func (m *MemoryStore) CountReviews(dataRegion, attemptID string) (int, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.reviews[dataRegion+"|"+attemptID], nil
+}
+
+// MarkReview 登记一次复核（只增；无回退路径）。
+func (m *MemoryStore) MarkReview(dataRegion, attemptID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.reviews[dataRegion+"|"+attemptID]++
+	return nil
+}
+
+// SaveReview 保存复核结果（幂等键去重由服务层保证）。
+func (m *MemoryStore) SaveReview(dataRegion, idempotencyKey string, r ReviewResult) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.byReview[dataRegion+"|"+idempotencyKey] = r
+	return nil
+}
+
+// GetReviewByIdempotencyKey 幂等键查询复核结果。
+func (m *MemoryStore) GetReviewByIdempotencyKey(
+	dataRegion, idempotencyKey string,
+) (ReviewResult, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r, ok := m.byReview[dataRegion+"|"+idempotencyKey]
+	if !ok {
+		return ReviewResult{}, ErrNotFound
+	}
+	return r, nil
 }

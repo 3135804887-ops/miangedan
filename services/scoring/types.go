@@ -270,3 +270,31 @@ type Result struct {
 	VersionLineage   VersionLineage    `json:"version_lineage"`
 	ComputedAt       time.Time         `json:"computed_at"`
 }
+
+// ReviewRequest 为正式复核请求（SCORING-SPEC 6.10；每次正式尝试仅一次）。
+// 复核输入 = 与原始评分完全相同的冻结证据、量表、权重与版本。
+type ReviewRequest struct {
+	ProjectID      string `json:"project_id"`
+	RoundSequence  int    `json:"round_sequence"`
+	AttemptID      string `json:"attempt_id"`
+	Scope          string `json:"scope"` // question | dimension | round
+	RequestID      string `json:"request_id"`
+	IdempotencyKey string `json:"idempotency_key"`
+}
+
+// DimensionChange 为复核前后单维对比。
+type DimensionChange struct {
+	Dimension    DimensionKey `json:"dimension"`
+	BeforeScore  *int         `json:"before"`
+	AfterScore   *int         `json:"after"`
+	BeforeStatus ScoreStatus  `json:"status_before"`
+	AfterStatus  ScoreStatus  `json:"status_after"`
+}
+
+// ReviewResult 为正式复核结果（前后对比 + 原因；全部版本保留）。
+type ReviewResult struct {
+	Original Result            `json:"original"`
+	Review   Result            `json:"review"`
+	Changes  []DimensionChange `json:"changes"`
+	Reason   string            `json:"reason"`
+}

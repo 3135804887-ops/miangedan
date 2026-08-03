@@ -2931,6 +2931,33 @@ export interface components {
             progress_note?: string | null;
             data_region?: components["schemas"]["Region"];
         };
+        /** @description 正式复核接受响应（同步重算完成；SCORING-SPEC 6.10） */
+        ReviewAccepted: {
+            /** Format: uuid */
+            task_id: string;
+            /** @constant */
+            task_type: "review";
+            /** @constant */
+            status: "succeeded";
+            progress_note?: string | null;
+            data_region?: components["schemas"]["Region"];
+            review_result: components["schemas"]["ReviewResult"];
+        };
+        /** @description 复核前后对比（原结果、新结果与原因；全部版本保留） */
+        ReviewResult: {
+            original: components["schemas"]["ScoreResult"];
+            review: components["schemas"]["ScoreResult"];
+            changes: {
+                dimension: components["schemas"]["DimensionKey"];
+                before?: number | null;
+                after?: number | null;
+                /** @enum {unknown} */
+                status_before: "scored" | "insufficient_evidence" | "uncovered" | "not_applicable" | "locked_carried";
+                /** @enum {unknown} */
+                status_after: "scored" | "insufficient_evidence" | "uncovered" | "not_applicable" | "locked_carried";
+            }[];
+            reason: string;
+        };
         ProviderInfo: {
             provider_id: string;
             /** @enum {unknown} */
@@ -5991,13 +6018,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 复核任务已创建（异步；产生新 ScoreVersion） */
+            /** @description 复核完成（同步重算；产生新 ScoreVersion，附前后对比） */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AsyncTask"];
+                    "application/json": components["schemas"]["ReviewAccepted"];
                 };
             };
             /** @description 本次尝试已复核过（state_conflict） */

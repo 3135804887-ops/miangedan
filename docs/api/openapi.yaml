@@ -1806,7 +1806,7 @@ paths:
                 attempt_id: { type: string, format: uuid }
                 scope: { enum: [question, dimension, round], description: 复核范围声明（计算均基于完整冻结输入） }
       responses:
-        '202': { description: 复核任务已创建（异步；产生新 ScoreVersion）, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncTask' } } } }
+        '202': { description: 复核完成（同步重算；产生新 ScoreVersion，附前后对比）, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewAccepted' } } } }
         '409': { description: 本次尝试已复核过（state_conflict）, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         default: { $ref: '#/components/responses/Error' }
 
@@ -3311,6 +3311,36 @@ components:
         status: { enum: [queued, running, succeeded, failed] }
         progress_note: { type: ['string', 'null'], description: 真实进度说明（失败含可重试动作） }
         data_region: { $ref: '#/components/schemas/Region' }
+    ReviewAccepted:
+      type: object
+      description: 正式复核接受响应（同步重算完成；SCORING-SPEC 6.10）
+      required: [task_id, task_type, status, review_result]
+      properties:
+        task_id: { type: string, format: uuid }
+        task_type: { const: review }
+        status: { const: succeeded }
+        progress_note: { type: ['string', 'null'] }
+        data_region: { $ref: '#/components/schemas/Region' }
+        review_result: { $ref: '#/components/schemas/ReviewResult' }
+    ReviewResult:
+      type: object
+      description: 复核前后对比（原结果、新结果与原因；全部版本保留）
+      required: [original, review, changes, reason]
+      properties:
+        original: { $ref: '#/components/schemas/ScoreResult' }
+        review: { $ref: '#/components/schemas/ScoreResult' }
+        changes:
+          type: array
+          items:
+            type: object
+            required: [dimension, status_before, status_after]
+            properties:
+              dimension: { $ref: '#/components/schemas/DimensionKey' }
+              before: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
+              after: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
+              status_before: { enum: [scored, insufficient_evidence, uncovered, not_applicable, locked_carried] }
+              status_after: { enum: [scored, insufficient_evidence, uncovered, not_applicable, locked_carried] }
+        reason: { type: string }
     ProviderInfo:
       type: object
       required: [provider_id, capability, status]

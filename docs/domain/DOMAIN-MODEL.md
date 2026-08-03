@@ -187,7 +187,7 @@ erDiagram
 |---|---|
 | 职责 | 评分服务输出（`ai/schemas/scoring-result.schema.json`）；关联模型/提示词/量表/权重/证据/计算版本；计算由 `services/scoring`（TASK-040）实现 |
 | 不可变字段 | 全部；复核/重评产生新版本（`supersedes_score_id` 链接） |
-| 规则 | 后台与任何接口不得直接编辑分数；系统性偏差只能停用版本并标记受影响项目"评估待复核"+ 免费重试；`idempotency_key` 幂等去重（NFR-006）；服务故障降级 EVALUATION_INCOMPLETE(scoring_service_failure) 不判失败 |
+| 规则 | 后台与任何接口不得直接编辑分数；系统性偏差只能停用版本并标记受影响项目"评估待复核"+ 免费重试；`idempotency_key` 幂等去重（NFR-006）；服务故障降级 EVALUATION_INCOMPLETE(scoring_service_failure) 不判失败；正式复核（TASK-043）每次正式尝试仅一次，以完全相同的冻结输入重算，产出 supersedes 新版本并保留全部历史版本 |
 
 ### 6.13 HandoffPackage（跨轮交接）
 

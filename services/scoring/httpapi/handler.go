@@ -20,6 +20,8 @@ type Application interface {
 	ListVersions(
 		context.Context, scoring.Actor, string, int, int, string,
 	) ([]scoring.Result, string, error)
+	// TASK-043 正式复核（每次正式尝试仅一次）。
+	Review(context.Context, scoring.Actor, scoring.ReviewRequest) (scoring.ReviewResult, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现。
@@ -36,8 +38,7 @@ func New(app Application, authenticator Authenticator, dataRegion string) (http.
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/projects/{projectId}/rounds/{sequence}/result", h.getRoundResult)
 	mux.HandleFunc("GET /v1/projects/{projectId}/rounds/{sequence}/scores", h.listScoreVersions)
-	// 正式复核（TASK-043）：当前为 501 占位，契约见 openapi /review。
-	mux.HandleFunc("POST /v1/projects/{projectId}/rounds/{sequence}/review", h.reviewNotImplemented)
+	mux.HandleFunc("POST /v1/projects/{projectId}/rounds/{sequence}/review", h.review)
 	return mux, nil
 }
 
@@ -119,9 +120,61 @@ func (h *handler) listScoreVersions(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *handler) reviewNotImplemented(w http.ResponseWriter, _ *http.Request) {
-	writeError(w, http.StatusNotImplemented, "not_implemented",
-		"正式复核由 TASK-043 实现（每次正式尝试仅一次）")
+// review 处理正式复核请求（202 AsyncTask + 前后对比；409 表示已复核过）。
+func (h *handler) review(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "缺少有效身份")
+		return
+	}
+	sequence, err := roundSequence(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_parameter", err.Error())
+		return
+	}
+	idemKey := r.Header.Get("Idempotency-Key")
+	if len(idemKey) < 8 || len(idemKey) > 128 {
+		writeError(w, http.StatusBadRequest, "invalid_parameter",
+			"Idempotency-Key 必填（8-128 字符）")
+		return
+	}
+	var body struct {
+		AttemptID string `json:"attempt_id"`
+		Scope     string `json:"scope"`
+	}
+	if err := decode(r, &body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "请求体非法")
+		return
+	}
+	reviewResult, err := h.app.Review(r.Context(), actor, scoring.ReviewRequest{
+		ProjectID:      r.PathValue("projectId"),
+		RoundSequence:  sequence,
+		AttemptID:      body.AttemptID,
+		Scope:          body.Scope,
+		IdempotencyKey: idemKey,
+	})
+	if err != nil {
+		writeReviewError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"task_id":       reviewResult.Review.ScoreID,
+		"task_type":     "review",
+		"status":        "succeeded",
+		"progress_note": "复核完成：产生新 ScoreVersion，前后对比见 review_result",
+		"data_region":   actor.DataRegion,
+		"review_result": reviewResult,
+	})
+}
+
+func decode(r *http.Request, dst any) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, 64<<10)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		return err
+	}
+	return nil
 }
 
 func roundSequence(r *http.Request) (int, error) {
@@ -140,6 +193,21 @@ func writeScoringError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, "invalid_cursor", "游标非法")
 	default:
 		writeError(w, http.StatusInternalServerError, "internal_error", "评分服务错误")
+	}
+}
+
+func writeReviewError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, scoring.ErrReviewLimit):
+		writeError(w, http.StatusConflict, "state_conflict", "本次正式尝试已复核过（仅一次）")
+	case errors.Is(err, scoring.ErrEvidenceMismatch):
+		writeError(w, http.StatusConflict, "evidence_mismatch", "冻结证据散列不一致（疑似篡改，触发安全审计）")
+	case errors.Is(err, scoring.ErrNotFound):
+		writeError(w, http.StatusNotFound, "not_found", "该正式尝试不存在评分结果")
+	case errors.Is(err, scoring.ErrInvalidInput):
+		writeError(w, http.StatusBadRequest, "invalid_parameter", err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "internal_error", "复核服务错误")
 	}
 }
 
