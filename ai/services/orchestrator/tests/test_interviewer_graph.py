@@ -123,3 +123,23 @@ def test_non_convergence_guard() -> None:
         assert "最大步数" in str(exc)
     else:
         raise AssertionError("应触发最大步数保护")
+
+
+def test_response_latency_budget() -> None:
+    """TASK-090 补测（TC-NFR-008-N01）：单回合回应 ≤5s 预算冒烟（P99 上界）。"""
+    import time
+
+    cfg = InterviewerConfig(coverage_priority=("c1", "c2"), max_followups_per_question=1)
+    graph = build_interviewer_graph(cfg)
+    start = time.monotonic()
+    final = graph.invoke(
+        {
+            "turn_index": 1,
+            "coverage_ids": ["c1", "c2"],
+            "remaining_coverage": ["c1", "c2"],
+            "last_answer_quality": "good",
+        }
+    )
+    elapsed = time.monotonic() - start
+    assert final["phase"] == "complete"
+    assert elapsed <= 5.0

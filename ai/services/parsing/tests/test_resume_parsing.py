@@ -402,3 +402,16 @@ def test_resume_parsing_security_eval_dataset() -> None:
                     base_version=1,
                     idempotency_key="idem-eval-confirm",
                 )
+
+
+def test_parse_within_budget() -> None:
+    """TASK-090 补测（TC-NFR-015-N01）：10MB 内简历解析 ≤60s 预算冒烟。"""
+    import time
+
+    text = (FIXTURES / "resume-zh-01.md").read_text(encoding="utf-8")
+    service, _, _ = make_service(text)
+    start = time.monotonic()
+    task = service.start(start_request())
+    elapsed = time.monotonic() - start
+    assert task.status.value == "AWAITING_CONFIRMATION"
+    assert elapsed <= 60.0

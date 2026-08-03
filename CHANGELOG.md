@@ -15,6 +15,14 @@
 
 ### Added
 
+- TASK-090 验收矩阵全量映射：新增 `docs/testing/TRACEABILITY-MATRIX.md`
+  （154 个 TC + 24 个 SC-EC → 仓库测试落点），`tools/validate_docs.py` 新增
+  `traceability` 0 失败门禁并挂接 CI 阶段1；补齐 15 个最小用例（新增
+  `services/slo` 模块覆盖 NFR-001~003，evidence/avatar/asr/scoring/orchestrator/parsing
+  补持久化阻塞、建连/回应/评分/报告/解析/计划预算用例）。
+
+### Added
+
 - TASK-085 客服工单（`task/TASK-085-support-tickets` 分支）：
   - `services/adminapi` 工单（FR-039，US-08 场景 4）：默认最小可见（不含
     逐字稿/媒体正文）；逐字稿需用户针对会话授权（范围+有效期，到期失效）；

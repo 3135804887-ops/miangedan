@@ -54,7 +54,7 @@ REQUIRED_FILES = [
     "tools/backup/quarterly-drill-template.md",
     "docs/design/SCREEN-SPEC.md", "docs/design/DESIGN-SYSTEM.md", "docs/design/ACCESSIBILITY.md",
     "docs/testing/ACCEPTANCE-MATRIX.md", "docs/testing/TEST-STRATEGY.md",
-    "docs/testing/RELEASE-CHECKLIST.md",
+    "docs/testing/RELEASE-CHECKLIST.md", "docs/testing/TRACEABILITY-MATRIX.md",
     "config/rubrics/v1/default.yaml", "config/interview-flows/v1/default.yaml",
     "config/safety/policy.yaml", "config/feature-flags.yaml",
     "ai/prompts/README.md",
@@ -199,6 +199,49 @@ def check_coverage() -> None:
                 fail(f"[验收矩阵] {rid} 缺少正常场景用例 TC-{rid}-Nxx")
             if not has_a:
                 fail(f"[验收矩阵] {rid} 缺少异常场景用例 TC-{rid}-Axx")
+
+
+# ---------- 8.5 验收追踪矩阵（TASK-090） ----------
+def check_traceability() -> None:
+    """TRACEABILITY-MATRIX 与 ACCEPTANCE-MATRIX 双向一致且落点真实存在。"""
+    matrix = ROOT / "docs/testing/ACCEPTANCE-MATRIX.md"
+    trace = ROOT / "docs/testing/TRACEABILITY-MATRIX.md"
+    if not matrix.exists() or not trace.exists():
+        fail("[追踪矩阵] ACCEPTANCE-MATRIX.md 或 TRACEABILITY-MATRIX.md 缺失")
+        return
+    matrix_tcs = set(re.findall(r"TC-(?:US-\d{2}|FR-\d{3}|NFR-\d{3})-[NA]\d{2}", read(matrix)))
+    mapped_tcs: dict[str, int] = {}
+    references: list[tuple[str, str]] = []
+    for line in read(trace).splitlines():
+        if not line.startswith("| TC-"):
+            continue
+        cols = [c.strip() for c in line.strip("|").split("|")]
+        tc = cols[0]
+        mapped_tcs[tc] = mapped_tcs.get(tc, 0) + 1
+        for col in cols[1:]:
+            for ref in re.findall(
+                r"[\w./-]+\.(?:go|py|tsx|ts|mjs)(?:::[\w.]+)?|tools/validate_docs\.py(?:::[\w.]+)?",
+                col,
+            ):
+                references.append((tc, ref))
+    missing = matrix_tcs - set(mapped_tcs)
+    extra = set(mapped_tcs) - matrix_tcs
+    dupes = [tc for tc, n in mapped_tcs.items() if n > 1]
+    for tc in sorted(missing):
+        fail(f"[追踪矩阵] 验收矩阵 TC {tc} 未映射到 TRACEABILITY-MATRIX")
+    for tc in sorted(extra):
+        fail(f"[追踪矩阵] 映射表出现验收矩阵不存在的 TC {tc}")
+    for tc in sorted(dupes):
+        fail(f"[追踪矩阵] TC {tc} 在映射表重复出现（每项必须恰好一行）")
+    for tc, ref in references:
+        path_part, _, symbol = ref.partition("::")
+        if "manual_review" in ref:
+            continue
+        p = ROOT / path_part
+        if not p.exists():
+            fail(f"[追踪矩阵] {tc} 落点文件不存在：{path_part}")
+        elif symbol and symbol not in read(p):
+            fail(f"[追踪矩阵] {tc} 落点符号缺失：{ref}")
 
 
 # ---------- 9. 跨文件一致性 ----------
@@ -870,6 +913,7 @@ SUITES = [
     ("fences", "代码块闭合", check_fences),
     ("placeholders", "占位符", check_placeholders),
     ("coverage", "需求覆盖", check_coverage),
+    ("traceability", "验收追踪", check_traceability),
     ("consistency", "跨文件一致性", check_consistency),
     ("semantics", "配置语义", check_semantics),
     ("regions", "区域拓扑", check_regions),
