@@ -2637,6 +2637,17 @@ export interface components {
                 is_critical?: boolean;
             }[];
             weak_dimensions?: components["schemas"]["DimensionKey"][];
+            /** @description 双门槛判定（SCORING-SPEC 6.6；评估未完成时为 null） */
+            gate_result?: {
+                total_gate_passed?: boolean | null;
+                critical_gate_passed?: boolean | null;
+                failed_critical_dimensions?: components["schemas"]["DimensionKey"][];
+                weak_dimensions?: components["schemas"]["DimensionKey"][];
+                insufficient_dimensions?: components["schemas"]["DimensionKey"][];
+                uncovered_dimensions?: components["schemas"]["DimensionKey"][];
+            };
+            /** @enum {string|null} */
+            incomplete_reason?: "insufficient_evidence" | "scoring_service_failure" | "unrecoverable_transcript" | "user_exit" | "system_fault" | null;
             rubric_version?: string;
             /** @description 可解释评分（对齐 scoring-result.schema.json） */
             explanations?: {

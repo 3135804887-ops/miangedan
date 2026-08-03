@@ -401,6 +401,24 @@
 | TASK-044 | 量表/权重版本化与公平性监控（语言、口音、输入模式、便利设置切分） | FR-038 部分 | TASK-040 | 历史分数不因版本升级被修改 |
 | TASK-045 | 评分稳定性回归：重复评分 95% 维度差 ≤3 分、及格结论一致率 ≥98% | 硬门槛 | TASK-040、TASK-036 | 回归报告达标才可进入 Beta |
 
+> **任务状态（2026-08-03 更新）**：TASK-040 已实现（FR-021）——新 Go 模块
+> `services/scoring`（仅依赖 region，登记 go.work 与 CI golangci 矩阵）：
+> SCORING-SPEC 6.1-6.7 伪代码逐条实现。六维证据状态机（scored /
+> insufficient_evidence / uncovered / not_applicable / locked_carried）；
+> 锚点映射 1→20…5→100 与相邻锚点插值（必须引用锚点等级与证据 ID，缺失回退
+> 下锚点，SC-EC-20）；覆盖率 ≥0.5 证据充分度；关键转写 unrecoverable →
+> EVALUATION_INCOMPLETE(unrecoverable_transcript)；沟通维度 voice 公式
+> （0.6×structure_clarity + 0.4×oral_delivery，half-up 取整）；双门槛
+> round_total ≥60 且全部关键维度 ≥60（取整后比较，OD-07）；非关键弱项只记录、
+> 非关键未覆盖按已评分维度归一化；正式重试锁定沿用/失败维度新分替换/矛盾解锁重评
+> （6.7）；`idempotency_key` 幂等（NFR-006，重复提交不产生新版本）；
+> 持久化故障/panic 降级 EVALUATION_INCOMPLETE(scoring_service_failure)
+> 不判失败、不落库、恢复可重算（SC-EC-18）。HTTP：result/scores 分页落地，
+> review 为 TASK-043 501 占位；scoring-input schema 增加 coverage_assessments
+> 冻结判定结构。SC-EC-01~08/13/14/18/20/24 等边界案例回归 + 正常/异常/幂等/
+> 故障恢复测试齐备（服务 20 用例 + HTTP 6 用例），gofmt/vet 通过。
+> （TASK-040、FR-021、SCORING-SPEC、NFR-006）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。

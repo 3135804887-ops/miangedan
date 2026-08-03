@@ -53,6 +53,41 @@
         ]
       }
     },
+    "coverage_assessments": {
+      "type": "array",
+      "description": "冻结的覆盖点评分判定（证据提取层产出；评分服务只消费）。必须包含冻结计划中该维度全部覆盖点（含未作答），weight_in_dimension 来自计划；SCORING-SPEC 6.2/6.3",
+      "items": {
+        "type": "object",
+        "required": ["coverage_id", "dimension", "weight_in_dimension", "answer_status"],
+        "properties": {
+          "coverage_id": { "type": "string" },
+          "dimension": { "enum": ["professional_competence", "problem_solving", "communication", "experience_evidence", "behavioral_collaboration", "learning_adaptability"] },
+          "evidence_ids": { "type": "array", "items": { "type": "string" } },
+          "weight_in_dimension": { "type": "integer", "minimum": 0 },
+          "answer_status": { "enum": ["answered", "partial", "skipped", "unrecoverable"] },
+          "is_key_transcript": { "type": "boolean", "default": false },
+          "input_mode": { "enum": ["voice", "text", "mixed"] },
+          "anchor_level": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "interpolated_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "anchor_citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["anchor_levels", "evidence_ids"],
+              "properties": {
+                "anchor_levels": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "type": "integer", "minimum": 1, "maximum": 5 } },
+                "evidence_ids": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+                "rationale": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "structure_clarity": { "type": "integer", "minimum": 0, "maximum": 100, "description": "沟通维度子项（6.4）" },
+          "oral_delivery": { "type": "integer", "minimum": 0, "maximum": 100, "description": "语音证据子项；文字模式不携带" }
+        },
+        "additionalProperties": false
+      }
+    },
     "locked_dimension_scores": {
       "type": "array",
       "description": "正式重试时：来自前次尝试的锁定维度分（≥60 且无矛盾）",

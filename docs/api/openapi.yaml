@@ -3089,6 +3089,17 @@ components:
               score: { type: ['integer', 'null'], minimum: 0, maximum: 100 }
               is_critical: { type: boolean }
         weak_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+        gate_result:
+          type: object
+          description: 双门槛判定（SCORING-SPEC 6.6；评估未完成时为 null）
+          properties:
+            total_gate_passed: { type: ['boolean', 'null'] }
+            critical_gate_passed: { type: ['boolean', 'null'] }
+            failed_critical_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+            weak_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+            insufficient_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+            uncovered_dimensions: { type: array, items: { $ref: '#/components/schemas/DimensionKey' } }
+        incomplete_reason: { type: ['string', 'null'], enum: [insufficient_evidence, scoring_service_failure, unrecoverable_transcript, user_exit, system_fault, null] }
         rubric_version: { type: string }
         explanations: { type: ['object', 'null'], additionalProperties: true, description: 可解释评分（对齐 scoring-result.schema.json） }
         input_mode_notes: { type: ['string', 'null'] }
