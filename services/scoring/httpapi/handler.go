@@ -22,6 +22,8 @@ type Application interface {
 	) ([]scoring.Result, string, error)
 	// TASK-043 正式复核（每次正式尝试仅一次）。
 	Review(context.Context, scoring.Actor, scoring.ReviewRequest) (scoring.ReviewResult, error)
+	// TASK-053 正式重试（新题/维度锁定/矛盾解锁重评）。
+	BeginRetry(context.Context, scoring.Actor, scoring.BeginRetryRequest) (scoring.RetryAttempt, error)
 }
 
 // Authenticator 由 TASK-010 identity 服务实现。
@@ -39,6 +41,7 @@ func New(app Application, authenticator Authenticator, dataRegion string) (http.
 	mux.HandleFunc("GET /v1/projects/{projectId}/rounds/{sequence}/result", h.getRoundResult)
 	mux.HandleFunc("GET /v1/projects/{projectId}/rounds/{sequence}/scores", h.listScoreVersions)
 	mux.HandleFunc("POST /v1/projects/{projectId}/rounds/{sequence}/review", h.review)
+	mux.HandleFunc("POST /v1/projects/{projectId}/rounds/{sequence}/retry", h.startRetry)
 	return mux, nil
 }
 
@@ -167,6 +170,36 @@ func (h *handler) review(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// startRetry 发起正式重试（201 RetryAttempt；409 当前状态不允许重试）。
+func (h *handler) startRetry(w http.ResponseWriter, r *http.Request) {
+	actor, err := h.actor(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "缺少有效身份")
+		return
+	}
+	sequence, err := roundSequence(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_parameter", err.Error())
+		return
+	}
+	idemKey := r.Header.Get("Idempotency-Key")
+	if len(idemKey) < 8 || len(idemKey) > 128 {
+		writeError(w, http.StatusBadRequest, "invalid_parameter",
+			"Idempotency-Key 必填（8-128 字符）")
+		return
+	}
+	attempt, err := h.app.BeginRetry(r.Context(), actor, scoring.BeginRetryRequest{
+		ProjectID:      r.PathValue("projectId"),
+		RoundSequence:  sequence,
+		IdempotencyKey: idemKey,
+	})
+	if err != nil {
+		writeRetryError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, attempt)
+}
+
 func decode(r *http.Request, dst any) error {
 	r.Body = http.MaxBytesReader(nil, r.Body, 64<<10)
 	dec := json.NewDecoder(r.Body)
@@ -208,6 +241,19 @@ func writeReviewError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, "invalid_parameter", err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, "internal_error", "复核服务错误")
+	}
+}
+
+func writeRetryError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, scoring.ErrStateConflict):
+		writeError(w, http.StatusConflict, "state_conflict", "当前轮状态不允许正式重试")
+	case errors.Is(err, scoring.ErrNotFound):
+		writeError(w, http.StatusNotFound, "not_found", "该轮不存在可重试的正式评分结果")
+	case errors.Is(err, scoring.ErrInvalidInput):
+		writeError(w, http.StatusBadRequest, "invalid_parameter", err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "internal_error", "重试服务错误")
 	}
 }
 

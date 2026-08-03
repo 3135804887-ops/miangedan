@@ -15,6 +15,17 @@
 
 ### Added
 
+- TASK-053 正式重试（`task/TASK-053-formal-retry` 分支）：
+  - `services/scoring` 正式重试流（FR-024，SCORING-SPEC 6.7）：`BeginRetry`
+    （仅 FAIL/EVALUATION_INCOMPLETE；locked=≥60、rescope=失败∪未覆盖；
+    状态机 + 幂等）；`SelectRetryQuestions`（语义去重不重复已通过问题，
+    direct_contradiction / new_job_scenario_transfer 例外允许主题重验但
+    相同措辞丢弃）；`ScoreRetry`（新分替换旧分、锁定沿用、矛盾旧+新证据
+    重评、新证据引用必达、历史版本保留；未登记尝试拒绝=练习隔离）。
+  - HTTP `/v1/projects/{projectId}/rounds/{sequence}/retry` 落地（201/409/404）；
+    迁移 `0053_retry_attempts.sql`；DOMAIN-MODEL §6.14 同步。
+  - 服务/HTTP 正常、异常、幂等、语义去重、矛盾解锁端到端测试齐备（新增 7 用例）。
+    （TASK-053、FR-024、SCORING-SPEC 6.7）
 - TASK-052 AI 教练练习（`task/TASK-052-training-coach` 分支）：
   - `mgd_orchestrator.training_coach`（FR-024，US-04 场景 3）：原题/变体/框架/
     示例练习项（变体只关联已考覆盖点，不预演后续轮次）；逐步反馈
