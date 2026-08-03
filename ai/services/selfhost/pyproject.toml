@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mgd-selfhost"
+version = "0.1.0"
+description = "面个蛋自建 AI 推理服务（ASR/TTS）：本地开发用轻量后端，生产可切换 FunASR/CosyVoice"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "python-multipart>=0.0.9,<1",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+asr-whisper = ["faster-whisper>=1.1"]
+tts-piper = ["piper-tts>=1.6"]
+dev = ["ruff>=0.9", "mypy>=1.14", "pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "S", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.File", "fastapi.Form"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["fastapi.*", "uvicorn.*", "httpx.*", "numpy.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
