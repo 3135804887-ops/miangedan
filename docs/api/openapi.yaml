@@ -2749,6 +2749,62 @@ paths:
       responses:
         '200': { description: 审计分页, content: { application/json: { schema: { type: object, properties: { data_region: { $ref: '#/components/schemas/Region' }, items: { type: array, items: { $ref: '#/components/schemas/AuditLog' } }, next_cursor: { type: ['string', 'null'] } } } } } }
         default: { $ref: '#/components/responses/Error' }
+  /v1/admin/break-glass:
+    post:
+      tags: [admin]
+      operationId: openBreakGlass
+      summary: 破窗访问（限重大安全/法律事件；限定理由与时长 ≤8h；事后复核；写审计与通知）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_user_id, reason, duration_minutes]
+              properties:
+                target_user_id: { type: string, format: uuid }
+                reason: { type: string }
+                duration_minutes: { type: integer, minimum: 1, maximum: 480 }
+                target_ref: { type: ['string', 'null'] }
+      responses:
+        '201': { description: 已开启, content: { application/json: { schema: { $ref: '#/components/schemas/BreakGlassAccess' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/break-glass/{glassId}:
+    get:
+      tags: [admin]
+      operationId: getBreakGlass
+      summary: 破窗访问详情与状态（open/reviewed/expired）
+      parameters:
+        - name: glassId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 破窗详情, content: { application/json: { schema: { $ref: '#/components/schemas/BreakGlassAccess' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /v1/admin/break-glass/{glassId}/review:
+    post:
+      tags: [admin]
+      operationId: reviewBreakGlass
+      summary: 破窗事后复核（72 小时内；复核人不得与开启者相同；追加式）
+      parameters:
+        - name: glassId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { enum: [approved, rejected] }
+                note: { type: ['string', 'null'] }
+      responses:
+        '201': { description: 已复核, content: { application/json: { schema: { $ref: '#/components/schemas/BreakGlassReview' } } } }
+        default: { $ref: '#/components/responses/Error' }
 
 components:
   securitySchemes:
@@ -3925,6 +3981,29 @@ components:
         asset_key: { type: string }
         version_id: { type: string, format: uuid }
         pinned_at: { type: string, format: date-time }
+    BreakGlassAccess:
+      type: object
+      required: [glass_id, target_user_id, reason, duration_minutes, status]
+      properties:
+        glass_id: { type: string, format: uuid }
+        target_user_id: { type: string, format: uuid }
+        reason: { type: string }
+        duration_minutes: { type: integer, minimum: 1, maximum: 480 }
+        status: { enum: [open, reviewed, expired] }
+        opened_by: { type: string }
+        opened_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        data_region: { $ref: '#/components/schemas/Region' }
+    BreakGlassReview:
+      type: object
+      required: [review_id, glass_id, reviewer_id, decision, reviewed_at]
+      properties:
+        review_id: { type: string, format: uuid }
+        glass_id: { type: string, format: uuid }
+        reviewer_id: { type: string }
+        decision: { enum: [approved, rejected] }
+        note: { type: ['string', 'null'] }
+        reviewed_at: { type: string, format: date-time }
     AuditLog:
       type: object
       required: [audit_id, actor_role, action, occurred_at]

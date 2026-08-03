@@ -14,6 +14,8 @@ type MemoryStore struct {
 	versionByKey map[string]ArtifactVersion
 	pins         map[string]VersionPin
 	activeSess   map[string]bool
+	breakGlass   map[string]BreakGlass
+	glassReviews map[string][]BreakGlassReview
 }
 
 // NewMemoryStore 创建空内存存储。
@@ -27,6 +29,8 @@ func NewMemoryStore() *MemoryStore {
 		versionByKey: make(map[string]ArtifactVersion),
 		pins:         make(map[string]VersionPin),
 		activeSess:   make(map[string]bool),
+		breakGlass:   make(map[string]BreakGlass),
+		glassReviews: make(map[string][]BreakGlassReview),
 	}
 }
 
@@ -210,4 +214,54 @@ func (m *MemoryStore) HasActiveSession(dataRegion, projectID string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.activeSess[dataRegion+"|"+projectID]
+}
+
+// SaveBreakGlass 插入破窗访问记录（INSERT only）。
+func (m *MemoryStore) SaveBreakGlass(g BreakGlass) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.breakGlass[g.DataRegion+"|"+g.GlassID] = g
+	return nil
+}
+
+// GetBreakGlass 查询破窗访问。
+func (m *MemoryStore) GetBreakGlass(dataRegion, glassID string) (BreakGlass, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	g, ok := m.breakGlass[dataRegion+"|"+glassID]
+	if !ok {
+		return BreakGlass{}, ErrNotFound
+	}
+	return g, nil
+}
+
+// ListBreakGlassByTarget 列出目标用户破窗记录（敏感访问通知用）。
+func (m *MemoryStore) ListBreakGlassByTarget(dataRegion, targetUserID string) ([]BreakGlass, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]BreakGlass, 0)
+	for _, g := range m.breakGlass {
+		if g.DataRegion == dataRegion && g.TargetUserID == targetUserID {
+			out = append(out, g)
+		}
+	}
+	return out, nil
+}
+
+// AppendBreakGlassReview 追加破窗复核（INSERT only）。
+func (m *MemoryStore) AppendBreakGlassReview(r BreakGlassReview) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.glassReviews[r.GlassID] = append(m.glassReviews[r.GlassID], r)
+	return nil
+}
+
+// ListBreakGlassReviews 查询破窗复核。
+func (m *MemoryStore) ListBreakGlassReviews(glassID string) ([]BreakGlassReview, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	items := m.glassReviews[glassID]
+	out := make([]BreakGlassReview, len(items))
+	copy(out, items)
+	return out, nil
 }

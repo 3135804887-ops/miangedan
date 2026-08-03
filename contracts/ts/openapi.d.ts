@@ -2279,6 +2279,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/break-glass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 破窗访问（限重大安全/法律事件；限定理由与时长 ≤8h；事后复核；写审计与通知） */
+        post: operations["openBreakGlass"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/break-glass/{glassId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 破窗访问详情与状态（open/reviewed/expired） */
+        get: operations["getBreakGlass"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/break-glass/{glassId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 破窗事后复核（72 小时内；复核人不得与开启者相同；追加式） */
+        post: operations["reviewBreakGlass"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3582,6 +3633,34 @@ export interface components {
             version_id: string;
             /** Format: date-time */
             pinned_at: string;
+        };
+        BreakGlassAccess: {
+            /** Format: uuid */
+            glass_id: string;
+            /** Format: uuid */
+            target_user_id: string;
+            reason: string;
+            duration_minutes: number;
+            /** @enum {unknown} */
+            status: "open" | "reviewed" | "expired";
+            opened_by?: string;
+            /** Format: date-time */
+            opened_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            data_region?: components["schemas"]["Region"];
+        };
+        BreakGlassReview: {
+            /** Format: uuid */
+            review_id: string;
+            /** Format: uuid */
+            glass_id: string;
+            reviewer_id: string;
+            /** @enum {unknown} */
+            decision: "approved" | "rejected";
+            note?: string | null;
+            /** Format: date-time */
+            reviewed_at: string;
         };
         AuditLog: {
             /** Format: uuid */
@@ -8284,6 +8363,91 @@ export interface operations {
                         items?: components["schemas"]["AuditLog"][];
                         next_cursor?: string | null;
                     };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    openBreakGlass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    target_user_id: string;
+                    reason: string;
+                    duration_minutes: number;
+                    target_ref?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 已开启 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakGlassAccess"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getBreakGlass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                glassId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 破窗详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakGlassAccess"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    reviewBreakGlass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                glassId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {unknown} */
+                    decision: "approved" | "rejected";
+                    note?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 已复核 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreakGlassReview"];
                 };
             };
             default: components["responses"]["Error"];

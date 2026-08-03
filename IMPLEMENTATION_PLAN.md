@@ -742,6 +742,19 @@
 > gofmt/vet 通过。
 > （TASK-081、FR-038、PROVIDER-ADAPTERS、TASK-031 pinned）
 
+> **任务状态（2026-08-03 更新）**：TASK-082 已实现（FR-039，US-08 场景 3）——
+> `services/adminapi` 禁止改分的系统级约束：AttemptScoreWrite 对编辑分数/解锁/
+> 改证据一律拒绝并写审计（无任何分数修改存储路径，与前端 control-registry 红线
+> 呼应）；正式复核为个体结果唯一入口（常量声明 + 无 score 写端点）；
+> 破窗访问流程（限重大安全/法律事件、理由+时长 ≤8h、72h 内事后复核、开启者不可
+> 自审、到期自动 expired、目标用户敏感访问记录可查、通知由上层触发）；
+> break_glass 与审计存储仅 SELECT/INSERT（状态由追加式评审事件推导，
+> 测试反射断言无 Update/Delete 修改路径）。迁移 `0070_break_glass.sql`；
+> openapi 增加 break-glass 端点与 schema。
+> 服务正常、异常、自审拒绝、超窗拒绝、到期、无修改路径测试齐备（新增 4 用例），
+> gofmt/vet 通过。
+> （TASK-082、FR-039、AGENTS.md §2）
+
 ### EPIC-10 上线验证（Phase 0–4 门槛）
 
 目标：把 PRD 发布阶段退出条件转化为可执行验证任务；P0 风险未关闭禁止发布。
