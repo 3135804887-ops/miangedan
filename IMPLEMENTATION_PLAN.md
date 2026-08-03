@@ -419,6 +419,15 @@
 > 故障恢复测试齐备（服务 20 用例 + HTTP 6 用例），gofmt/vet 通过。
 > （TASK-040、FR-021、SCORING-SPEC、NFR-006）
 
+> **任务状态（2026-08-03 更新）**：TASK-041 已实现（沟通维度规则，SCORING-SPEC 6.4）——
+> `services/scoring` 输入模式归一化：voice 公式 0.6×structure_clarity + 0.4×oral_delivery；
+> 文字模式 communication = structure_clarity，oral_delivery 标记 `not_evaluated`
+> （不记 0、不扣分，SC-EC-09），报告标注输入模式与证据限制（input_mode_notes）；
+> 混合模式按语音/文字有效证据占比合并（SC-EC-10：0.6×80 + 0.4×60 = 72），
+> 语音占比 mixed_mode_voice_share 缺失即拒绝；摄像头开关与便利设置只记录、
+> 不进入评分证据（SC-EC-11/12）。SC-EC-09/10/11/12 + 异常（缺语音占比）测试
+> 全绿，gofmt/vet 通过。（TASK-041、SCORING-SPEC 6.4）
+
 ### EPIC-06 报告与训练
 
 目标：完整/部分报告、练习隔离、正式重试与维度锁定闭环。

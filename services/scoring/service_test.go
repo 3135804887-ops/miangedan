@@ -480,11 +480,6 @@ func TestInvalidInputsRejected(t *testing.T) {
 			in.CoverageAssessments = []CoverageAssessment{assessment(DimProfessional, AnswerAnswered, 9, 1)}
 			return in
 		}(),
-		"文字模式未实现": func() Input {
-			in := baseInput()
-			in.InputModeContext.CommunicationMode = ModeText
-			return in
-		}(),
 		"正式复核未实现": func() Input {
 			in := baseInput()
 			in.IsFormalReview = true
@@ -500,6 +495,139 @@ func TestInvalidInputsRejected(t *testing.T) {
 		if _, err := svc.Score(context.Background(), testActor, in); err == nil {
 			t.Fatalf("用例 %q 必须拒绝", name)
 		}
+	}
+}
+
+// SC-EC-09：文字模式 structure_clarity=70 → communication=70；oral_delivery=not_evaluated（不记 0）。
+func TestSCEC09TextModeNotEvaluatedNotZero(t *testing.T) {
+	svc, _ := newTestService(t)
+	in := baseInput()
+	in.InputModeContext = InputModeContext{
+		CommunicationMode:      ModeText,
+		ModesUsed:              []string{"text"},
+		AccommodationsInEffect: []string{"text_only"},
+	}
+	in.CoverageAssessments = []CoverageAssessment{
+		assessment(DimProfessional, AnswerAnswered, 3, 1),
+		assessment(DimProblemSolving, AnswerAnswered, 3, 1),
+		assessment(DimCommunication, AnswerAnswered, 3, 1, func(cp *CoverageAssessment) {
+			cp.InputMode = ModeText
+			cp.StructureClarity = intPtr(70)
+		}),
+		assessment(DimExperienceEvidence, AnswerAnswered, 3, 1),
+		assessment(DimBehavioralCollaborate, AnswerAnswered, 3, 1),
+		assessment(DimLearningAdaptability, AnswerAnswered, 3, 1),
+	}
+	result := mustScore(t, svc, in)
+	communication := result.DimensionResults[2]
+	if communication.Score == nil || *communication.Score != 70 {
+		t.Fatalf("文字模式 communication 应等于 structure_clarity=70，实际 %v",
+			communication.Score)
+	}
+	if communication.Subscores == nil {
+		t.Fatal("文字模式必须输出子项")
+	}
+	if communication.Subscores.OralDelivery != "not_evaluated" {
+		t.Fatalf("oral_delivery 应为 not_evaluated（不记 0），实际 %v",
+			communication.Subscores.OralDelivery)
+	}
+	if result.Explanations.InputModeNotes == nil ||
+		!strings.Contains(*result.Explanations.InputModeNotes, "text") {
+		t.Fatalf("报告必须标注文字模式证据限制：%v", result.Explanations.InputModeNotes)
+	}
+	if result.ResultStatus != ResultPass {
+		t.Fatalf("文字模式不因未使用语音扣分，实际 %s", result.ResultStatus)
+	}
+}
+
+// SC-EC-10：混合模式语音占比 0.6（voice 80 / text 60）→ 0.6×80+0.4×60=72。
+func TestSCEC10MixedModeMerge(t *testing.T) {
+	svc, _ := newTestService(t)
+	share := 0.6
+	in := baseInput()
+	in.InputModeContext = InputModeContext{
+		CommunicationMode:   ModeMixed,
+		ModesUsed:           []string{"voice", "text"},
+		MixedModeVoiceShare: &share,
+	}
+	in.CoverageAssessments = []CoverageAssessment{
+		assessment(DimProfessional, AnswerAnswered, 3, 1),
+		assessment(DimProblemSolving, AnswerAnswered, 3, 1),
+		assessment(DimCommunication, AnswerAnswered, 3, 1,
+			func(cp *CoverageAssessment) {
+				cp.InputMode = ModeVoice
+				cp.StructureClarity = intPtr(80)
+				cp.OralDelivery = intPtr(80)
+			}),
+		assessment(DimCommunication, AnswerAnswered, 3, 1,
+			func(cp *CoverageAssessment) {
+				cp.InputMode = ModeText
+				cp.StructureClarity = intPtr(60)
+			}),
+		assessment(DimExperienceEvidence, AnswerAnswered, 3, 1),
+		assessment(DimBehavioralCollaborate, AnswerAnswered, 3, 1),
+		assessment(DimLearningAdaptability, AnswerAnswered, 3, 1),
+	}
+	result := mustScore(t, svc, in)
+	communication := result.DimensionResults[2]
+	if communication.Score == nil || *communication.Score != 72 {
+		t.Fatalf("混合模式应合并为 72，实际 %v", communication.Score)
+	}
+	if result.Explanations.InputModeNotes == nil ||
+		!strings.Contains(*result.Explanations.InputModeNotes, "mixed") {
+		t.Fatalf("报告必须标注混合模式：%v", result.Explanations.InputModeNotes)
+	}
+}
+
+// SC-EC-11：摄像头全程关闭不影响任何维度。
+func TestSCEC11CameraOffNoEffect(t *testing.T) {
+	svc, _ := newTestService(t)
+	in := baseInput()
+	in.InputModeContext.ModesUsed = []string{"voice"} // 无 camera
+	in.CoverageAssessments = voiceAssessments(3)
+	cameraOff := mustScore(t, svc, in)
+	in2 := baseInput()
+	in2.IdempotencyKey = "idem-cam-off"
+	in2.ScoringRequestID = "req-cam-off"
+	in2.AttemptID = "00000000-0000-4000-8000-00000000a004"
+	in2.InputModeContext.ModesUsed = []string{"voice", "camera"}
+	in2.CoverageAssessments = voiceAssessments(3)
+	cameraOn := mustScore(t, svc, in2)
+	if *cameraOff.RoundTotal != *cameraOn.RoundTotal {
+		t.Fatalf("摄像头开关不得影响分数：%d vs %d",
+			*cameraOff.RoundTotal, *cameraOn.RoundTotal)
+	}
+}
+
+// SC-EC-12：便利设置只记录不进入评分证据。
+func TestSCEC12AccommodationsNotEvidence(t *testing.T) {
+	svc, _ := newTestService(t)
+	in := baseInput()
+	in.CoverageAssessments = voiceAssessments(3)
+	baseline := mustScore(t, svc, in)
+	in2 := baseInput()
+	in2.IdempotencyKey = "idem-acc"
+	in2.ScoringRequestID = "req-acc"
+	in2.AttemptID = "00000000-0000-4000-8000-00000000a005"
+	in2.InputModeContext.AccommodationsInEffect = []string{
+		"extended_time", "no_proactive_interruption", "slower_avatar_speech",
+	}
+	in2.CoverageAssessments = voiceAssessments(3)
+	withAccommodations := mustScore(t, svc, in2)
+	if *baseline.RoundTotal != *withAccommodations.RoundTotal {
+		t.Fatalf("便利设置不得进入评分证据：%d vs %d",
+			*baseline.RoundTotal, *withAccommodations.RoundTotal)
+	}
+}
+
+// 异常路径：mixed 缺语音占比必须拒绝。
+func TestMixedModeRequiresVoiceShare(t *testing.T) {
+	svc, _ := newTestService(t)
+	in := baseInput()
+	in.InputModeContext = InputModeContext{CommunicationMode: ModeMixed}
+	in.CoverageAssessments = voiceAssessments(3)
+	if _, err := svc.Score(context.Background(), testActor, in); err == nil {
+		t.Fatal("mixed 模式缺 voice_share 必须拒绝")
 	}
 }
 

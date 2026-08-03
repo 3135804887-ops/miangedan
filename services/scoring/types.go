@@ -173,9 +173,9 @@ type Input struct {
 
 // CommunicationSubscores 为沟通维度子项（6.4；文字模式 oral_delivery=not_evaluated）。
 type CommunicationSubscores struct {
-	StructureClarity         *int `json:"structure_clarity"`
-	OralDelivery             *int `json:"oral_delivery"`
-	OralDeliveryNotEvaluated bool `json:"oral_delivery_not_evaluated"`
+	StructureClarity *int `json:"structure_clarity"`
+	// OralDelivery 为整数分或字符串 "not_evaluated"（文字模式不记 0 分）。
+	OralDelivery any `json:"oral_delivery"`
 }
 
 // DimensionResult 为单维评分结果。

@@ -130,8 +130,17 @@ func validateInput(actor Actor, in Input) error {
 	if in.InterviewLanguage != "zh-CN" && in.InterviewLanguage != "en-US" {
 		return fmt.Errorf("%w: interview_language 必须为 zh-CN | en-US", ErrInvalidInput)
 	}
-	if in.InputModeContext.CommunicationMode != ModeVoice {
-		return fmt.Errorf("%w: 输入模式归一化（text/mixed）由 TASK-041 实现，当前仅支持 voice",
+	if in.InputModeContext.CommunicationMode != ModeVoice &&
+		in.InputModeContext.CommunicationMode != ModeText &&
+		in.InputModeContext.CommunicationMode != ModeMixed {
+		return fmt.Errorf("%w: communication_mode 必须为 voice | text | mixed",
+			ErrInvalidInput)
+	}
+	if in.InputModeContext.CommunicationMode == ModeMixed &&
+		(in.InputModeContext.MixedModeVoiceShare == nil ||
+			*in.InputModeContext.MixedModeVoiceShare < 0 ||
+			*in.InputModeContext.MixedModeVoiceShare > 1) {
+		return fmt.Errorf("%w: mixed 模式必须提供 0-1 的 mixed_mode_voice_share",
 			ErrInvalidInput)
 	}
 	if strings.TrimSpace(in.RubricVersion) == "" {
@@ -423,9 +432,10 @@ func (s *Service) finish(in Input, results map[DimensionKey]DimensionResult) Res
 		GateResult:       gate,
 		ResultStatus:     status,
 		Explanations: Explanations{
-			Summary:      summary,
-			Strengths:    strengths,
-			Improvements: improvements,
+			Summary:        summary,
+			Strengths:      strengths,
+			Improvements:   improvements,
+			InputModeNotes: inputModeNotes(in),
 		},
 		VersionLineage: VersionLineage{
 			ScorerVersion:        ScorerVersion,
@@ -552,6 +562,27 @@ func explainDimensions(results map[DimensionKey]DimensionResult) ([]string, []st
 		}
 	}
 	return strengths, improvements
+}
+
+// inputModeNotes 生成输入模式与证据限制说明（SC-EC-09/10；报告必须标注）。
+func inputModeNotes(in Input) *string {
+	switch in.InputModeContext.CommunicationMode {
+	case ModeText:
+		notes := "输入模式：text——口语表现未评估（not_evaluated，不记 0 分）；" +
+			"沟通维度按结构与清晰度归一化；报告须标注输入模式与证据限制"
+		return &notes
+	case ModeMixed:
+		share := 0.5
+		if in.InputModeContext.MixedModeVoiceShare != nil {
+			share = *in.InputModeContext.MixedModeVoiceShare
+		}
+		notes := fmt.Sprintf(
+			"输入模式：mixed——按语音/文字有效证据占比合并（语音占比 %.2f）；"+
+				"报告须标注混合模式与证据限制", share)
+		return &notes
+	default:
+		return nil
+	}
 }
 
 func uniqueStrings(items []string) []string {
