@@ -15,6 +15,16 @@
 
 ### Added
 
+- TASK-035 提示注入防护与内容安全管道（`task/TASK-035-safety-pipeline` 分支）：
+  - `ai/services/orchestrator` 新增 `mgd_orchestrator.safety_pipeline`（P0 注入风险，
+    US-02 场景 5）：以 `config/safety/policy.yaml` 为唯一事实源；简历/JD/网页/自由文本/
+    工具输出一律视为不可信数据；注入检测（prompt_registry 基线 + 编码混淆 + 工具诱导 +
+    中文宽模式）命中即中和指令并标记 injection_detected；八类禁止内容与动作一一对应
+    policy.yaml，阻断-重生成 ≤3 次、危险/骚扰直接升级人工；评分证据保护属性零携带扫描；
+    审计记录最小化（不含敏感正文）。
+  - 红队回归：zh-core/en-core prompt_injection / protected_attribute 用例与
+    `fixtures/synthetic/jobs/jd-injection-zh.md` 全部阻断/中和；pytest 23 用例全绿，
+    ruff、mypy(strict) 通过。（TASK-035、PROMPT-POLICY、config/safety/policy.yaml）
 - TASK-034 跨轮交接包（`task/TASK-034-handoff-package` 分支）：
   - `ai/services/orchestrator` 新增 `mgd_orchestrator.handoff_generator`（跨轮交接规则）：
     八类必备内容组装（简历/JD 快照引用、轮次纪要、评价、风险、已验证能力、未覆盖点、
