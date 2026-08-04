@@ -59,6 +59,7 @@
 - 服务器配置模板见 `infra/cloud/`（Caddyfile、mgd-web.service、mgd-selfhost.service、livekit.yaml、compose.yaml、turnserver.conf）。
 - 服务器上的运行时配置若被直接修改，必须同步回 `infra/cloud/` 模板，保持仓库与服务器一致。
 - 前端构建期注入 `NEXT_PUBLIC_SELFHOST_TTS_URL` 与 `NEXT_PUBLIC_SELFHOST_TTS_API_KEY`（构建期内联，systemd 不设该环境变量）。
+- 演示/验收期构建另注入 `NEXT_PUBLIC_MGD_MOCKS=on`（业务数据走 Mock_Layer、AI 语音走真实自建服务）；mgd-api 业务后端上线后去掉该变量，构建期直连真实 API。
 
 ## 9. 部署进度（2026-08-04）
 
