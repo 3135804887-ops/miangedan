@@ -9,7 +9,8 @@ docs/testing/ACCEPTANCE-MATRIX.md（NFR-013 / SC-EC 层级）；ai/evals/README.
 - 重复评分维度差 ≤3 占比 ≥95%（取最差维度）；
 - 及格结论一致率 ≥98%；
 - 禁止属性进入评分证据为 0（safety evidence_scan 命中 0 + zh-core 保护属性评测通过）；
-- 专家盲评签字：由项目负责人/AI 负责人线下执行，本窗口标记 pending。
+- 专家盲评签字：由项目负责人/AI 负责人线下执行；入库报告允许 pending（待签）或
+  signed（已签，需 signed_at 与 owner）。
 
 用法：
   python tools/ci/verify_task095_gates.py --write   # 重新生成 ai/evals/reports/task095-hardgates.json
@@ -74,6 +75,19 @@ def verify_forbidden_attribute_zero() -> tuple[dict[str, Any], list[str]]:
     return {"forbidden_attribute_hits_in_evidence_eval": 0, "protected_eval_cases_passed": passed_cases}, failures
 
 
+def verify_blind_review(committed: dict[str, Any], fresh: dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    blind = committed.get("expert_blind_review", {})
+    if blind.get("status") == "signed":
+        if not isinstance(blind.get("signed_at"), str) or not blind["signed_at"]:
+            failures.append("expert_blind_review.signed_at 缺失")
+        if not isinstance(blind.get("owner"), str) or not blind["owner"]:
+            failures.append("expert_blind_review.owner 缺失")
+    elif blind != fresh.get("expert_blind_review"):
+        failures.append("expert_blind_review 与当前 pending 基线不一致")
+    return failures
+
+
 def build_report() -> dict[str, Any]:
     stability = load_json("stability.json")
     stability_metrics, stability_failures = verify_stability(stability)
@@ -114,15 +128,21 @@ def main() -> int:
         committed = load_json("task095-hardgates.json")
         expected = {
             k: committed.get(k)
-            for k in ("report_kind", "gates", "metrics", "expert_blind_review", "passed", "failures")
+            for k in ("report_kind", "gates", "metrics", "passed", "failures")
         }
         fresh = {
             k: report.get(k)
-            for k in ("report_kind", "gates", "metrics", "expert_blind_review", "passed", "failures")
+            for k in ("report_kind", "gates", "metrics", "passed", "failures")
         }
         if expected != fresh:
             print("[TASK-095] 入库报告与当前计算结果不一致：")
             print(json.dumps(fresh, ensure_ascii=False, indent=2))
+            return 1
+        report["failures"] = report["failures"] + verify_blind_review(committed, report)
+        if report["failures"]:
+            print("[TASK-095] 盲评签字校验失败：")
+            for item in report["failures"]:
+                print(" -", item)
             return 1
         print(f"[TASK-095] 硬门槛校验通过：{json.dumps(report['metrics'], ensure_ascii=False)}")
     if report["failures"]:
