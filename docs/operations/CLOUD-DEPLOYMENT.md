@@ -62,4 +62,5 @@
 - 基础栈：coturn 已部署（3478/5349，静态凭据 mgd:turn-dev-password，待接入 LiveKit/客户端）；PostgreSQL 16 / Redis 7 / MinIO 已启动（DB/Redis 仅回环 5432/6379，MinIO 9000/9001 公网）；Temporal 镜像拉取受阻，待补。
 - 公网 E2E 调优复测（H.264 2.5Mbps）：恢复 1280×720、约 17fps，帧间隔 P95 164ms；仍低于 24fps，待 TURN 接入与带宽调优（`ai/evals/providers/reports/m2-e2e-cloud-tuned.json`）。
 - 前端已上线：Next.js 16.2.12（systemd `mgd-web`，`http://156.245.244.192/`，`/` 重定向 `/zh-CN`）；源码构建于服务器 `/opt/mgd-web`，`NEXT_PUBLIC_SELFHOST_TTS_URL=http://156.245.244.192:8000`，页面使用 mock 数据，房间页演示按钮可直连云端 AI 服务。
+- 域名与 TLS：`app.poorzz.top` / `tts.poorzz.top` / `livekit.poorzz.top` 均指向服务器；Caddy 2.11.4 已接管 80/443 并签发 Let's Encrypt 证书（服务器侧 HTTPS 200）；前端已迁移至 127.0.0.1:3000，`NEXT_PUBLIC_SELFHOST_TTS_URL=https://tts.poorzz.top` 已重新构建；**外部 443 待云控制台安全组放行**。
 - 待办：域名与 TLS（wss，需项目负责人提供域名）、Temporal、端口收敛与鉴权（8000 当前无鉴权、MinIO 9000/9001 公网暴露需收敛）、云上 2× 峰值与弱网正式验收、1% 放量。
