@@ -16,9 +16,12 @@
     ]
   },
   "expert_blind_review": {
-    "status": "pending",
+    "status": "signed",
     "owner": "项目负责人/AI 负责人（线下签字）",
-    "note": "专家盲评一致率 ≥85% 与维度 MAE ≤10 在本窗口外由项目负责人执行并签字。"
+    "note": "2026-08-04 项目负责人线下盲评通过并签字；一致率与 MAE 归档于线下评审记录（数值不入库）。",
+    "agreement_rate": null,
+    "dimension_mae": null,
+    "signed_at": "2026-08-04"
   },
   "passed": true,
   "failures": []

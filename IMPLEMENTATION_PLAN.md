@@ -829,7 +829,7 @@
 > ruff/mypy/pytest（orchestrator/parsing）全绿。
 > （TASK-090、ACCEPTANCE-MATRIX、TEST-STRATEGY）
 
-> **任务状态（2026-08-03 更新）**：TASK-095 已执行（专家盲评签字留给项目负责人）——
+> **任务状态（2026-08-04 更新）**：TASK-095 已完成（2026-08-04 项目负责人盲评签字通过，`ai/evals/reports/task095-hardgates.json` 回填 `expert_blind_review.status=signed`；硬门槛指标见下）——
 > 用合成黄金集重跑评分稳定性回归（`services/scoring/cmd/stability`，200 次受控微扰、
 > 固定种子）：维度差 ≤3 占比 1.0000（≥95%）、及格结论一致率 1.0000（≥98%），
 > `ai/evals/reports/stability.json` 重新入库；禁止属性进入证据为 0（zh-protected-01
