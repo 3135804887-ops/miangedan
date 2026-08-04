@@ -1,0 +1,67 @@
+{
+  "kind": "m2_chaos_round1",
+  "synthetic": true,
+  "run_at": "2026-08-04T03:10:03.848Z",
+  "room": "chaos-1785812909782",
+  "fault": {
+    "type": "livekit_server_kill",
+    "fault_at_ms": 25000,
+    "fault_triggered_at": "2026-08-04T03:08:56.033Z"
+  },
+  "metrics": {
+    "connectA_ms": 1299.699999988079,
+    "connectB_ms": 365.69999998807907,
+    "first_video_frame_ms": 365,
+    "reconnects": [
+      369
+    ],
+    "reconnect_p95_ms": 369,
+    "connEvents": [
+      {
+        "peer": "A",
+        "type": "connected",
+        "atMs": 1352.199999988079
+      },
+      {
+        "peer": "B",
+        "type": "connected",
+        "atMs": 1791.1000000238419
+      },
+      {
+        "peer": "B",
+        "type": "reconnecting",
+        "atMs": 41030.40000003576
+      },
+      {
+        "peer": "A",
+        "type": "reconnecting",
+        "atMs": 41203.19999998808
+      },
+      {
+        "peer": "A",
+        "type": "reconnected",
+        "atMs": 41572.5
+      },
+      {
+        "peer": "B",
+        "type": "reconnected",
+        "atMs": 43353.69999998808
+      },
+      {
+        "peer": "A",
+        "type": "disconnected",
+        "atMs": 91801.90000003576
+      },
+      {
+        "peer": "B",
+        "type": "disconnected",
+        "atMs": 91807
+      }
+    ],
+    "frames": 1720,
+    "frame_gap_p95_ms": 43.00000000000104,
+    "max_frame_gap_ms": 121.99999999999989
+  },
+  "errors": null,
+  "note": "故障判定：断服期间连接事件完整记录、故障后自动重连成功、帧计数在恢复后继续增长即视为不丢证据（合成媒体）。"
+}
