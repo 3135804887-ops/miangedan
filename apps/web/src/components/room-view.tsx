@@ -549,7 +549,9 @@ export function RoomView({
         >
           {cameraOn ? (
             <div className="absolute inset-0 grid place-items-center text-white/60">
-              <p className="mb-0 text-sm">候选人摄像头 · 合成画面</p>
+              <p className="mb-0 text-sm">
+                {locale === 'zh-CN' ? '候选人摄像头 · 合成画面' : 'Candidate camera · synthetic view'}
+              </p>
             </div>
           ) : (
             <div className="absolute inset-0 grid place-items-center text-white/40">
