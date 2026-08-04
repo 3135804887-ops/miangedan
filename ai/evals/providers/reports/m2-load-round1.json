@@ -1,0 +1,153 @@
+{
+  "kind": "m2_load_round1",
+  "synthetic": true,
+  "run_at": "2026-08-04T03:14:51.724Z",
+  "room": "load-1785813254700",
+  "scenario": "1 publisher (720p@24fps) + 10 subscribers",
+  "expected_peak": 5,
+  "load_factor": "2x expected peak (local single-machine)",
+  "all_ready": true,
+  "server": {
+    "before": {
+      "rssBytes": 137138176,
+      "cpuSeconds": 5.40625
+    },
+    "after": {
+      "rssBytes": 144531456,
+      "cpuSeconds": 7.5625
+    },
+    "rss_delta_mb": 7
+  },
+  "metrics": {
+    "subscriber_connected": 10,
+    "connect_ms": {
+      "p50": 643.2999999821186,
+      "p95": 714.0499999761581,
+      "values": [
+        481.5,
+        499.5999999642372,
+        514.5,
+        539.3999999761581,
+        634.5999999642372,
+        652,
+        663.1999999880791,
+        677.3000000119209,
+        701.3999999761581,
+        724.3999999761581
+      ]
+    },
+    "first_frame_ms": {
+      "p50": 643,
+      "p95": 713.6949999839068
+    },
+    "subscriber_fps": {
+      "avg": 21.48,
+      "min": 21.297192642787994,
+      "values": [
+        21.3,
+        21.47,
+        21.47,
+        21.5,
+        21.5,
+        21.5,
+        21.5,
+        21.5,
+        21.5,
+        21.5
+      ]
+    },
+    "per_subscriber": [
+      {
+        "index": 0,
+        "connectMs": 482,
+        "firstFrameMs": 481,
+        "width": 1280,
+        "height": 720,
+        "frames": 572,
+        "errors": null
+      },
+      {
+        "index": 1,
+        "connectMs": 500,
+        "firstFrameMs": 499,
+        "width": 1280,
+        "height": 720,
+        "frames": 556,
+        "errors": null
+      },
+      {
+        "index": 2,
+        "connectMs": 515,
+        "firstFrameMs": 514,
+        "width": 1280,
+        "height": 720,
+        "frames": 556,
+        "errors": null
+      },
+      {
+        "index": 3,
+        "connectMs": 539,
+        "firstFrameMs": 539,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      },
+      {
+        "index": 4,
+        "connectMs": 635,
+        "firstFrameMs": 634,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      },
+      {
+        "index": 5,
+        "connectMs": 652,
+        "firstFrameMs": 652,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      },
+      {
+        "index": 6,
+        "connectMs": 663,
+        "firstFrameMs": 663,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      },
+      {
+        "index": 7,
+        "connectMs": 677,
+        "firstFrameMs": 676,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      },
+      {
+        "index": 8,
+        "connectMs": 701,
+        "firstFrameMs": 701,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      },
+      {
+        "index": 9,
+        "connectMs": 724,
+        "firstFrameMs": 724,
+        "width": 1280,
+        "height": 720,
+        "frames": 557,
+        "errors": null
+      }
+    ]
+  },
+  "note": "本机回环压测为容量参考；正式 2x 峰值压测与单 AZ/区域容灾在云上执行（TASK-092 验收）。"
+}
