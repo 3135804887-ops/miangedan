@@ -1,0 +1,59 @@
+{
+  "kind": "m2_interrupt_round3",
+  "synthetic": true,
+  "run_at": "2026-08-04T01:32:14.511Z",
+  "stack": {
+    "vad": "前端 WebAudio RMS（阈值 0.03，attack 2 帧 × 20ms）",
+    "trigger": "注入合成用户语音（自建 TTS 音频）→ VAD → avatarSource.stop()",
+    "note": "测量口径：用户语音开始（调度时刻）→ 音频实际停止（onended）"
+  },
+  "metrics": {
+    "trials": [
+      {
+        "trial": 1,
+        "latencyStopMs": 221
+      },
+      {
+        "trial": 2,
+        "latencyStopMs": 230
+      },
+      {
+        "trial": 3,
+        "latencyStopMs": 230
+      },
+      {
+        "trial": 4,
+        "latencyStopMs": 230
+      },
+      {
+        "trial": 5,
+        "latencyStopMs": 240
+      },
+      {
+        "trial": 6,
+        "latencyStopMs": 230
+      },
+      {
+        "trial": 7,
+        "latencyStopMs": 230
+      },
+      {
+        "trial": 8,
+        "latencyStopMs": 240
+      },
+      {
+        "trial": 9,
+        "latencyStopMs": 240
+      },
+      {
+        "trial": 10,
+        "latencyStopMs": 230
+      }
+    ],
+    "n": 10,
+    "avgMs": 232,
+    "p95Ms": 240,
+    "p99Ms": 240,
+    "thresholdMs": 500
+  }
+}

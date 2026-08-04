@@ -1,0 +1,3 @@
+{"metric":"connect","value_ms":1303,"vendor":"livekit_selfhost","region":"cn","synthetic":true,"at":"2026-08-04T01:14:26.192Z"}
+{"metric":"connect","value_ms":367,"vendor":"livekit_selfhost","region":"cn","synthetic":true,"at":"2026-08-04T01:14:26.192Z"}
+{"metric":"interrupt","value_ms":0,"vendor":"livekit_selfhost","region":"cn","synthetic":true,"at":"2026-08-04T01:14:26.192Z"}
