@@ -172,6 +172,7 @@
 - 第一轮本地实测（2026-08-03）：ASR 回合级 P50 404ms / P95 856ms，10 条合成样本平均相似度 0.965；TTS（edge-tts，标准单声道 24k WAV）整段合成 P95 约 3.4s；LLM（DeepSeek）3/3 通过。样本与报告见 `ai/evals/providers/samples/` 与 `ai/evals/providers/reports/m2-local-round1.json`。
 - TTS MOS 人工盲评完成（项目负责人，2026-08-04）：10/10 满分，平均 MOS 5.0，已回填报告 `blind_review` 字段。
 - 第二轮浏览器 E2E（2026-08-03，自建 LiveKit 双端合成音视频）：建连 P95 1.4s / P99 1.5s（NFR-007 达标）；远端视频 1280×720 @23.98fps（720p/24fps 达标），帧间隔 P95 42ms；首帧 365ms；本地播放停止响应 0.1ms（VAD 打断链路待接媒体管线）。样本与报告见 `samples/webrtc_sfu_cn_livekit.jsonl` 与 `reports/m2-e2e-round2.json`。待测：弱网降级、60 分钟长会话。
+- VAD 打断模块已接入前端（2026-08-04）：麦克风 → 本地 RMS/VAD（attack/hangover 去抖）→ 数字人停止发声，房间页提供「打断演示」开关；打断时延 E2E 测量列入第三轮。
 - 待浏览器联调轮次：建连、全链路回应（含数字人）、打断、720p/24fps、弱网、60 分钟长会话；TTS MOS 人工盲评（盲评包 `work/m2/audio/` + `review-manifest.json`）。
 - 按 §6 清单实测：建连、全链路回应、打断、ASR 终稿、720p/24fps、弱网、60 分钟长会话；
 - TTS/ASR 质量盲评（MOS/字准率）；评分卡回填；技术/AI/安全三方签字；ADR 入库；OD-01 关闭。

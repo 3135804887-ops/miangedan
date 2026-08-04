@@ -20,6 +20,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { apiFetch } from '../lib/api-fetch.ts';
+import { createVadFromStream } from '../lib/vad';
 
 const selfhostTtsUrl = process.env.NEXT_PUBLIC_SELFHOST_TTS_URL ?? 'http://127.0.0.1:8000';
 
@@ -93,7 +94,10 @@ export function RoomView({
   const [candidateText, setCandidateText] = useState(
     '峰值 QPS 我们预估约 8k，通过全链路压测发现数据库连接池是瓶颈，随后引入了读写分离与本地缓存……',
   );
+  const [interruptDemoActive, setInterruptDemoActive] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const vadHandleRef = useRef<{ stop: () => void } | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
 
   async function playGreeting(): Promise<void> {
     try {
@@ -162,6 +166,52 @@ export function RoomView({
       });
     }
   }
+
+  async function toggleInterruptDemo(): Promise<void> {
+    if (interruptDemoActive) {
+      vadHandleRef.current?.stop();
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+      vadHandleRef.current = null;
+      micStreamRef.current = null;
+      setInterruptDemoActive(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      vadHandleRef.current = createVadFromStream(
+        stream,
+        { threshold: 0.03, attackFrames: 2, hangoverFrames: 6 },
+        {
+          onSpeechStart: () => {
+            if (audioRef.current && !audioRef.current.paused) {
+              audioRef.current.pause();
+              toast.push({
+                title:
+                  locale === 'zh-CN' ? '检测到语音，数字人已停止发声' : 'Speech detected, avatar stopped',
+                tone: 'success',
+              });
+            }
+          },
+        },
+      );
+      setInterruptDemoActive(true);
+      await playGreeting();
+    } catch {
+      toast.push({
+        title: locale === 'zh-CN' ? '麦克风不可用' : 'Microphone unavailable',
+        tone: 'danger',
+      });
+    }
+  }
+
+  useEffect(
+    () => () => {
+      vadHandleRef.current?.stop();
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+    },
+    [],
+  );
   const lastTick = useRef(Date.now());
 
   useEffect(() => {
@@ -463,6 +513,19 @@ export function RoomView({
             REC
           </span>
           <div className="absolute bottom-3 right-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void toggleInterruptDemo()}
+              className="rounded-lg bg-black/30 px-2.5 py-1 text-xs text-white backdrop-blur transition-colors hover:bg-black/40"
+            >
+              {interruptDemoActive
+                ? locale === 'zh-CN'
+                  ? '停止打断'
+                  : 'Stop interrupt'
+                : locale === 'zh-CN'
+                  ? '打断演示'
+                  : 'Interrupt demo'}
+            </button>
             <button
               type="button"
               onClick={() => void runAsrDemo()}
