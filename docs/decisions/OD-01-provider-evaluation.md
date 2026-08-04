@@ -184,6 +184,7 @@
 
 - GPU 服务器（ASR/TTS/数字人推理）+ 通用服务器（LiveKit/coturn/MinIO/PostgreSQL/Temporal）；
 - 域名 + TLS + TURN；三可用区与 60s 接管基线（NFR-004）；监控与告警接入。
+- 2026-08-04 启动：部署方案见 `docs/operations/CLOUD-DEPLOYMENT.md`（香港，数据区代码 cn；TTS 境外端点按已决策允许）；待云主机与域名就位后执行，并衔接窗口 2 正式验收与 1% 放量。
 
 ### M4 窗口 2
 
