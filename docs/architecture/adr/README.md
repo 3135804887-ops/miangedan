@@ -78,12 +78,13 @@
 | [ADR-0003](ADR-0003-provider-adapter-layer.md) | 供应商适配层 | accepted | 决策 4 |
 | [ADR-0004](ADR-0004-append-only-evidence-ledger.md) | 追加式面试证据账本 | accepted | 决策 5 |
 | [ADR-0005](ADR-0005-three-data-regions.md) | 三数据区隔离部署 | accepted | 决策 6 |
+| [ADR-0006](ADR-0006-provider-selection.md) | 自建媒体与 AI 链路供应商选型（OD-01 关闭） | accepted | OD-01 |
 
 > PRD 架构决策 1（控制面与媒体面分离）作为结构前提体现在 SYSTEM-ARCHITECTURE 五大边界中；后续如涉及媒体面实现取舍（如 SFU 部署形态），单独新增 ADR。
 
 ## 7. 与未决事项（OD-xx）的关系
 
-- ADR 记录"已决定"，OD 登记"未决定"。未决事项清单见 `IMPLEMENTATION_PLAN.md` 第 7 节（未决：OD-01 供应商、OD-02 定价、OD-03 法律实施、OD-04 品牌、OD-05 容量；已于 2026-08-01 确认/批准：OD-06 排期预算、OD-07 取整、OD-08 归一化、OD-09 区域代码、OD-10 命名规范）。
+- ADR 记录"已决定"，OD 登记"未决定"。未决事项清单见 `IMPLEMENTATION_PLAN.md` 第 7 节（OD-01 供应商已于 2026-08-04 决策并关闭；未决：OD-02 定价、OD-03 法律实施、OD-04 品牌、OD-05 容量；已于 2026-08-01 确认/批准：OD-06 排期预算、OD-07 取整、OD-08 归一化、OD-09 区域代码、OD-10 命名规范）。
 - 规则：OD 未关闭前，相关实现按 ADR 与规范中的**保守默认**执行；OD 关闭时，若结论改变既有实现，必须新增 ADR 说明。
 
 ## 8. 关键规则
