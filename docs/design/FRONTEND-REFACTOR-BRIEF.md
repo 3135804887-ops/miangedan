@@ -103,3 +103,12 @@
 
 - 建议先出三张风格稿：落地页（`/`）、面试房间（`/sessions/[id]`）、项目报告（`/projects/[id]/report`），确认视觉方向后铺开到其余页面。
 - 可按 SCR 分批交付（公开区 → 工作台 → 面试流程 → 报告 → 账户 → 机构/后台），每批一个 PR，由项目侧融合与验收。
+
+## 7. 现状（2026-08-04 核对）
+
+- 视觉重构主体已在 main 落地（globals.css 标记 `frontend-batch-1~4 重构`；design tokens、
+  @mgd/ui、双语 i18n、apiFetch、axe 门禁齐备，基线 152 测试全绿）。
+- 收尾批次 `fe-refactor-i18n-chrome` 已合入：公开页页眉/导航 i18n 与 locale 前缀、
+  报告雷达图 aria-label 双语化（154 测试全绿）。
+- 待办：room-view 中文-only 样例内容按「面试语言」策略单列评估；其余按批次状态跟踪
+  （见 FRONTEND-OPUS-PROMPTS.md 第 4 节）。
