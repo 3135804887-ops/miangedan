@@ -1,0 +1,36 @@
+{
+  "kind": "m2_e2e_cloud_tuned",
+  "synthetic": true,
+  "run_at": "2026-08-04T06:22:31.886Z",
+  "room": "e2e-1785824516227",
+  "duration_ms": 30000,
+  "stack": {
+    "sfu": "livekit self-hosted 1.13.5 (ws://localhost:7880)",
+    "publisher": "canvas 1280x720 @24fps + oscillator audio",
+    "subscriber": "livekit-client (peer-b)"
+  },
+  "metrics": {
+    "connect_ms": {
+      "n": 2,
+      "p50": 848.6999999880791,
+      "p95": 1204.0199999988079,
+      "p99": 1235.6039999997615,
+      "values": [
+        1243.5,
+        453.89999997615814
+      ]
+    },
+    "first_video_frame_ms": 652.1000000238419,
+    "video": {
+      "width": 1280,
+      "height": 720,
+      "avg_fps": 15.884431381132583,
+      "frames": 508,
+      "frame_gap_p95_ms": 164.00000000000148,
+      "max_frame_gap_ms": 246.00000000000222
+    },
+    "interrupt_stop_ms": 0,
+    "note": "interrupt_stop_ms 为本地音频播放停止响应（VAD 打断链路待接媒体管线）"
+  },
+  "errors": null
+}
