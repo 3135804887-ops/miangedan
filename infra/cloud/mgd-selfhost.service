@@ -1,0 +1,20 @@
+[Unit]
+Description=MGD Selfhost AI (FunASR + edge-tts)
+After=network.target
+
+[Service]
+Environment=SELFHOST_ASR_BACKEND=funasr
+Environment=SELFHOST_ASR_MODEL=iic/SenseVoiceSmall
+Environment=SELFHOST_TTS_BACKEND=edge
+Environment=SELFHOST_TTS_VOICE_NAME=zh-CN-XiaoxiaoNeural
+Environment=SELFHOST_HOST=127.0.0.1
+Environment=SELFHOST_PORT=8000
+Environment=MODELSCOPE_CACHE=/opt/mgd-selfhost/models
+Environment=SELFHOST_API_KEY=<secret-injected-via-KMS-not-committed>
+WorkingDirectory=/opt/mgd-selfhost/app
+ExecStart=/opt/mgd-selfhost/venv/bin/python -m mgd_selfhost.main
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

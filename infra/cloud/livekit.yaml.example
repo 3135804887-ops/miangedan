@@ -1,0 +1,13 @@
+# 面个蛋云端 LiveKit 配置模板
+# 使用：复制到 /opt/livekit/livekit.yaml 后替换密钥，再重启 livekit-server
+# 追踪：docs/operations/CLOUD-DEPLOYMENT.md
+port: 7880
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+keys:
+  <api-key>: <api-secret>
+logging:
+  level: info

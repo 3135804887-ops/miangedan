@@ -1,0 +1,16 @@
+[Unit]
+Description=MGD Web (Next.js)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/mgd-web/apps/web
+Environment=NODE_ENV=production
+Environment=NEXT_PUBLIC_SELFHOST_TTS_URL=https://tts.poorzz.top
+# NEXT_PUBLIC_* 为构建期内联变量，不入 systemd 环境；
+# 构建时注入 NEXT_PUBLIC_SELFHOST_TTS_API_KEY=<secret>，见 CLOUD-DEPLOYMENT.md 构建命令。
+ExecStart=/opt/mgd-web/apps/web/node_modules/.bin/next start -p 3000 -H 127.0.0.1
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

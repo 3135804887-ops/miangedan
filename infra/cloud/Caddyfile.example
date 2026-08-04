@@ -1,0 +1,26 @@
+# 面个蛋云端 Caddy 配置模板
+# 使用：复制到 /etc/caddy/Caddyfile 后按实际域名/端口调整，再 systemctl reload caddy
+# 追踪：docs/operations/CLOUD-DEPLOYMENT.md
+app.poorzz.top {
+	reverse_proxy 127.0.0.1:3000
+}
+tts.poorzz.top {
+	reverse_proxy 127.0.0.1:8000
+}
+livekit.poorzz.top {
+	reverse_proxy 127.0.0.1:7880
+}
+http://156.245.244.192 {
+	reverse_proxy 127.0.0.1:3000
+}
+
+# 国内线路 RST 兜底端口（8443，GFW 特征；按需保留或移除）
+app.poorzz.top:8443 {
+	reverse_proxy 127.0.0.1:3000
+}
+tts.poorzz.top:8443 {
+	reverse_proxy 127.0.0.1:8000
+}
+livekit.poorzz.top:8443 {
+	reverse_proxy 127.0.0.1:7880
+}
