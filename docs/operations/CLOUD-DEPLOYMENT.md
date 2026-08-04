@@ -61,4 +61,5 @@
 - 公网 E2E（本机双端 → 云端 SFU）：建连 P95 1.7s；视频被当前 WAN 链路压到 640×360/低帧率（TURN/编码调优前，如实记录，见 `ai/evals/providers/reports/m2-e2e-cloud.json`）。
 - 基础栈：coturn 已部署（3478/5349，静态凭据 mgd:turn-dev-password，待接入 LiveKit/客户端）；PostgreSQL 16 / Redis 7 / MinIO 已启动（DB/Redis 仅回环 5432/6379，MinIO 9000/9001 公网）；Temporal 镜像拉取受阻，待补。
 - 公网 E2E 调优复测（H.264 2.5Mbps）：恢复 1280×720、约 17fps，帧间隔 P95 164ms；仍低于 24fps，待 TURN 接入与带宽调优（`ai/evals/providers/reports/m2-e2e-cloud-tuned.json`）。
+- 前端已上线：Next.js 16.2.12（systemd `mgd-web`，`http://156.245.244.192/`，`/` 重定向 `/zh-CN`）；源码构建于服务器 `/opt/mgd-web`，`NEXT_PUBLIC_SELFHOST_TTS_URL=http://156.245.244.192:8000`，页面使用 mock 数据，房间页演示按钮可直连云端 AI 服务。
 - 待办：域名与 TLS（wss，需项目负责人提供域名）、Temporal、端口收敛与鉴权（8000 当前无鉴权、MinIO 9000/9001 公网暴露需收敛）、云上 2× 峰值与弱网正式验收、1% 放量。
