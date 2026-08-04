@@ -1,0 +1,65 @@
+{
+  "scorecard_kind": "provider_eval_scorecard",
+  "capability": "tts",
+  "region": "cn",
+  "vendor": "edge_tts",
+  "role": "primary",
+  "status": "measured",
+  "synthetic": true,
+  "dimensions": {
+    "performance": {
+      "score": 92,
+      "weight": 30,
+      "evidence_ref": "reports/m2-local-round1.json#metrics.tts_synth_ms（整段合成 P95 3.4s）",
+      "status": "measured"
+    },
+    "quality": {
+      "score": 95,
+      "weight": 25,
+      "evidence_ref": "reports/m2-local-round1.json#blind_review（MOS 5.0，10/10）",
+      "status": "desk_research"
+    },
+    "compliance": {
+      "score": 20,
+      "weight": 15,
+      "evidence_ref": "非官方接口、文本发往微软境外端点、无 DPA——cn 区生产红线否决",
+      "status": "desk_research"
+    },
+    "licensing": {
+      "score": 60,
+      "weight": 10,
+      "evidence_ref": "edge-tts 为非官方接口，服务条款灰色",
+      "status": "desk_research"
+    },
+    "replaceability": {
+      "score": 90,
+      "weight": 10,
+      "evidence_ref": "mgd-selfhost TTS 后端可切 piper/CosyVoice/火山 API",
+      "status": "desk_research"
+    },
+    "cost": {
+      "score": 90,
+      "weight": 10,
+      "evidence_ref": "免费但无 SLA",
+      "status": "desk_research"
+    }
+  },
+  "score": null,
+  "red_lines": [
+    {
+      "rule": "cn 区生产禁止：非官方接口 + 数据出境 + 无 DPA",
+      "verdict": "fail"
+    }
+  ],
+  "metrics": {
+    "tts_synth": {
+      "n": 10,
+      "p50": 2296.1,
+      "p95": 3653.9,
+      "p99": 3797.6
+    }
+  },
+  "samples_ref": "ai\\evals\\providers\\samples\\tts_cn_edge_tts.jsonl",
+  "measured_at": "2026-08-04",
+  "measured_by": "项目负责人/AI 负责人（仅本地开发/演示；生产候选为火山豆包 API 或 CosyVoice 2）"
+}

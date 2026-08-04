@@ -1,0 +1,53 @@
+{
+  "scorecard_kind": "provider_eval_scorecard",
+  "capability": "avatar",
+  "region": "cn",
+  "vendor": "static_mvp",
+  "role": "primary",
+  "status": "pre_selection",
+  "synthetic": true,
+  "dimensions": {
+    "performance": {
+      "score": null,
+      "weight": 30,
+      "evidence_ref": "静态形象 MVP 决策（OD-01）：无实时口型/媒体指标，NFR-011 降级",
+      "status": "pending"
+    },
+    "quality": {
+      "score": null,
+      "weight": 25,
+      "evidence_ref": "形象图 + TTS 音频播放，人工评审待执行",
+      "status": "pending"
+    },
+    "compliance": {
+      "score": null,
+      "weight": 15,
+      "evidence_ref": "自制/买断授权形象，数据自持",
+      "status": "pending"
+    },
+    "licensing": {
+      "score": null,
+      "weight": 10,
+      "evidence_ref": "固定授权角色图（用户提供）",
+      "status": "pending"
+    },
+    "replaceability": {
+      "score": null,
+      "weight": 10,
+      "evidence_ref": "后续可升级 MuseTalk 等口型驱动",
+      "status": "pending"
+    },
+    "cost": {
+      "score": null,
+      "weight": 10,
+      "evidence_ref": "零 API 费用",
+      "status": "pending"
+    }
+  },
+  "score": null,
+  "red_lines": [],
+  "metrics": {},
+  "samples_ref": null,
+  "measured_at": null,
+  "measured_by": "待实测/签字"
+}

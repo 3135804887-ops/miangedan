@@ -1,0 +1,66 @@
+{
+  "scorecard_kind": "provider_eval_scorecard",
+  "capability": "webrtc_sfu",
+  "region": "cn",
+  "vendor": "livekit",
+  "role": "primary",
+  "status": "measured",
+  "synthetic": true,
+  "dimensions": {
+    "performance": {
+      "score": 92,
+      "weight": 30,
+      "evidence_ref": "reports/m2-e2e-round2.json + m2-e2e-soak60.json（建连 P95 1.45s、720p/24fps、60min 零断流）",
+      "status": "measured"
+    },
+    "quality": {
+      "score": 88,
+      "weight": 25,
+      "evidence_ref": "帧间隔 P95 42ms、86,428 帧无丢帧（60min soak）",
+      "status": "desk_research"
+    },
+    "compliance": {
+      "score": 85,
+      "weight": 15,
+      "evidence_ref": "自建数据自持；TURN/证书/三可用区待云上部署补测",
+      "status": "desk_research"
+    },
+    "licensing": {
+      "score": 100,
+      "weight": 10,
+      "evidence_ref": "LiveKit Apache-2.0",
+      "status": "desk_research"
+    },
+    "replaceability": {
+      "score": 85,
+      "weight": 10,
+      "evidence_ref": "services/room Provider 契约可切 TRTC；自托管运维成本自担",
+      "status": "desk_research"
+    },
+    "cost": {
+      "score": 85,
+      "weight": 10,
+      "evidence_ref": "服务器固定成本，无按分钟费用",
+      "status": "desk_research"
+    }
+  },
+  "score": 89.4,
+  "red_lines": [],
+  "metrics": {
+    "connect": {
+      "n": 2,
+      "p50": 935.0,
+      "p95": 1448.9,
+      "p99": 1494.6
+    },
+    "interrupt": {
+      "n": 1,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0
+    }
+  },
+  "samples_ref": "ai\\evals\\providers\\samples\\webrtc_sfu_cn_livekit.jsonl",
+  "measured_at": "2026-08-04",
+  "measured_by": "项目负责人/AI 负责人（建议分，待三方签字）"
+}
