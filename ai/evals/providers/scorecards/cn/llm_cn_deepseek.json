@@ -1,0 +1,60 @@
+{
+  "scorecard_kind": "provider_eval_scorecard",
+  "capability": "llm",
+  "region": "cn",
+  "vendor": "deepseek",
+  "role": "primary",
+  "status": "measured",
+  "synthetic": true,
+  "dimensions": {
+    "performance": {
+      "score": 90,
+      "weight": 30,
+      "evidence_ref": "reports/m2-local-round1.json#metrics.llm_ms（P50 2.3s，3/3 通过）",
+      "status": "measured"
+    },
+    "quality": {
+      "score": 85,
+      "weight": 25,
+      "evidence_ref": "结构化回答质量良好；盲评未执行",
+      "status": "desk_research"
+    },
+    "compliance": {
+      "score": 75,
+      "weight": 15,
+      "evidence_ref": "仅限 cn 区；eu/intl 路由禁止（OD-01 红线）",
+      "status": "desk_research"
+    },
+    "licensing": {
+      "score": 100,
+      "weight": 10,
+      "evidence_ref": "DeepSeek 开放平台 API 服务协议",
+      "status": "desk_research"
+    },
+    "replaceability": {
+      "score": 85,
+      "weight": 10,
+      "evidence_ref": "OpenAI 兼容端点，可换 Qwen API/自建开源模型",
+      "status": "desk_research"
+    },
+    "cost": {
+      "score": 85,
+      "weight": 10,
+      "evidence_ref": "按量计费，低量成本低",
+      "status": "desk_research"
+    }
+  },
+  "score": 86.5,
+  "red_lines": [],
+  "metrics": {
+    "llm": {
+      "n": 3,
+      "p50": 2333.3,
+      "p95": 2515.5,
+      "p99": 2531.7
+    }
+  },
+  "samples_ref": "ai\\evals\\providers\\samples\\llm_cn_deepseek.jsonl",
+  "measured_at": "2026-08-04",
+  "measured_by": "项目负责人/AI 负责人（建议分，待三方签字）"
+}
