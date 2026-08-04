@@ -56,7 +56,7 @@
 ## 8. 部署工作流（仓库优先）
 
 - 代码与配置模板先经仓库 PR 合并，再同步服务器；密钥仅服务器环境变量/KMS 注入，不入库。
-- 服务器配置模板见 `infra/cloud/`（Caddyfile、mgd-web.service、mgd-selfhost.service、livekit.yaml）。
+- 服务器配置模板见 `infra/cloud/`（Caddyfile、mgd-web.service、mgd-selfhost.service、livekit.yaml、compose.yaml、turnserver.conf）。
 - 服务器上的运行时配置若被直接修改，必须同步回 `infra/cloud/` 模板，保持仓库与服务器一致。
 - 前端构建期注入 `NEXT_PUBLIC_SELFHOST_TTS_URL` 与 `NEXT_PUBLIC_SELFHOST_TTS_API_KEY`（构建期内联，systemd 不设该环境变量）。
 

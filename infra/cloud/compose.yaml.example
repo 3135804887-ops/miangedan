@@ -1,0 +1,58 @@
+# 面个蛋云端基础栈 Compose 模板
+# 使用：复制到 /opt/mgd-infra/compose.yml，替换全部 <secret> 后 docker compose -f compose.yml up -d
+# 追踪：docs/operations/CLOUD-DEPLOYMENT.md
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mgd
+      POSTGRES_PASSWORD: <secret>
+      POSTGRES_DB: miangedan
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: <secret>
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # Temporal：镜像拉取恢复后启用（当前云上未运行）
+  # temporal:
+  #   image: temporalio/auto-setup:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     DB: postgres12
+  #     DB_PORT: 5432
+  #     POSTGRES_USER: mgd
+  #     POSTGRES_PWD: <secret>
+  #     POSTGRES_SEEDS: postgres
+  #     DYNAMIC_CONFIG_FILE_PATH: "config/dynamicconfig/development-sql.yaml"
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "127.0.0.1:7233:7233"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

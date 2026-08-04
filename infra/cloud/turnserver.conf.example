@@ -1,0 +1,13 @@
+# 面个蛋云端 coturn 配置模板
+# 使用：复制到 /opt/coturn/turnserver.conf 并替换 <user>:<secret> 后重建容器
+# 容器：docker run -d --name coturn --network host \
+#   -v /opt/coturn/turnserver.conf:/etc/coturn/turnserver.conf coturn/coturn
+listening-port=3478
+tls-listening-port=5349
+external-ip=156.245.244.192
+fingerprint
+lt-cred-mech
+user=<user>:<secret>
+realm=miangedan
+no-loopback-peers
+no-multicast-peers

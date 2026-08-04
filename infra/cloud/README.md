@@ -11,6 +11,8 @@
 - `mgd-web.service`：Next.js 前端 systemd 模板（127.0.0.1:3000）。
 - `mgd-selfhost.service`：自建 AI 服务 systemd 模板（127.0.0.1:8000，FunASR + edge-tts）。
 - `livekit.yaml.example`：LiveKit 服务端配置模板（7880/7881/50000-60000，密钥占位）。
+- `compose.yaml.example`：基础栈 Compose 模板（PostgreSQL 16 / Redis 7 / MinIO，全部回环收敛）。
+- `turnserver.conf.example`：coturn（TURN/STUN）配置模板（3478/5349，用户占位）。
 
 > Caddyfile 另含 `:8443` 兜底段：国内线路 TLS 握手被 RST 时作为备选端口，按需保留。
 
