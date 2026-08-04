@@ -17,6 +17,7 @@ class Settings:
     asr_model: str = ""  # whisper: faster-whisper 模型名；funasr: ModelScope 模型 id
     tts_voice_dir: str = ""  # piper 音色目录（含 .onnx/.onnx.json）
     tts_voice_name: str = ""  # piper: 音色名；edge: 微软神经音色名
+    api_key: str = ""  # 可选；设置后 /v1/* 请求必须携带 X-API-Key
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -28,4 +29,5 @@ class Settings:
             asr_model=os.getenv("SELFHOST_ASR_MODEL", ""),
             tts_voice_dir=os.getenv("SELFHOST_TTS_VOICE_DIR", ""),
             tts_voice_name=os.getenv("SELFHOST_TTS_VOICE_NAME", ""),
+            api_key=os.getenv("SELFHOST_API_KEY", ""),
         )

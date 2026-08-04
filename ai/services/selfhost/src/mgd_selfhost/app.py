@@ -5,8 +5,9 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -20,6 +21,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     asr_backend = create_asr_backend(cfg)
     tts_backend = create_tts_backend(cfg)
     app = FastAPI(title="mgd-selfhost", version="0.1.0")
+
+    def api_key_dependency(
+        x_api_key: Annotated[str | None, Header()] = None,
+    ) -> None:
+        if cfg.api_key and x_api_key != cfg.api_key:
+            raise HTTPException(status_code=401, detail="invalid api key")
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -36,7 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.post("/v1/asr/transcribe")
+    @app.post("/v1/asr/transcribe", dependencies=[Depends(api_key_dependency)])
     def transcribe(file: UploadFile = File(...), language: str | None = None) -> dict[str, str]:
         suffix = os.path.splitext(file.filename or "audio.wav")[1] or ".wav"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -45,7 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         text = _run_transcribe(asr_backend, tmp_path, language)
         return {"text": text}
 
-    @app.post("/v1/tts/synthesize")
+    @app.post("/v1/tts/synthesize", dependencies=[Depends(api_key_dependency)])
     def synthesize(text: str = Form(...)) -> Response:
         if not text.strip():
             raise HTTPException(status_code=400, detail="text 不能为空")

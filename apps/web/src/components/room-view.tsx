@@ -23,6 +23,7 @@ import { apiFetch } from '../lib/api-fetch.ts';
 import { createVadFromStream } from '../lib/vad';
 
 const selfhostTtsUrl = process.env.NEXT_PUBLIC_SELFHOST_TTS_URL ?? 'http://127.0.0.1:8000';
+const selfhostTtsApiKey = process.env.NEXT_PUBLIC_SELFHOST_TTS_API_KEY ?? '';
 
 interface Labels {
   readonly title: string;
@@ -103,7 +104,10 @@ export function RoomView({
     try {
       const response = await fetch(`${selfhostTtsUrl}/v1/tts/synthesize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          ...(selfhostTtsApiKey ? { 'X-API-Key': selfhostTtsApiKey } : {}),
+        },
         body: new URLSearchParams({
           text: locale === 'zh-CN' ? '你好，我是面个蛋的数字面试官。' : 'Hello, I am your digital interviewer.',
         }),
@@ -132,7 +136,10 @@ export function RoomView({
     try {
       const ttsResponse = await fetch(`${selfhostTtsUrl}/v1/tts/synthesize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          ...(selfhostTtsApiKey ? { 'X-API-Key': selfhostTtsApiKey } : {}),
+        },
         body: new URLSearchParams({
           text:
             locale === 'zh-CN'
@@ -148,6 +155,7 @@ export function RoomView({
       form.append('file', audioBlob, 'demo.wav');
       const asrResponse = await fetch(`${selfhostTtsUrl}/v1/asr/transcribe`, {
         method: 'POST',
+        headers: selfhostTtsApiKey ? { 'X-API-Key': selfhostTtsApiKey } : {},
         body: form,
       });
       if (!asrResponse.ok) {

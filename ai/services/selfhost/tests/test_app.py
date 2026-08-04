@@ -34,6 +34,24 @@ def test_cors_allows_local_frontend() -> None:
     assert resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
 
+def test_api_key_required_when_configured() -> None:
+    client = TestClient(create_app(Settings(api_key="secret")), raise_server_exceptions=False)
+    no_key = client.post("/v1/tts/synthesize", data={"text": "hi"})
+    assert no_key.status_code == 401
+    wrong_key = client.post(
+        "/v1/tts/synthesize", data={"text": "hi"}, headers={"X-API-Key": "nope"}
+    )
+    assert wrong_key.status_code == 401
+    ok = client.post("/v1/tts/synthesize", data={"text": "hi"}, headers={"X-API-Key": "secret"})
+    assert ok.status_code != 401
+
+
+def test_api_key_optional_when_not_configured() -> None:
+    client = TestClient(create_app(Settings()), raise_server_exceptions=False)
+    resp = client.post("/v1/tts/synthesize", data={"text": "hi"})
+    assert resp.status_code != 401
+
+
 def test_transcribe_requires_file() -> None:
     resp = client().post("/v1/asr/transcribe")
     assert resp.status_code == 422
