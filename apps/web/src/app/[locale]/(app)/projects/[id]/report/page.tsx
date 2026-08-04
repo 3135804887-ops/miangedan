@@ -60,7 +60,7 @@ const DIM_LABELS: Readonly<Record<string, [string, string]>> = {
   learning_adaptability: ['学习适应', 'Learning'],
 };
 
-function RadarChart({ dims }: { dims: readonly { dimension: string; score: number }[] }): ReactNode {
+function RadarChart({ dims, label }: { dims: readonly { dimension: string; score: number }[]; label: string }): ReactNode {
   const scores = DIMS.map((d) => dims.find((x) => x.dimension === d)?.score ?? 0);
   const size = 280;
   const cx = size / 2;
@@ -74,7 +74,7 @@ function RadarChart({ dims }: { dims: readonly { dimension: string; score: numbe
   const poly = scores.map((v, i) => point(i, v).join(',')).join(' ');
   const rings = [25, 50, 75, 100].map((v) => DIMS.map((_, i) => point(i, v).join(',')).join(' '));
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="mx-auto" role="img" aria-label="六维雷达图（含文字/表格等价）">
+    <svg viewBox={`0 0 ${size} ${size}`} className="mx-auto" role="img" aria-label={label}>
       {rings.map((ring) => (
         <polygon key={ring} points={ring} fill="none" stroke="var(--mgd-app-border-default)" strokeWidth={1} />
       ))}
@@ -224,7 +224,7 @@ export default function ReportPage(): ReactNode {
         <Card>
           <CardHeader title={<span className="flex items-center gap-2"><IconRadar size={18} className="text-primary" />{t('report.radar')}</span>} description={t('report.tableEquivalent')} />
           <CardBody>
-            <RadarChart dims={report?.dimensions ?? []} />
+            <RadarChart dims={report?.dimensions ?? []} label={zh ? '六维雷达图（含文字/表格等价）' : 'Six-dimension radar chart (text/table equivalent provided)'} />
             <table className="mt-4 w-full border-collapse text-left text-sm">
               <caption className="sr-only">{t('report.tableEquivalent')}</caption>
               <thead>

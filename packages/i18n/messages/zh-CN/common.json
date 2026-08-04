@@ -11,6 +11,9 @@
     "library": "资产与历史",
     "billing": "购买与额度",
     "settings": "账户与隐私",
+    "demo": "样例演示",
+    "signIn": "登录 / 注册",
+    "signOut": "退出登录",
     "footerLabel": "页脚",
     "languageLabel": "界面语言"
   },

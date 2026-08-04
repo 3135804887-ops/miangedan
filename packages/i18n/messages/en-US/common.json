@@ -11,6 +11,9 @@
     "library": "Library",
     "billing": "Plans and credits",
     "settings": "Account and privacy",
+    "demo": "Live demo",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
     "footerLabel": "Footer",
     "languageLabel": "Interface language"
   },
