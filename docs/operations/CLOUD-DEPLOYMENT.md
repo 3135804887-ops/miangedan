@@ -52,3 +52,11 @@
 - 大陆节点部署时 TTS 必须切换火山/CosyVoice（2026-08-04 决策约束）。
 - 生产禁止 dev 模式（无 TLS、loopback candidate）；TURN 与证书必须就位。
 - 放量指标退化立即回滚到稳定版本，进行中会话不中途变更。
+
+## 8. 部署进度（2026-08-04）
+
+- 云主机：Debian 12 / 4C / 3.8G / 50G；原容器项目已停止（保留，可重启）。
+- 已部署：LiveKit 1.13.5（systemd，`ws://156.245.244.192:7880`）；mgd-selfhost（FunASR/SenseVoiceSmall + edge-tts，`http://156.245.244.192:8000`）。
+- 云端 AI 闭环验证：edge-tts 合成 → FunASR 转写 100% 准确。
+- 公网 E2E（本机双端 → 云端 SFU）：建连 P95 1.7s；视频被当前 WAN 链路压到 640×360/低帧率（TURN/编码调优前，如实记录，见 `ai/evals/providers/reports/m2-e2e-cloud.json`）。
+- 待办：coturn/TURN、域名与 TLS（wss）、PostgreSQL/Redis/Temporal/MinIO、端口收敛与鉴权（8000 当前无鉴权）、云上 2× 峰值与弱网正式验收。
