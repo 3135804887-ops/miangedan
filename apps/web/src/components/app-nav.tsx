@@ -75,7 +75,7 @@ export function AppNav({
             <a href={href('/settings')} className="mgd-target-min grid size-10 place-items-center rounded-lg text-neutral-600 hover:bg-surface-muted" aria-label={t('nav.settings')}>
               <IconSettings size={18} />
             </a>
-            <a href={href('/auth')} className="mgd-target-min grid size-10 place-items-center rounded-lg text-neutral-600 hover:bg-surface-muted" aria-label="退出">
+            <a href={href('/auth')} className="mgd-target-min grid size-10 place-items-center rounded-lg text-neutral-600 hover:bg-surface-muted" aria-label={t('nav.signOut')}>
               <IconLogout size={18} />
             </a>
           </div>
