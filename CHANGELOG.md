@@ -13,6 +13,18 @@
 
 ## [Unreleased]
 
+### Removed
+
+- 前端代码整体移除（2026-08-05）：删除 `apps/web`（求职者端）、`apps/admin`（运营后台）、
+  `packages/*`（ui/design-tokens/domain-states/i18n/eslint-plugin-mgd）、`contracts/ts`
+  （OpenAPI 生成类型）、pnpm 工作区文件（package.json/pnpm-workspace/pnpm-lock/tsconfig.base/
+  eslint/vitest/.npmrc）与前端工具脚本（scan-bundle/stamp-contract/check-contract）；
+  CI 阶段 2/3/6 的前端门禁与 `.github/actions/setup-frontend` 同步移除。仓库当前仅保留后端
+  （Go 服务、Python AI 服务、基础设施契约）；前端待后端可完整联调后按 `docs/frontend/` 与
+  `docs/design/` 重新开发。（SCR-01~17、FR-028、NFR-006）
+- 远程分支清理（2026-08-05）：删除 `main` 之外全部已合入/历史分支（66+ 个），分支 SHA 已
+  备份为本地 `backup/*` 标签；`feat/infra-cloud-templates`（open PR #93）内容可从 PR 恢复。
+
 ### Added
 
 - TASK-090 验收矩阵全量映射：新增 `docs/testing/TRACEABILITY-MATRIX.md`

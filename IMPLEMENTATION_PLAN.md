@@ -233,6 +233,10 @@
 > frontend-batch-1 ~ 4 分别落地 SCR-01 ~ 07、SCR-08/09、SCR-10 ~ 15、SCR-16/17。
 > （frontend-batch-0、SCR-01 ~ SCR-17、FR-028、NFR-006）
 
+> **状态变更（2026-08-05）**：前端代码（`apps/*`、`packages/*`、`contracts/ts`、前端工具与
+> CI 门禁）已从仓库移除，仓库当前仅保留后端实现。前端将在后端完成生产可用后，按
+> `docs/frontend/spec/` 与 `docs/design/` 重新开发；本节历史记录保留为追踪依据。
+
 > **前端交付追踪（frontend-batch-1~4 完全重构，2026-08-02）**：路由壳已全部替换为真实业务页面——
 > 应用级设计系统升级（品牌靛蓝→紫渐变、分层表面、阴影层级、圆角、动效、打印样式），
 > `@mgd/ui` 新增 34 个内联 SVG 图标与 Card/PageHeader/AppShell/Tabs/Toast/Progress/
@@ -858,6 +862,9 @@
 > 无法真实渲染颜色）。前端门禁全绿：eslint/typecheck/vitest 148 用例/build/
 > i18n/令牌。人工与残障用户测试由项目负责人在发布窗口执行。
 > （TASK-094、ACCESSIBILITY、SCREEN-SPEC 状态矩阵）
+
+> （2026-08-05 补充）前端代码已随本次移除删除（含 `apps/web/tests/axe-pages.test.tsx`）；
+> 本记录保留为历史验收依据，重新开发前端后需重建对应 axe 页面级门禁。
 
 > **前端交付追踪（frontend-api-wiring，2026-08-03）**：SCR-01~17 数据源统一接线完成——
 > SCR-02/03 原有 apiFetch 保留；SCR-04~17 全部内联 mock 页改为 apiFetch 契约端点
