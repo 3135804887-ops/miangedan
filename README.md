@@ -51,7 +51,7 @@
 - 数据平台迁移工具：`cd services/migrate && DATA_REGION=cn INFRA_REGION=cn SERVICE_ENV=dev DATABASE_URL=postgres://... go run ./cmd/migrate up|status`；幂等执行并由 `schema_migrations` + SHA-256 校验和保证可重复（TASK-003）。
 - Python AI 服务单测示例：`cd ai/services/scoring && pytest`（src 布局，可 `pip install -e .` 本地安装）。
 - AI 评测材料位于 `ai/evals/`，供后续评分与提示词回归使用。
-- 前端 `apps/web`、`apps/admin` 目前为目录占位，首个前端任务落地后补充真实启动命令；在此之前不要编造命令。
+- 前端代码（`apps/web`、`apps/admin`、共享前端包与前端 CI 门禁）已于 2026-08-05 从仓库移除，仓库当前只保留后端实现（Go 服务、Python AI 服务与基础设施契约）；前端将在后端可完整联调后，按 `docs/frontend/` 与 `docs/design/` 重新开发。
 
 ## 当前状态与后续步骤
 
@@ -64,6 +64,7 @@
 - [x] TASK-002 三数据区环境拓扑与区域路由（2026-08-01，`task/TASK-002-three-region-topology-routing` 分支；9 份 `infra/regions/*/envs/*.yaml`、`regions` 校验套件、`services/region` 共享包）
 - [x] TASK-003 数据平台基线部署与迁移工具（2026-08-01，`task/TASK-003-data-platform-migrations` 分支；`services/migrate` 幂等迁移、四张追加式账本表基线、`data-platform` 校验套件与数据平台模块契约）
 - [x] TASK-004 Temporal 集群与每区命名空间、任务队列划分（2026-08-01，`task/TASK-004-temporal-cluster-namespaces` 分支；`services/temporal` 契约包、`infra/modules/temporal`、`temporal` 校验套件）
+- [x] 前端代码移除（2026-08-05）：删除 `apps/*`、`packages/*`、`contracts/ts` 及前端工具链与 CI 挂接，仓库只保留后端；远程分支已清理为仅 `main`（各分支 SHA 备份见本地 `backup/*` 标签与 `branch-audit.json`）。
 - [ ] 未决事项 OD-01 ~ OD-05 关闭（OD-06 ~ OD-10 已于 2026-08-01 确认/批准，见 IMPLEMENTATION_PLAN.md 第 7 节）
 - [ ] EPIC-01 基础设施与数据区落地（TASK-001~004 已完成；下一任务 TASK-005 观测，实施设计见 `docs/architecture/EPIC-01-INFRA-DESIGN.md`）
 - [ ] Phase 0 供应商评测（OD-01，方案见 `docs/testing/PHASE0-PROVIDER-EVALUATION.md`）

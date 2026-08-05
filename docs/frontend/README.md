@@ -6,6 +6,10 @@
 | 规格 | `docs/frontend/spec/`（自 `.kiro/specs/frontend-global-pages/` 迁入并纳入版本控制；requirements.md / design.md / tasks.md） |
 | 追踪 | PRD US-01~08；SCREEN-SPEC SCR-01~17；FR-001~040；前端批次见 `spec/tasks.md` |
 
+> **2026-08-05 状态变更**：前端代码（`apps/*`、`packages/*`、`contracts/ts`、pnpm 工作区与
+> 前端 CI 门禁）已从仓库移除，仓库当前仅保留后端。本目录（规格/设计/接线文档）与
+> `docs/design/` 保留，作为后端完成生产可用后重新开发前端的依据。
+
 ## 一、续接进度（2026-08-02）
 
 批次 0（工作区与 `apps/web` 脚手架）已从中断点恢复，当前事实如下：

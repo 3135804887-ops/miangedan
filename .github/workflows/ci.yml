@@ -62,12 +62,6 @@ jobs:
           for d in ai/services/*/; do
             (cd "$d" && mypy src tests) || exit 1
           done
-      - uses: ./.github/actions/setup-frontend
-      - name: 前端 ESLint 与 TypeScript strict 检查
-        run: pnpm lint && pnpm typecheck
-      - name: 前端 i18n、令牌与 API 生成物检查
-        run: pnpm i18n:check && pnpm tokens:check-names && pnpm tokens:check-contrast && pnpm api:check
-
   stage2-golangci:
     name: "阶段2 golangci-lint（含 gosec SAST 基线）"
     needs: stage1-spec-validation
@@ -126,9 +120,6 @@ jobs:
           done
       - name: TASK-095 评分硬门槛校验（0 失败门禁）
         run: python tools/ci/verify_task095_gates.py --check
-      - uses: ./.github/actions/setup-frontend
-      - name: 前端单元、组件、axe 与幂等测试
-        run: pnpm test
       # 评分边界案例 SC-EC-01~24 回归由 TASK-040 / TASK-045 接入本阶段
 
   stage4-contract-tests:
@@ -219,9 +210,5 @@ jobs:
           for d in ai/services/*/; do
             pip install "$d" || exit 1
           done
-      - uses: ./.github/actions/setup-frontend
-      - name: 前端生产构建与打包产物密钥扫描
-        run: pnpm build && pnpm scan:bundle
-
   # 主分支追加（EPIC-01-INFRA-DESIGN 第 4.3 节）：
   # 集成测试挂接 TASK-004；评测集回归挂接 TASK-036；dev 环境部署挂接 TASK-002。
