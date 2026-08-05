@@ -17,7 +17,8 @@
 
 - Go：`services/<module>/<file>_test.go::TestXxx`（用例函数名）。
 - Python：`ai/services/<pkg>/tests/test_<x>.py::test_yyy`（用例函数名）。
-- 前端：`apps/web/tests/<file>.test.tsx`（文件级落点；axe 页面级用例见 TASK-094）。
+- 前端：原为 `apps/web/tests/<file>.test.tsx`（文件级落点；axe 页面级用例见 TASK-094）；
+  前端代码已随 2026-08-05 移除，对应落点暂缺，待前端重建后恢复。
 - 基础设施/契约：`tools/validate_docs.py::check_xxx`（CI 套件函数）。
 - 人工/演练项：`manual_review`（仅限矩阵已声明 manual_review 层级的行，须附演练/评审记录）。
 
@@ -137,10 +138,10 @@
 | TC-FR-026-A01 | 只重试失败模块且不丢评分证据 | ai/services/orchestrator/tests/test_report_generator.py::test_module_failure_and_partial_retry | 已覆盖 |
 | TC-FR-027-N01 | 邮箱验证码/三方登录/双侧绑定/刷新轮换 | services/identity/service_test.go::TestEmailLoginAndIdempotency；services/identity/service_test.go::TestOAuthRegionMatrixAndFallback；services/identity/service_test.go::TestDualProofBindingSuccessAndIdempotency；services/identity/service_test.go::TestRefreshRotationAndIdempotency | 已覆盖 |
 | TC-FR-027-A01 | 验证码错误/过期/限频/风险 fail-closed、不回显凭据 | services/identity/service_test.go::TestEmailVerificationFailurePaths；services/identity/service_test.go::TestConcurrentChallengeIdempotency；services/identity/service_test.go::TestUnder16RegistrationDoesNotCreateAccount；services/identity/httpapi/handler_test.go::TestProviderFailureDoesNotEchoAuthorizationCode | 已覆盖 |
-| TC-FR-028-N01 | 中文界面+英文面试组合生效 | services/project/service_test.go::TestPreferences；apps/web/tests/dashboard-view.test.tsx | 已覆盖 |
+| TC-FR-028-N01 | 中文界面+英文面试组合生效 | services/project/service_test.go::TestPreferences | 已覆盖 |
 | TC-FR-028-A01 | 简历语言识别后面试语言仍须确认 | services/project/service_test.go::TestPreferences | 已覆盖 |
 | TC-FR-029-N01 | 简历库/岗位库/筛选/进度跨设备同步 | services/project/service_test.go::TestLibraryAndMaterialFilter；services/project/httpapi/handler_test.go::TestLibraryAndPreferencesHTTP | 已覆盖 |
-| TC-FR-029-A01 | 无匹配筛选展示空状态与引导 | apps/web/tests/dashboard-view.test.tsx | 已覆盖 |
+| TC-FR-029-A01 | 无匹配筛选展示空状态与引导 | 前端已移除（2026-08-05），待前端重建后恢复自动落点 | 已移除 |
 | TC-FR-030-N01 | 第二设备进入正式面试被阻止 | services/project/service_test.go::TestDeviceLock；services/room/service_test.go::TestDeviceTransferSession | 已覆盖 |
 | TC-FR-030-A01 | 确认安全转移后原设备失效 | services/project/httpapi/handler_test.go::TestDeviceClaimTransferHTTP；services/room/service_test.go::TestDeviceTransferSession | 已覆盖 |
 | TC-FR-031-N01 | 计划确认后报价、每轮预留 | services/billing/service_test.go::TestQuoteLifecycleAndFreeze；services/billing/ledger_test.go::TestReserveConsumesAndIdempotent | 已覆盖 |
